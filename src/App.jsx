@@ -3,18 +3,58 @@ import './App.css';
 import SettingsView from './components/SettingsView';
 import PhonicsGame from './components/PhonicsGame';
 import SummaryPop from './components/SummaryPop';
+import LearnScreen from './components/LearnScreen';
+import questions from './data/questions';
+import { getSetQuestions } from './data/sets';
+
+// Helper to get words for Learn Mode
+const getLearnWords = (settings) => {
+  // If a set is selected, use those words
+  if (settings.setLetter) {
+    const setQuestions = getSetQuestions(settings.setLetter, questions);
+    return setQuestions.map(q => q.sound);
+  }
+
+  // Otherwise, filter by category
+  const allWords = new Set();
+  questions.forEach(q => q.choices.forEach(word => allWords.add(word)));
+  const wordList = Array.from(allWords);
+
+  switch (settings.learnCategory) {
+    case 'cvc':
+      // CVC words (3 letters, consonant-vowel-consonant)
+      return wordList.filter(w => w.length === 3 && /^[^aeiou][aeiou][^aeiou]$/i.test(w));
+    case 'digraphs':
+      // Words with digraphs (sh, ch, th, wh, ph)
+      return wordList.filter(w => /(sh|ch|th|wh|ph)/i.test(w));
+    case 'magic-e':
+      // Magic-e words (CVCe pattern)
+      return wordList.filter(w => w.length >= 4 && /[aeiou].*e$/i.test(w));
+    default:
+      // All words
+      return wordList;
+  }
+};
 
 function App() {
-  const [screen, setScreen] = useState('settings'); // settings, game, summary
+  const [screen, setScreen] = useState('settings'); // settings, game, summary, learn
   const [gameSettings, setGameSettings] = useState(null);
   const [gameResults, setGameResults] = useState([]);
+  const [learnWords, setLearnWords] = useState([]);
   // State persistence: remember last used settings for when user exits mid-game
   const [lastUsedSettings, setLastUsedSettings] = useState(null);
 
   const handleStartGame = useCallback((settings) => {
     setGameSettings(settings);
     setLastUsedSettings(settings); // Save for state persistence
-    setScreen('game');
+
+    if (settings.mode === 'learn') {
+      const words = getLearnWords(settings);
+      setLearnWords(words);
+      setScreen('learn');
+    } else {
+      setScreen('game');
+    }
   }, []);
 
   const handleGameFinish = useCallback((results) => {
@@ -39,7 +79,15 @@ function App() {
     // For practice mode, PhonicsGame still uses window.confirm before calling this
     setGameSettings(null);
     setGameResults([]);
+    setLearnWords([]);
     // Keep lastUsedSettings intact so SettingsView can use it
+    setScreen('settings');
+  }, []);
+
+  // Exit learn mode
+  const handleExitLearn = useCallback(() => {
+    setGameSettings(null);
+    setLearnWords([]);
     setScreen('settings');
   }, []);
 
@@ -65,6 +113,13 @@ function App() {
           results={gameResults}
           onRestart={handleRestart}
           onHome={handleGoHome}
+        />
+      )}
+
+      {screen === 'learn' && learnWords.length > 0 && (
+        <LearnScreen
+          words={learnWords}
+          onExit={handleExitLearn}
         />
       )}
     </div>
