@@ -7,6 +7,7 @@ import {
   COMPETITION_MS_PER_QUESTION,
   COMPETITION_SPEECH_RATE
 } from '../data/sets';
+import { getBestVoice, speakWithVoice } from '../utils/speech';
 
 // ============================================
 // WEB AUDIO API SOUND EFFECTS
@@ -119,31 +120,6 @@ const playIncorrect = () => {
   } catch (e) {
     console.warn('Audio not available:', e);
   }
-};
-
-// ============================================
-// VOICE CONFIGURATION - High-quality voice filter
-// ============================================
-
-const getBestVoice = () => {
-  const voices = window.speechSynthesis.getVoices();
-
-  const preferredPatterns = [
-    /google/i,
-    /neural/i,
-    /microsoft.*online/i,
-    /natural/i,
-    /enhanced/i,
-  ];
-
-  for (const pattern of preferredPatterns) {
-    const voice = voices.find(
-      (v) => pattern.test(v.name) && v.lang.startsWith('en')
-    );
-    if (voice) return voice;
-  }
-
-  return voices.find((v) => v.lang.startsWith('en')) || voices[0];
 };
 
 // ============================================
@@ -268,6 +244,7 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
   const [feedback, setFeedback] = useState(null);
   const [canAnswer, setCanAnswer] = useState(false);
   const [showExitModal, setShowExitModal] = useState(false);
+  const [isPC, setIsPC] = useState(false);
 
   // Competition states
   const [totalTimeRemaining, setTotalTimeRemaining] = useState(COMPETITION_TOTAL_TIME);
@@ -277,10 +254,28 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
   const hasPlayedStartBuzz = useRef(false);
   const blitzTimerRef = useRef(null);
   const questionIntervalRef = useRef(null);
+  const speechDelayTimeoutRef = useRef(null); // Track the 500ms delay between number and word
   const resultsRef = useRef([]);
   const startTimeRef = useRef(null);
+  const competitionStoppedRef = useRef(false);
+  const speechCancelIntervalRef = useRef(null); // Repeated cancel for stubborn speech
 
   const isCompetition = settings.mode === 'competition';
+
+  // Cancel any previous speech when component mounts
+  useEffect(() => {
+    window.speechSynthesis.cancel();
+  }, []);
+
+  // Detect PC (large screen >= 1024px width)
+  useEffect(() => {
+    const checkIsPC = () => {
+      setIsPC(window.innerWidth >= 1024);
+    };
+    checkIsPC();
+    window.addEventListener('resize', checkIsPC);
+    return () => window.removeEventListener('resize', checkIsPC);
+  }, []);
 
   // Initialize game questions
   useEffect(() => {
@@ -306,9 +301,12 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
     window.speechSynthesis.onvoiceschanged = loadVoices;
 
     return () => {
+      competitionStoppedRef.current = true;
       window.speechSynthesis.cancel();
       if (blitzTimerRef.current) clearInterval(blitzTimerRef.current);
       if (questionIntervalRef.current) clearTimeout(questionIntervalRef.current);
+      if (speechDelayTimeoutRef.current) clearTimeout(speechDelayTimeoutRef.current);
+      if (speechCancelIntervalRef.current) clearInterval(speechCancelIntervalRef.current);
     };
   }, []);
 
@@ -340,88 +338,65 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
   };
 
   // Speak number, pause, then speak word - returns callback when speech completes
-  // STABILITY FIXES: cancel before speak, safety wrapper to prevent overlap
+  // Uses speakWithVoice for fresh high-quality voice every time
   const speakBlitz = useCallback((questionNumber, word, onSpeechComplete) => {
-    // SAFETY WRAPPER: Prevent overlapping speech that can crash browser audio
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
+    // Don't speak if competition has stopped
+    if (competitionStoppedRef.current) {
+      return;
     }
 
     setIsSpeaking(true);
 
     // First: speak the question number
-    const numberUtterance = new SpeechSynthesisUtterance(String(questionNumber));
-    numberUtterance.voice = voiceRef.current;
-    numberUtterance.lang = 'en-US'; // Force English dictation
-    numberUtterance.rate = 1.0; // Normal rate for number
-    numberUtterance.pitch = 1;
-    numberUtterance.volume = 1;
-
-    numberUtterance.onend = () => {
-      // Pause between number and word (500ms delay)
-      setTimeout(() => {
-        // Then: speak the word at slower rate for clarity
-        const wordUtterance = new SpeechSynthesisUtterance(word);
-        wordUtterance.voice = voiceRef.current;
-        wordUtterance.lang = 'en-US'; // Force English dictation
-        wordUtterance.rate = COMPETITION_SPEECH_RATE; // 0.85 rate for clarity
-        wordUtterance.pitch = 1;
-        wordUtterance.volume = 1;
-
-        wordUtterance.onend = () => {
+    speakWithVoice(String(questionNumber), {
+      rate: 1.0,
+      onEnd: () => {
+        // Don't continue if competition stopped
+        if (competitionStoppedRef.current) {
           setIsSpeaking(false);
-          // Callback when speech is fully complete
-          if (onSpeechComplete) onSpeechComplete();
-        };
-        wordUtterance.onerror = () => {
-          setIsSpeaking(false);
-          if (onSpeechComplete) onSpeechComplete();
-        };
-
-        // STABILITY FIX: Cancel immediately before speak to prevent stall bug
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(wordUtterance);
-      }, 500);
-    };
-
-    numberUtterance.onerror = () => {
-      setIsSpeaking(false);
-      if (onSpeechComplete) onSpeechComplete();
-    };
-
-    // STABILITY FIX: Cancel immediately before speak to prevent stall bug
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(numberUtterance);
+          return;
+        }
+        // Pause between number and word (500ms delay)
+        speechDelayTimeoutRef.current = setTimeout(() => {
+          if (competitionStoppedRef.current) {
+            setIsSpeaking(false);
+            return;
+          }
+          // Then: speak the word at slower rate for clarity
+          speakWithVoice(word, {
+            rate: COMPETITION_SPEECH_RATE,
+            onEnd: () => {
+              setIsSpeaking(false);
+              if (onSpeechComplete && !competitionStoppedRef.current) onSpeechComplete();
+            },
+            onError: () => {
+              setIsSpeaking(false);
+              if (onSpeechComplete && !competitionStoppedRef.current) onSpeechComplete();
+            },
+          });
+        }, 500);
+      },
+      onError: () => {
+        setIsSpeaking(false);
+        if (onSpeechComplete && !competitionStoppedRef.current) onSpeechComplete();
+      },
+    });
   }, []);
 
-  // Practice mode speech
-  // STABILITY FIXES: cancel before speak, safety wrapper to prevent overlap
+  // Practice mode speech - uses speakWithVoice for fresh high-quality voice
   const speakText = useCallback((text, onComplete) => {
-    // SAFETY WRAPPER: Prevent overlapping speech that can crash browser audio
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
-    }
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.voice = voiceRef.current;
-    utterance.lang = 'en-US'; // Force English dictation
-    utterance.rate = settings.speed;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      if (onComplete) onComplete();
-    };
-    utterance.onerror = () => {
-      setIsSpeaking(false);
-      if (onComplete) onComplete();
-    };
-
-    // STABILITY FIX: Cancel immediately before speak to prevent stall bug
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
+    speakWithVoice(text, {
+      rate: settings.speed,
+      onStart: () => setIsSpeaking(true),
+      onEnd: () => {
+        setIsSpeaking(false);
+        if (onComplete) onComplete();
+      },
+      onError: () => {
+        setIsSpeaking(false);
+        if (onComplete) onComplete();
+      },
+    });
   }, [settings.speed]);
 
   // ============================================
@@ -442,8 +417,17 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
 
       // End when time is up
       if (remaining <= 0) {
+        competitionStoppedRef.current = true;
         clearInterval(blitzTimerRef.current);
-        if (questionIntervalRef.current) clearTimeout(questionIntervalRef.current);
+        blitzTimerRef.current = null;
+        if (questionIntervalRef.current) {
+          clearTimeout(questionIntervalRef.current);
+          questionIntervalRef.current = null;
+        }
+        if (speechDelayTimeoutRef.current) {
+          clearTimeout(speechDelayTimeoutRef.current);
+          speechDelayTimeoutRef.current = null;
+        }
         window.speechSynthesis.cancel();
         setPhase('competitionFinished');
       }
@@ -451,9 +435,21 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
 
     // Function to process each question with EXACT 4-second cycle
     const processQuestion = () => {
+      // Check if stopped
+      if (competitionStoppedRef.current) {
+        return;
+      }
       if (questionIndex >= gameQuestions.length) {
         // All questions done
-        clearInterval(blitzTimerRef.current);
+        competitionStoppedRef.current = true;
+        if (blitzTimerRef.current) {
+          clearInterval(blitzTimerRef.current);
+          blitzTimerRef.current = null;
+        }
+        if (speechDelayTimeoutRef.current) {
+          clearTimeout(speechDelayTimeoutRef.current);
+          speechDelayTimeoutRef.current = null;
+        }
         window.speechSynthesis.cancel();
         setPhase('competitionFinished');
         return;
@@ -504,10 +500,60 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
   // Start blitz when playing phase begins (competition mode)
   useEffect(() => {
     if (phase === 'playing' && isCompetition && gameQuestions.length > 0) {
+      competitionStoppedRef.current = false; // Reset stop flag
       setTotalTimeRemaining(COMPETITION_TOTAL_TIME);
       runBlitzCompetition();
     }
   }, [phase, isCompetition, gameQuestions, runBlitzCompetition]);
+
+  // FORCE STOP everything when competition finishes
+  useEffect(() => {
+    if (phase === 'competitionFinished') {
+      // Ensure stop flag is set
+      competitionStoppedRef.current = true;
+
+      // Clear all timers
+      if (blitzTimerRef.current) {
+        clearInterval(blitzTimerRef.current);
+        blitzTimerRef.current = null;
+      }
+      if (questionIntervalRef.current) {
+        clearTimeout(questionIntervalRef.current);
+        questionIntervalRef.current = null;
+      }
+      if (speechDelayTimeoutRef.current) {
+        clearTimeout(speechDelayTimeoutRef.current);
+        speechDelayTimeoutRef.current = null;
+      }
+      if (speechCancelIntervalRef.current) {
+        clearInterval(speechCancelIntervalRef.current);
+        speechCancelIntervalRef.current = null;
+      }
+
+      // Force cancel speech immediately
+      window.speechSynthesis.cancel();
+
+      // Set up a repeated cancel interval to catch any stubborn speech
+      // This will run every 100ms for 2 seconds to ensure speech is killed
+      let cancelCount = 0;
+      speechCancelIntervalRef.current = setInterval(() => {
+        window.speechSynthesis.cancel();
+        cancelCount++;
+        if (cancelCount >= 20) { // 2 seconds worth
+          clearInterval(speechCancelIntervalRef.current);
+          speechCancelIntervalRef.current = null;
+        }
+      }, 100);
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (speechCancelIntervalRef.current) {
+        clearInterval(speechCancelIntervalRef.current);
+        speechCancelIntervalRef.current = null;
+      }
+    };
+  }, [phase]);
 
   // Practice mode: Speak current word
   const speakWord = useCallback(() => {
@@ -596,15 +642,25 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
     if (isCompetition && phase === 'playing') {
       setShowExitModal(true);
     } else {
+      // Set stop flag and cancel speech and timers before exiting
+      competitionStoppedRef.current = true;
+      window.speechSynthesis.cancel();
+      if (blitzTimerRef.current) clearInterval(blitzTimerRef.current);
+      if (questionIntervalRef.current) clearTimeout(questionIntervalRef.current);
+      if (speechDelayTimeoutRef.current) clearTimeout(speechDelayTimeoutRef.current);
+      if (speechCancelIntervalRef.current) clearInterval(speechCancelIntervalRef.current);
       onExit();
     }
   };
 
   // Handle exit confirmation
   const handleExitConfirm = () => {
-    // Clean up timers
+    // Set stop flag and clean up all timers
+    competitionStoppedRef.current = true;
     if (blitzTimerRef.current) clearInterval(blitzTimerRef.current);
     if (questionIntervalRef.current) clearTimeout(questionIntervalRef.current);
+    if (speechDelayTimeoutRef.current) clearTimeout(speechDelayTimeoutRef.current);
+    if (speechCancelIntervalRef.current) clearInterval(speechCancelIntervalRef.current);
     window.speechSynthesis.cancel();
     setShowExitModal(false);
     onExit();
@@ -786,76 +842,114 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
           </div>
         </div>
 
-        {/* Main Content - Phone: centered, Phone Landscape: top, Tablet: centered bigger, Desktop: full */}
-        <div className="flex-1 flex flex-col items-center justify-center landscape:justify-start md:justify-center md:landscape:justify-start lg:justify-start pt-0 landscape:pt-0 md:pt-2 lg:pt-4 min-h-0">
+        {/* Main Content - CARDS are the center focus, speaker above */}
+        <div className="flex-1 flex items-center justify-center min-h-0">
+          <div
+            className="flex flex-col items-center"
+            style={isPC
+              ? { marginTop: '-5vh' }
+              : { marginTop: '-8vh' }
+            }
+          >
+            {/* Speaker Icon - small, above cards */}
+            <div
+              className="flex items-center justify-center shrink-0"
+              style={{ marginBottom: isPC ? '2rem' : 'min(5vw, 28px)' }}
+            >
+              {isCompetition ? (
+                <div
+                  className={`rounded-full bg-white/50 ${isSpeaking ? 'speaker-pulse' : ''}`}
+                  style={{ padding: isPC ? '1rem' : 'min(2.5vw, 12px)' }}
+                >
+                  <Volume2
+                    style={{
+                      width: isPC ? 70 : 'min(10vw, 44px)',
+                      height: isPC ? 70 : 'min(10vw, 44px)',
+                      color: '#ae90fd'
+                    }}
+                    strokeWidth={1.5}
+                  />
+                </div>
+              ) : (
+                <button
+                  onClick={handleReplay}
+                  disabled={isSpeaking}
+                  className={`rounded-full bg-white/50 hover:bg-white/80 transition-all ${
+                    isSpeaking ? 'speaker-pulse' : ''
+                  }`}
+                  style={{ padding: isPC ? '1rem' : 'min(2.5vw, 12px)' }}
+                >
+                  <Volume2
+                    style={{
+                      width: isPC ? 60 : 'min(9vw, 40px)',
+                      height: isPC ? 60 : 'min(9vw, 40px)',
+                      color: '#ae90fd'
+                    }}
+                    strokeWidth={1.5}
+                  />
+                </button>
+              )}
+            </div>
 
-          {/* Speaker Icon Container */}
-          <div className="h-[120px] landscape:h-[45px] md:h-[160px] md:landscape:h-[70px] lg:h-[140px] flex items-center justify-center shrink-0 mb-2 landscape:mb-0 md:mb-4 md:landscape:mb-1 lg:mb-0">
-            {isCompetition ? (
-              <div className={`p-4 landscape:p-1.5 md:p-6 md:landscape:p-3 lg:p-8 rounded-full bg-white/50 ${isSpeaking ? 'speaker-pulse' : ''}`}>
-                <Volume2
-                  className="w-16 h-16 landscape:w-9 landscape:h-9 md:w-20 md:h-20 md:landscape:w-12 md:landscape:h-12 lg:w-[100px] lg:h-[100px]"
-                  style={{ color: '#ae90fd' }}
-                  strokeWidth={1.5}
-                />
-              </div>
-            ) : (
-              <button
-                onClick={handleReplay}
-                disabled={isSpeaking}
-                className={`p-4 landscape:p-1.5 md:p-6 md:landscape:p-3 lg:p-8 rounded-full bg-white/50 hover:bg-white/80 transition-all ${
-                  isSpeaking ? 'speaker-pulse' : ''
-                }`}
-              >
-                <Volume2
-                  className="w-14 h-14 landscape:w-8 landscape:h-8 md:w-16 md:h-16 md:landscape:w-10 md:landscape:h-10 lg:w-[80px] lg:h-[80px]"
-                  style={{ color: '#ae90fd' }}
-                  strokeWidth={1.5}
-                />
-              </button>
-            )}
-          </div>
-
-          {/* Instruction Text */}
-          <div className="h-[28px] landscape:h-[14px] md:h-[40px] md:landscape:h-[24px] lg:h-[36px] flex items-center justify-center shrink-0 mb-2 landscape:mb-0 md:mb-4 md:landscape:mb-1 lg:mb-2">
+            {/* Instruction Text */}
             {!isCompetition && (
-              <p className="text-lg landscape:text-[10px] md:text-2xl md:landscape:text-base lg:text-2xl text-gray-500">
+              <div
+                className="flex items-center justify-center shrink-0 text-gray-500"
+                style={{
+                  marginBottom: isPC ? '1.5rem' : 'min(4vw, 20px)',
+                  fontSize: isPC ? '1.25rem' : 'min(4vw, 18px)'
+                }}
+              >
                 {isSpeaking ? 'Listen carefully...' : 'Tap the correct word!'}
-              </p>
+              </div>
             )}
-          </div>
 
-          {/* Choice Cards - Always 3 columns */}
-          <div className="grid grid-cols-3 gap-3 landscape:gap-2 md:gap-5 md:landscape:gap-3 lg:gap-8 w-full max-w-sm landscape:max-w-3xl md:max-w-2xl md:landscape:max-w-4xl lg:max-w-6xl px-4 landscape:px-3 md:px-6 lg:px-4 shrink-0">
-            {currentQuestion.choices.map((choice, index) => {
-              let cardClass = 'rounded-2xl landscape:rounded-xl md:rounded-3xl md:landscape:rounded-2xl lg:rounded-[2.7rem] shadow-lg transition-colors aspect-square';
+            {/* Choice Cards - THE MAIN CONTENT at eye level */}
+            <div
+              className="grid grid-cols-3 shrink-0"
+              style={{
+                gap: isPC ? '2rem' : 'min(4vw, 20px)',
+                width: isPC ? '56rem' : 'min(88vw, 420px)',
+                padding: isPC ? '0 1rem' : '0'
+              }}
+            >
+              {currentQuestion.choices.map((choice, index) => {
+                let cardClass = 'shadow-lg transition-colors aspect-square';
 
-              if (!isCompetition) {
-                cardClass += ' cursor-pointer hover:scale-105 transition-transform';
+                if (!isCompetition) {
+                  cardClass += ' cursor-pointer hover:scale-105 transition-transform';
 
-                if (feedback) {
-                  if (index === currentQuestion.correctIndex) {
-                    cardClass += ' correct-flash';
-                  } else if (feedback === 'incorrect' && results[results.length - 1]?.userAnswer === choice) {
-                    cardClass += ' incorrect-flash';
+                  if (feedback) {
+                    if (index === currentQuestion.correctIndex) {
+                      cardClass += ' correct-flash';
+                    } else if (feedback === 'incorrect' && results[results.length - 1]?.userAnswer === choice) {
+                      cardClass += ' incorrect-flash';
+                    }
                   }
                 }
-              }
 
-              return (
-                <button
-                  key={index}
-                  onClick={() => !isCompetition && handleAnswer(index)}
-                  disabled={isCompetition || !canAnswer || feedback}
-                  className={`${cardClass} flex items-center justify-center p-3 landscape:p-1 md:p-4 md:landscape:p-2 lg:p-4`}
-                  style={{ background: 'linear-gradient(150deg, #f0f7ff 65%, #e6f0ff 100%)' }}
-                >
-                  <span className="text-4xl landscape:text-4xl md:text-6xl md:landscape:text-5xl lg:text-[10vh] font-bold text-gray-700 text-center leading-none">
-                    {choice}
-                  </span>
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={index}
+                    onClick={() => !isCompetition && handleAnswer(index)}
+                    disabled={isCompetition || !canAnswer || feedback}
+                    className={`${cardClass} flex items-center justify-center`}
+                    style={{
+                      background: 'linear-gradient(150deg, #f0f7ff 65%, #e6f0ff 100%)',
+                      padding: isPC ? '1.5rem' : 'min(3vw, 14px)',
+                      borderRadius: isPC ? '2rem' : 'min(4vw, 18px)'
+                    }}
+                  >
+                    <span
+                      className="font-bold text-gray-700 text-center leading-none"
+                      style={{ fontSize: isPC ? '9vh' : 'min(9vw, 52px)' }}
+                    >
+                      {choice}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

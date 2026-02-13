@@ -11,6 +11,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { COMPETITION_SPEECH_RATE } from '../data/sets';
+import { getBestVoice, speakWithVoice } from '../utils/speech';
 
 // ============================================
 // SHARED AUDIO CONTEXT
@@ -54,29 +55,6 @@ const playWhoosh = () => {
   } catch (e) {
     console.warn('Audio not available:', e);
   }
-};
-
-// ============================================
-// HIGH-QUALITY VOICE FILTER
-// ============================================
-const getBestVoice = () => {
-  const voices = window.speechSynthesis.getVoices();
-  const preferredPatterns = [
-    /google/i,
-    /neural/i,
-    /microsoft.*online/i,
-    /natural/i,
-    /enhanced/i,
-  ];
-
-  for (const pattern of preferredPatterns) {
-    const voice = voices.find(
-      (v) => pattern.test(v.name) && v.lang.startsWith('en')
-    );
-    if (voice) return voice;
-  }
-
-  return voices.find((v) => v.lang.startsWith('en')) || voices[0];
 };
 
 // Fullscreen toggle
@@ -225,25 +203,14 @@ const LearnScreen = ({ words, onExit }) => {
     };
   }, []);
 
-  // Speak word function
+  // Speak word function - uses speakWithVoice for fresh high-quality voice
   const speakWord = useCallback((word) => {
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
-    }
-
-    const utterance = new SpeechSynthesisUtterance(word);
-    utterance.voice = voiceRef.current;
-    utterance.lang = 'en-US';
-    utterance.rate = COMPETITION_SPEECH_RATE;
-    utterance.pitch = 1;
-    utterance.volume = 1;
-
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
-
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
+    speakWithVoice(word, {
+      rate: COMPETITION_SPEECH_RATE,
+      onStart: () => setIsSpeaking(true),
+      onEnd: () => setIsSpeaking(false),
+      onError: () => setIsSpeaking(false),
+    });
   }, []);
 
   // Auto-speak when word changes (with 800ms delay)
@@ -300,6 +267,20 @@ const LearnScreen = ({ words, onExit }) => {
     setIsAutoPlay(!isAutoPlay);
   };
 
+  // Handle exit - stop all speech and timers before exiting
+  const handleExit = () => {
+    window.speechSynthesis.cancel();
+    if (autoPlayTimerRef.current) {
+      clearInterval(autoPlayTimerRef.current);
+      autoPlayTimerRef.current = null;
+    }
+    if (speechTimeoutRef.current) {
+      clearTimeout(speechTimeoutRef.current);
+      speechTimeoutRef.current = null;
+    }
+    onExit();
+  };
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -348,21 +329,21 @@ const LearnScreen = ({ words, onExit }) => {
         ))}
       </div>
 
-      {/* Top Controls */}
-      <div className="fixed top-2 right-2 landscape:top-1 landscape:right-1 md:top-3 md:right-3 lg:top-4 lg:right-4 z-50 flex gap-2">
+      {/* Top Controls - matches competition mode positioning */}
+      <div className="fixed top-4 right-4 z-50 flex gap-2">
         <button
           onClick={toggleFullscreen}
-          className="p-2 md:p-3 lg:p-3 rounded-full bg-[#b4d7ff] hover:bg-[#9fc9ff] transition-all shadow-lg"
+          className="p-3 rounded-full bg-[#b4d7ff] hover:bg-[#9fc9ff] transition-all shadow-lg"
           title="Toggle Fullscreen"
         >
-          <Maximize className="w-5 h-5 md:w-6 md:h-6 lg:w-6 lg:h-6 text-[#3e366b]" />
+          <Maximize size={24} className="text-[#3e366b]" />
         </button>
         <button
-          onClick={onExit}
-          className="p-2 md:p-3 lg:p-3 rounded-full bg-[#b4d7ff] hover:bg-[#9fc9ff] transition-all shadow-lg"
+          onClick={handleExit}
+          className="p-3 rounded-full bg-[#b4d7ff] hover:bg-[#9fc9ff] transition-all shadow-lg"
           title="Exit to Home"
         >
-          <Home className="w-5 h-5 md:w-6 md:h-6 lg:w-6 lg:h-6 text-[#3e366b]" />
+          <Home size={24} className="text-[#3e366b]" />
         </button>
       </div>
 

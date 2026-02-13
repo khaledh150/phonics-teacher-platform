@@ -1,16 +1,9 @@
-import React, { useState } from 'react';
-import { Play, Trophy, Shuffle, Volume2, Gauge, Maximize, Clock, Printer, BookOpen } from 'lucide-react';
-import { SET_LETTERS, COMPETITION_TOTAL_TIME } from '../data/sets';
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Trophy, Gamepad2, BookOpen, Maximize, ChevronRight, X, Settings, Printer } from 'lucide-react';
+import { SET_LETTERS } from '../data/sets';
 import { openPrintableSheet } from './PrintableView';
 import wonderPhonicsLogo from '../assets/wonder-phonics-logo.jpeg';
-
-// Word categories for Learn Mode
-const LEARN_CATEGORIES = [
-  { id: 'all', name: 'All Words', description: 'All unique words' },
-  { id: 'cvc', name: 'CVC', description: 'cat, dog, pen...' },
-  { id: 'digraphs', name: 'Digraphs', description: 'ship, chat, thin...' },
-  { id: 'magic-e', name: 'Magic E', description: 'cake, bike, note...' },
-];
+import { getBestVoice } from '../utils/speech';
 
 // Fullscreen toggle
 const toggleFullscreen = () => {
@@ -30,43 +23,87 @@ const requestFullscreen = () => {
   }
 };
 
-// Format time as M:SS
-const formatTime = (seconds) => {
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-};
-
 const SettingsView = ({ onStartGame, initialSettings }) => {
-  // State persistence: use initialSettings if provided (when user exits mid-game)
-  const [mode, setMode] = useState(initialSettings?.mode || 'practice');
+  const [activePopup, setActivePopup] = useState(null);
+  const [showPracticeSettings, setShowPracticeSettings] = useState(false);
+  const [selectedSet, setSelectedSet] = useState(initialSettings?.setLetter || null);
   const [questionCount, setQuestionCount] = useState(initialSettings?.questionCount || 10);
   const [speed, setSpeed] = useState(initialSettings?.speed || 0.75);
-  const [selectedSet, setSelectedSet] = useState(initialSettings?.setLetter || null);
-  const [learnCategory, setLearnCategory] = useState(initialSettings?.learnCategory || 'all');
+  const [isPC, setIsPC] = useState(false);
+  const voiceRef = useRef(null);
 
-  const handleStart = () => {
-    // Competition and Learn modes require a set selection
-    if (mode === 'competition' && !selectedSet) {
-      return;
-    }
-    if (mode === 'learn' && !selectedSet && learnCategory === 'all') {
-      // Learn mode can start without set if category is selected
-    }
+  // Cancel any ongoing speech when returning to settings page
+  useEffect(() => {
+    window.speechSynthesis.cancel();
+    // Also cancel on interval to ensure it stops - more aggressive, 2 seconds
+    const cancelInterval = setInterval(() => {
+      window.speechSynthesis.cancel();
+    }, 100);
+    // Clear after 2 seconds
+    const timeout = setTimeout(() => clearInterval(cancelInterval), 2000);
+    return () => {
+      clearInterval(cancelInterval);
+      clearTimeout(timeout);
+    };
+  }, []);
 
+  // Detect PC (large screen >= 1024px width)
+  useEffect(() => {
+    const checkIsPC = () => {
+      setIsPC(window.innerWidth >= 1024);
+    };
+    checkIsPC();
+    window.addEventListener('resize', checkIsPC);
+    return () => window.removeEventListener('resize', checkIsPC);
+  }, []);
+
+  // Load high-quality voices
+  useEffect(() => {
+    const loadVoices = () => {
+      voiceRef.current = getBestVoice();
+    };
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+  }, []);
+
+  // Removed tile dictation to prevent speech from continuing after leaving modes
+
+  // Start game handlers - cancel any speech before starting
+  const handleStartLearn = () => {
+    window.speechSynthesis.cancel();
     requestFullscreen();
-
     onStartGame({
-      mode,
-      questionCount: mode === 'competition' ? 60 : questionCount,
-      speed,
-      setLetter: (mode === 'competition' || mode === 'learn') ? selectedSet : null,
-      learnCategory: mode === 'learn' ? learnCategory : null,
+      mode: 'learn',
+      questionCount: 100,
+      speed: 0.75,
+      setLetter: null,
+      learnCategory: 'all',
     });
   };
 
-  const handleSetSelect = (letter) => {
-    setSelectedSet(letter);
+  const handleStartPractice = () => {
+    window.speechSynthesis.cancel();
+    requestFullscreen();
+    onStartGame({
+      mode: 'practice',
+      questionCount,
+      speed,
+      setLetter: null,
+      learnCategory: null,
+    });
+  };
+
+  const handleStartCompetition = () => {
+    if (!selectedSet) return;
+    window.speechSynthesis.cancel();
+    requestFullscreen();
+    onStartGame({
+      mode: 'competition',
+      questionCount: 60,
+      speed: 0.75,
+      setLetter: selectedSet,
+      learnCategory: null,
+    });
   };
 
   const handlePrint = () => {
@@ -75,328 +112,320 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
     }
   };
 
+  // Close popup when clicking outside
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      setActivePopup(null);
+      setShowPracticeSettings(false);
+    }
+  };
+
+  // PC-specific styles
+  const pcLogoStyle = isPC ? { height: '200px', marginTop: '-3rem' } : {};
+  const pcTileStyle = isPC ? { padding: '1.5rem', minWidth: '200px', minHeight: '260px' } : {};
+  const pcNumberStyle = isPC ? { fontSize: '80px' } : {};
+  const pcIconSize = isPC ? 64 : undefined;
+  const pcLabelStyle = isPC ? { fontSize: '1.4rem' } : {};
+
+  // Responsive tile styles for phone/tablet using viewport units
+  const tileStyle = isPC ? pcTileStyle : {
+    width: 'min(28vw, 140px)',
+    height: 'min(35vw, 175px)',
+    padding: 'min(3vw, 16px)'
+  };
+  const logoStyle = isPC ? pcLogoStyle : {
+    height: 'min(22vw, 120px)'
+  };
+  const numberStyle = isPC ? pcNumberStyle : {
+    fontSize: 'min(12vw, 56px)'
+  };
+  const iconSizeStyle = isPC ? { width: pcIconSize, height: pcIconSize } : {
+    width: 'min(10vw, 48px)',
+    height: 'min(10vw, 48px)'
+  };
+  const labelStyle = isPC ? pcLabelStyle : {
+    fontSize: 'min(4vw, 18px)'
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-2 landscape:p-2 md:p-4 md:landscape:p-3 lg:p-4 bg-[#d8e9fa] overflow-auto">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 landscape:p-3 md:p-6 overflow-auto relative"
+      style={{ background: 'linear-gradient(135deg, #d8e9fa 0%, #e8f4ff 50%, #f0e6ff 100%)' }}
+    >
+      {/* Animated background particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(12)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full animate-pulse"
+            style={{
+              width: Math.random() * 100 + 50,
+              height: Math.random() * 100 + 50,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              background: ['#ae90fd15', '#4d79ff15', '#ffd70015', '#f093fb15'][i % 4],
+              animationDelay: `${i * 0.5}s`,
+              animationDuration: `${3 + Math.random() * 2}s`,
+            }}
+          />
+        ))}
+      </div>
+
       {/* Fullscreen Button */}
       <button
         onClick={toggleFullscreen}
-        className="fixed top-2 right-2 md:top-3 md:right-3 lg:top-4 lg:right-4 z-50 p-2 md:p-3 lg:p-3 rounded-full bg-[#b4d7ff] hover:bg-[#9fc9ff] transition-all shadow-lg"
+        className="fixed top-3 right-3 md:top-4 md:right-4 z-50 p-2 md:p-3 rounded-full bg-[#b4d7ff] hover:bg-[#9fc9ff] transition-all shadow-lg"
         title="Toggle Fullscreen"
       >
-        <Maximize className="w-5 h-5 md:w-6 md:h-6 lg:w-6 lg:h-6 text-[#3e366b]" />
+        <Maximize className="w-5 h-5 md:w-6 md:h-6 text-[#3e366b]" />
       </button>
 
+      {/* Logo - Responsive sizing, bigger than tiles */}
+      <div className="mb-6 landscape:mb-4 md:mb-10 relative z-10" style={isPC ? { marginBottom: '3rem' } : {}}>
+        <img
+          src={wonderPhonicsLogo}
+          alt="Wonder Phonics"
+          className="w-auto mx-auto rounded-xl md:rounded-2xl shadow-lg object-contain"
+          style={{ ...logoStyle, minHeight: isPC ? '140px' : 'min(25vw, 130px)' }}
+        />
+      </div>
+
+      {/* Three Main Tiles with Arrows */}
       <div
-        className="rounded-3xl landscape:rounded-2xl md:rounded-[2rem] md:landscape:rounded-3xl lg:rounded-[2.7rem] shadow-xl p-4 landscape:p-3 md:p-8 md:landscape:p-5 lg:p-10 w-full max-w-2xl md:max-w-3xl lg:max-w-2xl fade-in"
-        style={{ background: 'linear-gradient(150deg, #f0f7ff 65%, #e6f0ff 100%)' }}
+        className="flex flex-col landscape:flex-row md:flex-row items-center justify-center w-full relative z-10"
+        style={isPC ? { gap: '1.5rem', maxWidth: '100%' } : { gap: 'min(2vw, 12px)', maxWidth: '72rem' }}
       >
-        {/* Logo */}
-        <div className="text-center mb-4 landscape:mb-2 md:mb-6 md:landscape:mb-4 lg:mb-8">
-          <img
-            src={wonderPhonicsLogo}
-            alt="Wonder Phonics"
-            className="h-40 landscape:h-28 md:h-56 md:landscape:h-40 lg:h-72 w-auto mx-auto mb-2 landscape:mb-1 md:mb-3 rounded-2xl shadow-lg object-contain"
+
+        {/* Tile 1: Learn */}
+        <button
+          onClick={() => setActivePopup('learn')}
+          className="flex flex-col items-center justify-center rounded-2xl md:rounded-3xl bg-white border-4 border-[#ae90fd] shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+          style={{ ...tileStyle, borderWidth: isPC ? '5px' : '4px', borderRadius: isPC ? '2rem' : '1rem' }}
+        >
+          <span className="font-black text-[#ae90fd] leading-none" style={numberStyle}>1</span>
+          <BookOpen
+            className="text-[#ae90fd] my-2"
+            style={iconSizeStyle}
           />
-          <p className="text-gray-500 text-sm md:text-lg md:landscape:text-base lg:text-lg">Select your mode and settings</p>
+          <span className="font-semibold text-[#3e366b]" style={labelStyle}>Learn</span>
+        </button>
+
+        {/* Arrow 1 */}
+        <div className="hidden landscape:flex md:flex items-center justify-center">
+          <ChevronRight
+            className="text-[#4d79ff]"
+            style={isPC ? { width: 40, height: 40, strokeWidth: 3 } : { width: 28, height: 28, strokeWidth: 2.5 }}
+          />
+        </div>
+        <div className="landscape:hidden md:hidden flex items-center justify-center rotate-90">
+          <ChevronRight style={{ width: 'min(5vw, 24px)', height: 'min(5vw, 24px)', strokeWidth: 2 }} className="text-[#4d79ff]" />
         </div>
 
-        {/* Content Area */}
-        <div>
-          {/* Mode Selection - 3 Modes: Learn, Practice, Competition */}
-          <div className="mb-4 landscape:mb-3 md:mb-6 md:landscape:mb-4 lg:mb-8">
-            <label className="block text-[#3e366b] font-semibold mb-2 landscape:mb-1.5 md:mb-3 lg:mb-4 text-sm landscape:text-xs md:text-base lg:text-lg">
-              Game Mode
-            </label>
-            <div className="grid grid-cols-3 gap-2.5 landscape:gap-1.5 md:gap-4 md:landscape:gap-3 lg:gap-5">
-              {/* Learn Mode - purple frame only, no background */}
-              <button
-                onClick={() => setMode('learn')}
-                className={`p-3 landscape:p-2 md:p-5 md:landscape:p-3 lg:p-6 rounded-2xl landscape:rounded-xl md:rounded-2xl lg:rounded-[2rem] border-3 transition-all flex flex-col items-center gap-1 landscape:gap-0.5 md:gap-2 lg:gap-3 ${
-                  mode === 'learn'
-                    ? 'border-[#ae90fd] bg-white'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                }`}
-              >
-                <BookOpen
-                  className={`w-6 h-6 landscape:w-5 landscape:h-5 md:w-8 md:h-8 md:landscape:w-6 md:landscape:h-6 lg:w-10 lg:h-10 ${mode === 'learn' ? 'text-[#ae90fd]' : 'text-gray-400'}`}
-                />
-                <span className={`font-semibold text-sm landscape:text-xs md:text-lg md:landscape:text-sm lg:text-xl ${
-                  mode === 'learn' ? 'text-[#ae90fd]' : 'text-gray-600'
-                }`}>
-                  Learn
-                </span>
-                <span className="text-[10px] md:text-sm lg:text-base text-gray-400 hidden landscape:hidden md:block text-center">Watch & listen</span>
-              </button>
+        {/* Tile 2: Practice */}
+        <button
+          onClick={() => setActivePopup('practice')}
+          className="flex flex-col items-center justify-center rounded-2xl md:rounded-3xl bg-white border-4 border-[#4d79ff] shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+          style={{ ...tileStyle, borderWidth: isPC ? '5px' : '4px', borderRadius: isPC ? '2rem' : '1rem' }}
+        >
+          <span className="font-black text-[#4d79ff] leading-none" style={numberStyle}>2</span>
+          <Gamepad2
+            className="text-[#4d79ff] my-2"
+            style={iconSizeStyle}
+          />
+          <span className="font-semibold text-[#3e366b]" style={labelStyle}>Practice</span>
+        </button>
 
-              {/* Practice Mode */}
-              <button
-                onClick={() => {
-                  setMode('practice');
-                  setSelectedSet(null);
-                }}
-                className={`p-3 landscape:p-2 md:p-5 md:landscape:p-3 lg:p-6 rounded-2xl landscape:rounded-xl md:rounded-2xl lg:rounded-[2rem] border-3 transition-all flex flex-col items-center gap-1 landscape:gap-0.5 md:gap-2 lg:gap-3 ${
-                  mode === 'practice'
-                    ? 'border-[#4d79ff] bg-blue-50'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                }`}
-              >
-                <Shuffle
-                  className={`w-6 h-6 landscape:w-5 landscape:h-5 md:w-8 md:h-8 md:landscape:w-6 md:landscape:h-6 lg:w-10 lg:h-10 ${mode === 'practice' ? 'text-[#4d79ff]' : 'text-gray-400'}`}
-                />
-                <span className={`font-semibold text-sm landscape:text-xs md:text-lg md:landscape:text-sm lg:text-xl ${
-                  mode === 'practice' ? 'text-[#4d79ff]' : 'text-gray-600'
-                }`}>
-                  Practice
-                </span>
-                <span className="text-[10px] md:text-sm lg:text-base text-gray-400 hidden landscape:hidden md:block text-center">Tap to answer</span>
-              </button>
-
-              {/* Competition Mode - Yellow border only, no yellow background */}
-              <button
-                onClick={() => setMode('competition')}
-                className={`p-3 landscape:p-2 md:p-5 md:landscape:p-3 lg:p-6 rounded-2xl landscape:rounded-xl md:rounded-2xl lg:rounded-[2rem] border-3 transition-all flex flex-col items-center gap-1 landscape:gap-0.5 md:gap-2 lg:gap-3 ${
-                  mode === 'competition'
-                    ? 'border-[#ffd700] bg-white'
-                    : 'border-gray-200 bg-white hover:border-gray-300'
-                }`}
-              >
-                <Trophy
-                  className={`w-6 h-6 landscape:w-5 landscape:h-5 md:w-8 md:h-8 md:landscape:w-6 md:landscape:h-6 lg:w-10 lg:h-10 ${mode === 'competition' ? 'text-[#ffd700]' : 'text-gray-400'}`}
-                />
-                <span className={`font-semibold text-sm landscape:text-xs md:text-lg md:landscape:text-sm lg:text-xl ${
-                  mode === 'competition' ? 'text-[#3e366b]' : 'text-gray-600'
-                }`}>
-                  Competition
-                </span>
-                <span className="text-[10px] md:text-sm lg:text-base text-gray-400 hidden landscape:hidden md:block text-center">60 questions</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Competition Set Selection - 10 Buttons (A-J) */}
-          {mode === 'competition' && (
-            <div className="mb-4 landscape:mb-3 md:mb-6 md:landscape:mb-4 lg:mb-8 fade-in">
-              <label className="block text-[#3e366b] font-semibold mb-2 landscape:mb-1.5 md:mb-3 lg:mb-4 text-sm landscape:text-xs md:text-base lg:text-lg">
-                Select Question Set
-              </label>
-              <div className="grid grid-cols-5 gap-2 landscape:gap-1.5 md:gap-3 md:landscape:gap-2 lg:gap-4">
-                {SET_LETTERS.map((letter) => (
-                  <button
-                    key={letter}
-                    onClick={() => handleSetSelect(letter)}
-                    className={`p-2.5 landscape:p-1.5 md:p-4 md:landscape:p-3 lg:p-5 rounded-xl md:rounded-2xl lg:rounded-2xl font-bold text-lg landscape:text-base md:text-2xl md:landscape:text-xl lg:text-3xl transition-all ${
-                      selectedSet === letter
-                        ? 'bg-[#ffd700] text-[#3e366b] shadow-lg scale-105'
-                        : 'bg-white border-2 border-gray-200 text-gray-600 hover:border-[#4d79ff] hover:bg-blue-50'
-                    }`}
-                  >
-                    {letter}
-                  </button>
-                ))}
-              </div>
-
-              {/* Competition Info */}
-              <div className="mt-3 landscape:mt-2 md:mt-4 md:landscape:mt-3 lg:mt-5 p-2.5 landscape:p-1.5 md:p-4 md:landscape:p-3 lg:p-5 rounded-xl md:rounded-2xl lg:rounded-2xl bg-[#e6f0ff] border-2 border-[#b4d7ff]">
-                <div className="flex items-center justify-center gap-2">
-                  <Clock className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-[#4d79ff]" />
-                  <span className="text-[#3e366b] font-bold text-sm landscape:text-xs md:text-lg md:landscape:text-base lg:text-xl">
-                    Total Time: {formatTime(COMPETITION_TOTAL_TIME)}
-                  </span>
-                </div>
-                <p className="text-center text-gray-500 text-xs landscape:text-[10px] md:text-sm lg:text-base mt-1">
-                  60 questions • 4 seconds per question
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Learn Mode Selection */}
-          {mode === 'learn' && (
-            <div className="mb-3 landscape:mb-2 md:mb-5 md:landscape:mb-3 lg:mb-6 fade-in">
-              {/* Category Selection */}
-              <label className="block text-[#3e366b] font-semibold mb-1.5 landscape:mb-1 md:mb-2 lg:mb-3 text-sm landscape:text-xs md:text-base lg:text-lg">
-                Choose Category
-              </label>
-              <div className="grid grid-cols-2 gap-1.5 landscape:gap-1 md:gap-2 md:landscape:gap-1.5 lg:gap-3 mb-3 landscape:mb-1.5 md:mb-3">
-                {LEARN_CATEGORIES.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => {
-                      setLearnCategory(cat.id);
-                      setSelectedSet(null);
-                    }}
-                    className={`p-1.5 landscape:p-1 md:p-2 md:landscape:p-1.5 lg:p-3 rounded-lg md:rounded-xl lg:rounded-xl font-semibold text-xs landscape:text-[10px] md:text-sm lg:text-base transition-all text-left ${
-                      learnCategory === cat.id && !selectedSet
-                        ? 'bg-[#ae90fd] text-white shadow-lg'
-                        : 'bg-white border-2 border-gray-200 text-gray-600 hover:border-purple-400 hover:bg-purple-50'
-                    }`}
-                  >
-                    <div className="font-bold">{cat.name}</div>
-                    <div className={`text-[10px] landscape:text-[9px] md:text-xs ${learnCategory === cat.id && !selectedSet ? 'text-white/80' : 'text-gray-400'}`}>
-                      {cat.description}
-                    </div>
-                  </button>
-                ))}
-              </div>
-
-              {/* OR Set Selection */}
-              <div className="flex items-center gap-2 my-2 landscape:my-1 md:my-3">
-                <div className="flex-1 h-px bg-gray-300"></div>
-                <span className="text-gray-400 text-xs landscape:text-[10px] font-medium">OR select a set</span>
-                <div className="flex-1 h-px bg-gray-300"></div>
-              </div>
-
-              <div className="grid grid-cols-5 gap-1.5 landscape:gap-1 md:gap-2 md:landscape:gap-1.5 lg:gap-3">
-                {SET_LETTERS.map((letter) => (
-                  <button
-                    key={letter}
-                    onClick={() => {
-                      setSelectedSet(letter);
-                      setLearnCategory(null);
-                    }}
-                    className={`p-1.5 landscape:p-1 md:p-3 md:landscape:p-2 lg:p-3 rounded-lg md:rounded-xl lg:rounded-xl font-bold text-base landscape:text-sm md:text-xl md:landscape:text-lg lg:text-2xl transition-all ${
-                      selectedSet === letter
-                        ? 'bg-[#ae90fd] text-white shadow-lg scale-105'
-                        : 'bg-white border-2 border-gray-200 text-gray-600 hover:border-purple-400 hover:bg-purple-50'
-                    }`}
-                  >
-                    {letter}
-                  </button>
-                ))}
-              </div>
-
-              {/* Learn Mode Info */}
-              <div className="mt-2 landscape:mt-1 md:mt-3 md:landscape:mt-2 lg:mt-4 p-1.5 landscape:p-1 md:p-3 md:landscape:p-2 lg:p-4 rounded-xl md:rounded-2xl lg:rounded-2xl bg-purple-50 border-2 border-[#ae90fd]">
-                <div className="flex items-center justify-center gap-2">
-                  <BookOpen className="w-3 h-3 md:w-4 md:h-4 lg:w-5 lg:h-5 text-purple-600" />
-                  <span className="text-purple-700 font-bold text-xs landscape:text-[10px] md:text-base md:landscape:text-sm lg:text-lg">
-                    Interactive Learning
-                  </span>
-                </div>
-                <p className="text-center text-purple-500 text-[10px] landscape:text-[9px] md:text-xs lg:text-sm mt-0.5">
-                  See images • Hear words • Learn at your pace
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Question Count (Practice Mode Only) */}
-          {mode === 'practice' && (
-            <div className="mb-4 landscape:mb-3 md:mb-6 md:landscape:mb-4 lg:mb-8 fade-in">
-              <label className="block text-[#3e366b] font-semibold mb-2 landscape:mb-1.5 md:mb-3 lg:mb-4 text-sm landscape:text-xs md:text-base lg:text-lg">
-                Number of Questions
-              </label>
-              <div className="grid grid-cols-4 gap-2 landscape:gap-1.5 md:gap-3 md:landscape:gap-2 lg:gap-4">
-                {[10, 20, 50, 100].map((count) => (
-                  <button
-                    key={count}
-                    onClick={() => setQuestionCount(count)}
-                    className={`p-2.5 landscape:p-1.5 md:p-4 md:landscape:p-3 lg:p-5 rounded-xl md:rounded-2xl lg:rounded-2xl font-bold text-base landscape:text-sm md:text-xl md:landscape:text-lg lg:text-2xl transition-all ${
-                      questionCount === count
-                        ? 'bg-[#4d79ff] text-white shadow-lg'
-                        : 'bg-white border-2 border-gray-200 text-gray-600 hover:border-[#4d79ff]'
-                    }`}
-                  >
-                    {count}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Speed Control (Practice Mode Only) */}
-          {mode === 'practice' && (
-            <div className="mb-4 landscape:mb-3 md:mb-6 md:landscape:mb-4 lg:mb-8 fade-in">
-              <label className="block text-[#3e366b] font-semibold mb-2 landscape:mb-1.5 md:mb-3 lg:mb-4 text-sm landscape:text-xs md:text-base lg:text-lg flex items-center gap-2">
-                <Gauge className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-[#ae90fd]" />
-                Speech Speed: {speed.toFixed(2)}x
-              </label>
-              <input
-                type="range"
-                min="0.5"
-                max="1.5"
-                step="0.05"
-                value={speed}
-                onChange={(e) => setSpeed(parseFloat(e.target.value))}
-                className="w-full accent-[#4d79ff] h-2 md:h-3"
-              />
-              <div className="flex justify-between text-xs landscape:text-[10px] md:text-sm lg:text-base text-gray-400 mt-1 md:mt-2">
-                <span>Slower</span>
-                <span>Default</span>
-                <span>Faster</span>
-              </div>
-            </div>
-          )}
+        {/* Arrow 2 */}
+        <div className="hidden landscape:flex md:flex items-center justify-center">
+          <ChevronRight
+            className="text-[#ffd700]"
+            style={isPC ? { width: 40, height: 40, strokeWidth: 3 } : { width: 28, height: 28, strokeWidth: 2.5 }}
+          />
+        </div>
+        <div className="landscape:hidden md:hidden flex items-center justify-center rotate-90">
+          <ChevronRight style={{ width: 'min(5vw, 24px)', height: 'min(5vw, 24px)', strokeWidth: 2 }} className="text-[#ffd700]" />
         </div>
 
-        {/* Start Button Section */}
-        <div className="mt-4 landscape:mt-2 md:mt-6 lg:mt-8">
-          {/* Button Row - Start and Print */}
-          <div className={`flex gap-2 md:gap-3 lg:gap-3 ${(mode === 'competition' && selectedSet) || mode === 'learn' ? '' : 'flex-col'}`}>
-            {/* Start Button */}
+        {/* Tile 3: Competition */}
+        <button
+          onClick={() => setActivePopup('competition')}
+          className="flex flex-col items-center justify-center rounded-2xl md:rounded-3xl bg-white border-4 border-[#ffd700] shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+          style={{ ...tileStyle, borderWidth: isPC ? '5px' : '4px', borderRadius: isPC ? '2rem' : '1rem' }}
+        >
+          <span className="font-black text-[#ffd700] leading-none" style={numberStyle}>3</span>
+          <Trophy
+            className="text-[#ffd700] my-2"
+            style={iconSizeStyle}
+          />
+          <span className="font-semibold text-[#3e366b]" style={labelStyle}>Competition</span>
+        </button>
+      </div>
+
+      {/* ==================== POP-UP PANELS ==================== */}
+
+      {/* Learn Mode Pop-up */}
+      {activePopup === 'learn' && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={handleBackdropClick}
+        >
+          <div className="bg-white rounded-3xl p-8 md:p-12 shadow-2xl max-w-md w-full text-center relative">
             <button
-              onClick={handleStart}
-              disabled={mode === 'competition' && !selectedSet}
-              className={`flex-1 text-sm landscape:text-xs md:text-lg md:landscape:text-base lg:text-xl py-2.5 landscape:py-1.5 md:py-3 md:landscape:py-2 lg:py-4 flex items-center justify-center gap-2 md:gap-3 lg:gap-3 rounded-full font-bold transition-all shadow-lg ${
-                mode === 'competition' && !selectedSet
-                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : mode === 'learn'
-                    ? 'bg-[#ae90fd] text-white hover:bg-[#9d7ff0]'
-                    : 'bg-[#b4d7ff] text-[#3e366b] hover:bg-[#9fc9ff]'
-              }`}
+              onClick={() => setActivePopup(null)}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-all"
             >
-              {mode === 'learn' ? (
-                <BookOpen className="w-4 h-4 md:w-6 md:h-6 lg:w-7 lg:h-7" />
-              ) : (
-                <Play className="w-4 h-4 md:w-6 md:h-6 lg:w-7 lg:h-7" fill={mode === 'competition' && !selectedSet ? '#9ca3af' : '#3e366b'} />
-              )}
-              {mode === 'competition'
-                ? selectedSet
-                  ? `Start Set ${selectedSet}`
-                  : 'Select a Set'
-                : mode === 'learn'
-                  ? selectedSet
-                    ? `Learn Set ${selectedSet}`
-                    : 'Start Learning'
-                  : 'Start Game'
-              }
+              <X className="w-6 h-6 text-gray-400" />
             </button>
 
-            {/* Print Answer Sheet Button - Only in Competition Mode with Set Selected */}
-            {mode === 'competition' && selectedSet && (
+            <BookOpen className="w-20 h-20 md:w-24 md:h-24 text-[#ae90fd] mx-auto mb-4" />
+            <h2 className="text-2xl md:text-3xl font-bold text-[#3e366b] mb-8">Learn Mode</h2>
+
+            <button
+              onClick={handleStartLearn}
+              className="w-full py-6 md:py-8 rounded-2xl bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold text-2xl md:text-3xl flex items-center justify-center gap-4 shadow-xl hover:shadow-2xl transition-all"
+            >
+              <Play className="w-10 h-10 md:w-12 md:h-12" fill="white" />
+              START
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Practice Mode Pop-up */}
+      {activePopup === 'practice' && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={handleBackdropClick}
+        >
+          <div className="bg-white rounded-3xl p-8 md:p-12 shadow-2xl max-w-md w-full text-center relative">
+            <button
+              onClick={() => setActivePopup(null)}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-all"
+            >
+              <X className="w-6 h-6 text-gray-400" />
+            </button>
+
+            <Gamepad2 className="w-20 h-20 md:w-24 md:h-24 text-[#4d79ff] mx-auto mb-4" />
+            <h2 className="text-2xl md:text-3xl font-bold text-[#3e366b] mb-8">Practice Mode</h2>
+
+            {showPracticeSettings && (
+              <div className="mb-6 p-4 bg-gray-50 rounded-xl text-left">
+                <label className="block text-[#3e366b] font-semibold mb-2 text-sm">
+                  Questions
+                </label>
+                <div className="grid grid-cols-4 gap-2 mb-4">
+                  {[10, 20, 50, 100].map((count) => (
+                    <button
+                      key={count}
+                      onClick={() => setQuestionCount(count)}
+                      className={`p-2 rounded-lg font-bold text-sm transition-all ${
+                        questionCount === count
+                          ? 'bg-[#4d79ff] text-white'
+                          : 'bg-white border-2 border-gray-200 text-gray-600 hover:border-[#4d79ff]'
+                      }`}
+                    >
+                      {count}
+                    </button>
+                  ))}
+                </div>
+
+                <label className="block text-[#3e366b] font-semibold mb-2 text-sm">
+                  Speed: {speed.toFixed(2)}x
+                </label>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="1.5"
+                  step="0.05"
+                  value={speed}
+                  onChange={(e) => setSpeed(parseFloat(e.target.value))}
+                  className="w-full accent-[#4d79ff]"
+                />
+              </div>
+            )}
+
+            <button
+              onClick={handleStartPractice}
+              className="w-full py-6 md:py-8 rounded-2xl bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold text-2xl md:text-3xl flex items-center justify-center gap-4 shadow-xl hover:shadow-2xl transition-all"
+            >
+              <Play className="w-10 h-10 md:w-12 md:h-12" fill="white" />
+              START
+            </button>
+
+            <button
+              onClick={() => setShowPracticeSettings(!showPracticeSettings)}
+              className="mt-4 text-gray-400 text-sm underline hover:text-gray-600 transition-all flex items-center justify-center gap-1 mx-auto"
+            >
+              <Settings className="w-4 h-4" />
+              {showPracticeSettings ? 'Hide settings' : 'Change settings'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Competition Mode Pop-up */}
+      {activePopup === 'competition' && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={handleBackdropClick}
+        >
+          <div className="bg-white rounded-3xl p-8 md:p-12 shadow-2xl max-w-md w-full text-center relative">
+            <button
+              onClick={() => setActivePopup(null)}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-all"
+            >
+              <X className="w-6 h-6 text-gray-400" />
+            </button>
+
+            <Trophy className="w-20 h-20 md:w-24 md:h-24 text-[#ffd700] mx-auto mb-4" />
+            <h2 className="text-2xl md:text-3xl font-bold text-[#3e366b] mb-6">Competition Mode</h2>
+
+            <div className="mb-6">
+              <label className="block text-[#3e366b] font-semibold mb-3 text-lg">
+                Select Set
+              </label>
+              <div className="grid grid-cols-5 gap-2">
+                {SET_LETTERS.map((letter) => (
+                  <button
+                    key={letter}
+                    onClick={() => setSelectedSet(letter)}
+                    className={`p-3 md:p-4 rounded-xl font-bold text-xl md:text-2xl transition-all ${
+                      selectedSet === letter
+                        ? 'bg-[#ffd700] text-[#3e366b] shadow-lg scale-110'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {letter}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={handleStartCompetition}
+              disabled={!selectedSet}
+              className={`w-full py-6 md:py-8 rounded-2xl font-bold text-2xl md:text-3xl flex items-center justify-center gap-4 shadow-xl transition-all ${
+                selectedSet
+                  ? 'bg-[#22c55e] hover:bg-[#16a34a] text-white hover:shadow-2xl'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <Play className="w-10 h-10 md:w-12 md:h-12" fill={selectedSet ? 'white' : '#9ca3af'} />
+              {selectedSet ? `START SET ${selectedSet}` : 'SELECT A SET'}
+            </button>
+
+            {/* Print Answer Sheet link */}
+            {selectedSet && (
               <button
                 onClick={handlePrint}
-                className="px-4 md:px-6 lg:px-8 py-2.5 landscape:py-1.5 md:py-3 md:landscape:py-2 lg:py-4 flex items-center justify-center gap-2 rounded-full font-bold transition-all shadow-lg bg-white border-2 border-[#4d79ff] text-[#4d79ff] hover:bg-blue-50 whitespace-nowrap"
-                title="Print Answer Sheet"
+                className="mt-4 text-gray-400 text-sm underline hover:text-gray-600 transition-all flex items-center justify-center gap-1 mx-auto"
               >
-                <Printer className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6" />
-                <span className="text-xs md:text-sm lg:text-base">Print Answer Sheet</span>
+                <Printer className="w-4 h-4" />
+                Print answer sheet
               </button>
             )}
           </div>
-
-          {/* Voice Info */}
-          <div className="mt-2 landscape:mt-1 md:mt-3 lg:mt-4 text-center text-gray-400 text-[10px] landscape:text-[9px] md:text-xs lg:text-sm flex items-center justify-center gap-1.5">
-            <Volume2 className="w-3 h-3 md:w-3.5 md:h-3.5 lg:w-4 lg:h-4 text-[#ae90fd]" />
-            <span className="hidden landscape:hidden md:inline">
-              {mode === 'competition'
-                ? 'Deterministic sets matching printed answer sheets'
-                : mode === 'learn'
-                  ? 'Watch images and listen to high-quality pronunciation'
-                  : 'Using high-quality Google/Neural voice synthesis'
-              }
-            </span>
-            <span className="md:hidden">
-              {mode === 'competition'
-                ? 'Matches printed sheets'
-                : mode === 'learn'
-                  ? 'Watch & listen'
-                  : 'Voice synthesis enabled'
-              }
-            </span>
-          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

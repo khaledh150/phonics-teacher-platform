@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CheckCircle, XCircle, RotateCcw, Home, Trophy, Maximize, Volume2 } from 'lucide-react';
 import { COMPETITION_SPEECH_RATE } from '../data/sets';
+import { getBestVoice, speakWithVoice } from '../utils/speech';
 
 // Confetti Component
 const Confetti = () => {
@@ -85,49 +86,9 @@ const toggleFullscreen = () => {
   }
 };
 
-// ============================================
-// HIGH-QUALITY VOICE FILTER (Same as main game)
-// ============================================
-const getBestVoice = () => {
-  const voices = window.speechSynthesis.getVoices();
-
-  const preferredPatterns = [
-    /google/i,
-    /neural/i,
-    /microsoft.*online/i,
-    /natural/i,
-    /enhanced/i,
-  ];
-
-  for (const pattern of preferredPatterns) {
-    const voice = voices.find(
-      (v) => pattern.test(v.name) && v.lang.startsWith('en')
-    );
-    if (voice) return voice;
-  }
-
-  return voices.find((v) => v.lang.startsWith('en')) || voices[0];
-};
-
-// Speak a word using high-quality voice (same as competition dictation)
-// STABILITY FIXES: cancel at start, get fresh voice, cancel before speak
+// Speak a word using high-quality voice via shared utility
 const speakWord = (word) => {
-  // Cancel any ongoing speech first
-  window.speechSynthesis.cancel();
-
-  // Get fresh voice reference
-  const voice = getBestVoice();
-
-  const utterance = new SpeechSynthesisUtterance(word);
-  utterance.voice = voice;
-  utterance.lang = 'en-US'; // Force English dictation
-  utterance.rate = COMPETITION_SPEECH_RATE; // 0.85 rate matching competition
-  utterance.pitch = 1;
-  utterance.volume = 1;
-
-  // STABILITY FIX: Cancel immediately before speak to prevent stall bug
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
+  speakWithVoice(word, { rate: COMPETITION_SPEECH_RATE });
 };
 
 const SummaryPop = ({ results, onRestart, onHome }) => {
