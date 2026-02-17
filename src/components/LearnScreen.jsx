@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { COMPETITION_SPEECH_RATE } from '../data/sets';
 import { getBestVoice, speakWithVoice } from '../utils/speech';
+import Preloader from './Preloader';
 
 // ============================================
 // SHARED AUDIO CONTEXT
@@ -70,12 +71,12 @@ const toggleFullscreen = () => {
 // DYNAMIC IMAGE LOADER
 // Import all images from the assets folder using Vite's import.meta.glob
 // ============================================
-const imageModules = import.meta.glob('../assets/images/*.{png,jpg,jpeg,svg}', { eager: true });
+const imageModules = import.meta.glob('../assets/images/*.{webp,png,jpg,jpeg,svg}', { eager: true });
 
 const allImages = {};
 Object.entries(imageModules).forEach(([path, module]) => {
-  // Extract filename without extension: '../assets/images/cat.png' -> 'cat'
-  const fileName = path.split('/').pop().replace(/\.(png|jpe?g|svg)$/, '');
+  // Extract filename without extension: '../assets/images/cat.webp' -> 'cat'
+  const fileName = path.split('/').pop().replace(/\.(webp|png|jpe?g|svg)$/, '');
   allImages[fileName.toLowerCase()] = module.default;
 });
 
@@ -180,13 +181,70 @@ const LearnScreen = ({ words, onExit }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isAutoPlay, setIsAutoPlay] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   const voiceRef = useRef(null);
   const autoPlayTimerRef = useRef(null);
   const speechTimeoutRef = useRef(null);
+  const bufferStartedRef = useRef(false);
 
   const currentWord = words[currentIndex];
   const imagePath = getImagePath(currentWord);
+
+  // Preload first batch of images before showing the lesson
+  useEffect(() => {
+    const PRELOAD_COUNT = 5;
+    const firstBatch = words.slice(0, PRELOAD_COUNT);
+
+    const preloadImages = async () => {
+      const promises = firstBatch.map((word) => {
+        const src = getImagePath(word);
+        if (!src) return Promise.resolve();
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.src = src;
+          img.onload = resolve;
+          img.onerror = resolve; // Don't block if one fails
+        });
+      });
+      await Promise.all(promises);
+      // Small buffer for smoothness
+      setTimeout(() => setIsInitialLoad(false), 500);
+    };
+
+    preloadImages();
+  }, []);
+
+  // Background buffer: preload remaining images after initial load is done
+  useEffect(() => {
+    if (isInitialLoad || bufferStartedRef.current) return;
+    bufferStartedRef.current = true;
+
+    const PRELOAD_COUNT = 5;
+    const remaining = words.slice(PRELOAD_COUNT);
+    let i = 0;
+
+    const preloadNext = () => {
+      if (i >= remaining.length) return;
+      const src = getImagePath(remaining[i]);
+      i++;
+      if (!src) {
+        // Skip words without images, continue immediately
+        requestIdleCallback ? requestIdleCallback(preloadNext) : setTimeout(preloadNext, 50);
+        return;
+      }
+      const img = new Image();
+      img.src = src;
+      img.onload = () => {
+        requestIdleCallback ? requestIdleCallback(preloadNext) : setTimeout(preloadNext, 50);
+      };
+      img.onerror = () => {
+        requestIdleCallback ? requestIdleCallback(preloadNext) : setTimeout(preloadNext, 50);
+      };
+    };
+
+    preloadNext();
+  }, [isInitialLoad]);
 
   // Load voices
   useEffect(() => {
@@ -219,7 +277,7 @@ const LearnScreen = ({ words, onExit }) => {
 
     speechTimeoutRef.current = setTimeout(() => {
       speakWord(currentWord);
-    }, 800);
+    }, 300);
 
     return () => {
       if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
@@ -301,6 +359,9 @@ const LearnScreen = ({ words, onExit }) => {
 
   return (
     <div className="h-screen w-screen overflow-hidden relative bg-[#d8e9fa]">
+      {/* Preloader overlay - masks initial image loading */}
+      <Preloader isVisible={isInitialLoad} />
+
       {/* Animated background particles - using app colors */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {[...Array(15)].map((_, i) => (

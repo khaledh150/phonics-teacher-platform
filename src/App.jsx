@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import './App.css';
+import InAppBrowserGuard from './components/InAppBrowserGuard';
 import SettingsView from './components/SettingsView';
 import PhonicsGame from './components/PhonicsGame';
 import SummaryPop from './components/SummaryPop';
@@ -92,6 +93,7 @@ function App() {
   }, []);
 
   return (
+    <InAppBrowserGuard>
     <div className="min-h-screen bg-[#d8e9fa]">
       {screen === 'settings' && (
         <SettingsView
@@ -123,6 +125,7 @@ function App() {
         />
       )}
     </div>
+    </InAppBrowserGuard>
   );
 }
 

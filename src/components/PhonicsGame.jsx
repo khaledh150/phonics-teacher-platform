@@ -261,11 +261,44 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
   const speechCancelIntervalRef = useRef(null); // Repeated cancel for stubborn speech
 
   const isCompetition = settings.mode === 'competition';
+  const wakeLockRef = useRef(null);
 
   // Cancel any previous speech when component mounts
   useEffect(() => {
     window.speechSynthesis.cancel();
   }, []);
+
+  // Screen Wake Lock - prevent screen from sleeping during the game
+  useEffect(() => {
+    const requestWakeLock = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLockRef.current = await navigator.wakeLock.request('screen');
+        }
+      } catch (e) {
+        // Wake lock request failed (e.g. low battery, unsupported)
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && phase === 'playing') {
+        requestWakeLock();
+      }
+    };
+
+    if (phase === 'playing') {
+      requestWakeLock();
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(() => {});
+        wakeLockRef.current = null;
+      }
+    };
+  }, [phase]);
 
   // Detect PC (large screen >= 1024px width)
   useEffect(() => {
