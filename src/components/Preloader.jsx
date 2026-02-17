@@ -2,22 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BookOpen } from 'lucide-react';
 
-const messages = [
+const defaultMessages = [
   'Opening your book...',
   'Finding the pictures...',
   'Almost ready...',
 ];
 
-const Preloader = ({ isVisible, onExitComplete }) => {
+const Preloader = ({ isVisible, onExitComplete, messages: customMessages }) => {
   const [messageIndex, setMessageIndex] = useState(0);
+  const messages = customMessages || defaultMessages;
 
   useEffect(() => {
     if (!isVisible) return;
+    setMessageIndex(0);
     const interval = setInterval(() => {
       setMessageIndex((prev) => (prev + 1) % messages.length);
     }, 800);
     return () => clearInterval(interval);
-  }, [isVisible]);
+  }, [isVisible, messages]);
 
   return (
     <AnimatePresence onExitComplete={onExitComplete}>
@@ -37,14 +39,14 @@ const Preloader = ({ isVisible, onExitComplete }) => {
               ease: 'easeInOut',
             }}
           >
-            <BookOpen className="w-20 h-20 md:w-28 md:h-28 text-[#3e366b]" strokeWidth={1.5} />
+            <BookOpen className="w-24 h-24 md:w-32 md:h-32 text-[#3e366b]" strokeWidth={1.5} />
           </motion.div>
 
           {/* Changing text */}
           <AnimatePresence mode="wait">
             <motion.p
               key={messageIndex}
-              className="mt-8 text-xl md:text-2xl font-semibold text-[#3e366b]"
+              className="mt-8 text-2xl md:text-3xl font-semibold text-[#3e366b]"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -55,11 +57,11 @@ const Preloader = ({ isVisible, onExitComplete }) => {
           </AnimatePresence>
 
           {/* Subtle dots */}
-          <div className="flex gap-2 mt-6">
+          <div className="flex gap-3 mt-6">
             {[0, 1, 2].map((i) => (
               <motion.div
                 key={i}
-                className="w-3 h-3 rounded-full bg-[#3e366b]/40"
+                className="w-4 h-4 rounded-full bg-[#3e366b]/40"
                 animate={{ opacity: [0.3, 1, 0.3] }}
                 transition={{
                   duration: 1,

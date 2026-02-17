@@ -182,6 +182,7 @@ const LearnScreen = ({ words, onExit }) => {
   const [isAutoPlay, setIsAutoPlay] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [contentReady, setContentReady] = useState(false);
 
   const voiceRef = useRef(null);
   const autoPlayTimerRef = useRef(null);
@@ -271,9 +272,10 @@ const LearnScreen = ({ words, onExit }) => {
     });
   }, []);
 
-  // Auto-speak when word changes (with 800ms delay)
+  // Auto-speak when word changes (with delay) - only after content is ready
   useEffect(() => {
     setImageError(false);
+    if (!contentReady) return;
 
     speechTimeoutRef.current = setTimeout(() => {
       speakWord(currentWord);
@@ -282,7 +284,7 @@ const LearnScreen = ({ words, onExit }) => {
     return () => {
       if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
     };
-  }, [currentWord, speakWord]);
+  }, [currentWord, speakWord, contentReady]);
 
   // Auto-play functionality
   useEffect(() => {
@@ -360,7 +362,16 @@ const LearnScreen = ({ words, onExit }) => {
   return (
     <div className="h-screen w-screen overflow-hidden relative bg-[#d8e9fa]">
       {/* Preloader overlay - masks initial image loading */}
-      <Preloader isVisible={isInitialLoad} />
+      <Preloader
+        isVisible={isInitialLoad}
+        onExitComplete={() => setTimeout(() => setContentReady(true), 200)}
+      />
+
+      {/* Content - hidden until loading finishes */}
+      <div
+        className="absolute inset-0 transition-opacity duration-500"
+        style={{ opacity: contentReady ? 1 : 0, pointerEvents: contentReady ? 'auto' : 'none' }}
+      >
 
       {/* Animated background particles - using app colors */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -573,6 +584,8 @@ const LearnScreen = ({ words, onExit }) => {
           <span className="text-[#3e366b]/40">Repeat</span>
         </div>
       </div>
+
+      </div>{/* End content wrapper */}
     </div>
   );
 };

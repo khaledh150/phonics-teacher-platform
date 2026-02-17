@@ -8,6 +8,19 @@ import {
   COMPETITION_SPEECH_RATE
 } from '../data/sets';
 import { getBestVoice, speakWithVoice } from '../utils/speech';
+import Preloader from './Preloader';
+
+const practiceMessages = [
+  'Warming up...',
+  'Shuffling words...',
+  'Let\'s practice!',
+];
+
+const competitionMessages = [
+  'Game time!',
+  'Setting up...',
+  'Here we go!',
+];
 
 // ============================================
 // WEB AUDIO API SOUND EFFECTS
@@ -235,7 +248,8 @@ const ExitModal = ({ onConfirm, onCancel }) => {
 // ============================================
 
 const PhonicsGame = ({ settings, onFinish, onExit }) => {
-  const [phase, setPhase] = useState('countdown');
+  const [phase, setPhase] = useState('loading');
+  const [isLoading, setIsLoading] = useState(true);
   const [countdown, setCountdown] = useState(4);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [gameQuestions, setGameQuestions] = useState([]);
@@ -322,6 +336,8 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
     }
 
     setGameQuestions(selectedQuestions);
+    // Show loading screen for a minimum time so it feels smooth
+    setTimeout(() => setIsLoading(false), 1800);
   }, [settings, isCompetition]);
 
   // Load voices
@@ -342,6 +358,15 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
       if (speechCancelIntervalRef.current) clearInterval(speechCancelIntervalRef.current);
     };
   }, []);
+
+  // Transition from loading to countdown after preloader exits
+  useEffect(() => {
+    if (!isLoading && phase === 'loading') {
+      // Small delay after preloader exit animation to start countdown
+      const timer = setTimeout(() => setPhase('countdown'), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, phase]);
 
   // Countdown sequence: 3, 2, 1, Go!
   useEffect(() => {
@@ -717,6 +742,20 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
   const progress = gameQuestions.length > 0
     ? ((currentIndex + 1) / gameQuestions.length) * 100
     : 0;
+
+  // ============================================
+  // LOADING SCREEN
+  // ============================================
+  if (phase === 'loading') {
+    return (
+      <div className="min-h-screen bg-[#d8e9fa]">
+        <Preloader
+          isVisible={isLoading}
+          messages={isCompetition ? competitionMessages : practiceMessages}
+        />
+      </div>
+    );
+  }
 
   // ============================================
   // COUNTDOWN SCREEN

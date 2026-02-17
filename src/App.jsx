@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import './App.css';
 import InAppBrowserGuard from './components/InAppBrowserGuard';
 import SettingsView from './components/SettingsView';
@@ -7,6 +7,9 @@ import SummaryPop from './components/SummaryPop';
 import LearnScreen from './components/LearnScreen';
 import questions from './data/questions';
 import { getSetQuestions } from './data/sets';
+
+// Increment this manually when you want to force a cache reset on deployed versions
+const APP_VERSION = "1.0.1";
 
 // Helper to get words for Learn Mode
 const getLearnWords = (settings) => {
@@ -38,6 +41,38 @@ const getLearnWords = (settings) => {
 };
 
 function App() {
+  // Force refresh mechanism: clear cache when a new version is deployed
+  useEffect(() => {
+    const lastVersion = localStorage.getItem('last_installed_version');
+    if (lastVersion !== APP_VERSION) {
+      // Save the new version first to prevent reload loops
+      localStorage.setItem('last_installed_version', APP_VERSION);
+
+      // Clear all other localStorage keys
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key !== 'last_installed_version') {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach((key) => localStorage.removeItem(key));
+
+      // Unregister all service workers
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          registrations.forEach((registration) => registration.unregister());
+        });
+      }
+
+      // Force a hard refresh (only if this isn't the first install)
+      if (lastVersion !== null) {
+        window.location.reload(true);
+        return;
+      }
+    }
+  }, []);
+
   const [screen, setScreen] = useState('settings'); // settings, game, summary, learn
   const [gameSettings, setGameSettings] = useState(null);
   const [gameResults, setGameResults] = useState([]);
