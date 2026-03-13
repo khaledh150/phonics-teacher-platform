@@ -303,110 +303,28 @@ const ExerciseMatch = ({ group, onComplete, onFinish }) => {
         </motion.div>
       </div>
 
-      {/* Celebration overlay */}
+      {/* Completion - auto advance */}
       <AnimatePresence>
         {isComplete && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden"
-            style={{ background: 'radial-gradient(ellipse at center, rgba(62,54,107,0.85) 0%, rgba(0,0,0,0.9) 100%)' }}
+            className="fixed inset-0 z-[60] flex items-center justify-center"
+            style={{ background: 'radial-gradient(ellipse at center, rgba(62,54,107,0.7) 0%, rgba(0,0,0,0.8) 100%)' }}
           >
-            {/* Confetti rain */}
-            {[...Array(50)].map((_, i) => (
-              <motion.div
-                key={`confetti-${i}`}
-                className="absolute pointer-events-none"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: -20,
-                  width: 6 + Math.random() * 8,
-                  height: 6 + Math.random() * 8,
-                  borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-                  backgroundColor: ['#FF6B9D', '#4ECDC4', '#FFE66D', '#FF8A5B', '#9B59B6', '#3498DB', '#22c55e', '#ffd700'][i % 8],
-                }}
-                animate={{
-                  y: ['0vh', '110vh'],
-                  x: [0, (Math.random() - 0.5) * 100],
-                  rotate: [0, 360 * (Math.random() > 0.5 ? 1 : -1)],
-                }}
-                transition={{
-                  duration: 2 + Math.random() * 3,
-                  delay: Math.random() * 2,
-                  repeat: Infinity,
-                  ease: 'linear',
-                }}
-              />
-            ))}
-
-            {/* Sparkle particles */}
-            {[...Array(20)].map((_, i) => (
-              <motion.div
-                key={`spark-${i}`}
-                className="absolute rounded-full pointer-events-none"
-                style={{
-                  left: `${20 + Math.random() * 60}%`,
-                  top: `${20 + Math.random() * 60}%`,
-                  width: 3 + Math.random() * 5,
-                  height: 3 + Math.random() * 5,
-                  backgroundColor: '#ffd700',
-                }}
-                animate={{
-                  scale: [0, 1, 0],
-                  opacity: [0, 1, 0],
-                }}
-                transition={{
-                  duration: 1 + Math.random(),
-                  delay: Math.random() * 3,
-                  repeat: Infinity,
-                }}
-              />
-            ))}
-
             <motion.div
               initial={{ scale: 0, rotate: -10 }}
               animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
-              className="bg-white rounded-3xl p-8 md:p-12 shadow-2xl text-center max-w-md mx-4 relative z-10"
+              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+              className="bg-white rounded-3xl p-6 md:p-10 shadow-2xl text-center max-w-sm md:max-w-md mx-4"
             >
-              {/* Trophy with glow */}
-              <motion.div
-                className="relative inline-block mb-4"
+              <motion.span className="text-6xl md:text-8xl block mb-3"
                 animate={{ y: [0, -8, 0] }}
                 transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                <motion.div
-                  className="absolute inset-0 rounded-full"
-                  style={{ background: 'radial-gradient(circle, rgba(255,215,0,0.4) 0%, transparent 70%)', transform: 'scale(2.5)' }}
-                  animate={{ scale: [2.5, 3, 2.5], opacity: [0.4, 0.7, 0.4] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                />
-                <span className="text-7xl md:text-9xl block relative">&#127942;</span>
-              </motion.div>
-
-              <motion.h2
-                className="text-3xl md:text-4xl font-bold text-[#3e366b] mb-1"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-              >
-                Group Master!
-              </motion.h2>
-              <motion.p
-                className="text-base md:text-lg text-[#ae90fd] font-semibold mb-8"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7 }}
-              >
-                {group.title} Complete
-              </motion.p>
-
-              <motion.div
-                className="flex gap-3 justify-center flex-wrap"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.9 }}
-              >
+              >&#127881;</motion.span>
+              <h2 className="text-2xl md:text-3xl font-bold text-[#3e366b] mb-2">Great Matching!</h2>
+              <p className="text-[#ae90fd] font-semibold text-lg mb-8">All pairs found!</p>
+              <div className="flex gap-3 justify-center flex-wrap">
                 <motion.button
                   onClick={initGame}
                   className="px-6 py-3 rounded-full bg-white border-3 border-[#ae90fd] text-[#ae90fd] font-bold text-base shadow-lg"
@@ -418,13 +336,13 @@ const ExerciseMatch = ({ group, onComplete, onFinish }) => {
                 </motion.button>
                 <motion.button
                   onClick={onComplete}
-                  className="px-6 py-3 rounded-full bg-gradient-to-r from-[#22c55e] to-[#16a34a] text-white font-bold text-base shadow-xl"
+                  className="px-6 py-3 rounded-full bg-gradient-to-r from-[#22c55e] to-[#16a34a] text-white font-bold text-base md:text-lg shadow-xl"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  Finish &#10003;
+                  Next Step &rarr;
                 </motion.button>
-              </motion.div>
+              </div>
             </motion.div>
           </motion.div>
         )}

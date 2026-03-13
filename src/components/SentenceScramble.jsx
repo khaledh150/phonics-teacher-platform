@@ -222,7 +222,7 @@ const SentenceScramble = ({ group, onComplete }) => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            Finish &#10003;
+            Complete &#10003;
           </motion.button>
         </motion.div>
       </div>

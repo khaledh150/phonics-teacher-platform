@@ -37,6 +37,7 @@ const TeachingFlow = ({ group, onExit }) => {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showPreloader, setShowPreloader] = useState(true);
   const [stepReady, setStepReady] = useState(false);
+  const [showGroupFinish, setShowGroupFinish] = useState(false);
 
   const currentStep = STEPS[stepIndex];
 
@@ -58,9 +59,9 @@ const TeachingFlow = ({ group, onExit }) => {
       setShowPreloader(true);
       setStepIndex((prev) => prev + 1);
     } else {
-      onExit();
+      setShowGroupFinish(true);
     }
-  }, [stepIndex, onExit]);
+  }, [stepIndex]);
 
   const handlePrevStep = useCallback(() => {
     window.speechSynthesis.cancel();
@@ -82,9 +83,9 @@ const TeachingFlow = ({ group, onExit }) => {
       setShowPreloader(true);
       setStepIndex((prev) => prev + 1);
     } else {
-      onExit();
+      setShowGroupFinish(true);
     }
-  }, [stepIndex, onExit]);
+  }, [stepIndex]);
 
   const handleHomeClick = () => {
     setShowExitConfirm(true);
@@ -245,6 +246,127 @@ const TeachingFlow = ({ group, onExit }) => {
                 </>
               )}
             </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Group Finish celebration */}
+      <AnimatePresence>
+        {showGroupFinish && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 z-[80] flex items-center justify-center overflow-hidden"
+            style={{ background: 'radial-gradient(ellipse at center, rgba(62,54,107,0.85) 0%, rgba(0,0,0,0.9) 100%)' }}
+          >
+            {/* Confetti rain */}
+            {[...Array(50)].map((_, i) => (
+              <motion.div
+                key={`confetti-${i}`}
+                className="absolute pointer-events-none"
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  top: -20,
+                  width: 6 + Math.random() * 8,
+                  height: 6 + Math.random() * 8,
+                  borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+                  backgroundColor: ['#FF6B9D', '#4ECDC4', '#FFE66D', '#FF8A5B', '#9B59B6', '#3498DB', '#22c55e', '#ffd700'][i % 8],
+                }}
+                animate={{
+                  y: ['0vh', '110vh'],
+                  x: [0, (Math.random() - 0.5) * 100],
+                  rotate: [0, 360 * (Math.random() > 0.5 ? 1 : -1)],
+                }}
+                transition={{
+                  duration: 2 + Math.random() * 3,
+                  delay: Math.random() * 2,
+                  repeat: Infinity,
+                  ease: 'linear',
+                }}
+              />
+            ))}
+
+            {/* Sparkle particles */}
+            {[...Array(20)].map((_, i) => (
+              <motion.div
+                key={`spark-${i}`}
+                className="absolute rounded-full pointer-events-none"
+                style={{
+                  left: `${20 + Math.random() * 60}%`,
+                  top: `${20 + Math.random() * 60}%`,
+                  width: 3 + Math.random() * 5,
+                  height: 3 + Math.random() * 5,
+                  backgroundColor: '#ffd700',
+                }}
+                animate={{
+                  scale: [0, 1, 0],
+                  opacity: [0, 1, 0],
+                }}
+                transition={{
+                  duration: 1 + Math.random(),
+                  delay: Math.random() * 3,
+                  repeat: Infinity,
+                }}
+              />
+            ))}
+
+            <motion.div
+              initial={{ scale: 0, rotate: -10 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
+              className="bg-white rounded-3xl p-8 md:p-12 shadow-2xl text-center max-w-md mx-4 relative z-10"
+            >
+              {/* Trophy with glow */}
+              <motion.div
+                className="relative inline-block mb-4"
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <motion.div
+                  className="absolute inset-0 rounded-full"
+                  style={{ background: 'radial-gradient(circle, rgba(255,215,0,0.4) 0%, transparent 70%)', transform: 'scale(2.5)' }}
+                  animate={{ scale: [2.5, 3, 2.5], opacity: [0.4, 0.7, 0.4] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+                <span className="text-7xl md:text-9xl block relative">&#127942;</span>
+              </motion.div>
+
+              <motion.h2
+                className="text-3xl md:text-4xl font-bold text-[#3e366b] mb-1"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                Group Master!
+              </motion.h2>
+              <motion.p
+                className="text-base md:text-lg text-[#ae90fd] font-semibold mb-8"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7 }}
+              >
+                {group.title} Complete
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.9 }}
+              >
+                <motion.button
+                  onClick={() => {
+                    window.speechSynthesis.cancel();
+                    stopAllAudio();
+                    onExit();
+                  }}
+                  className="px-8 py-3 md:px-10 md:py-4 rounded-full bg-gradient-to-r from-[#22c55e] to-[#16a34a] text-white font-bold text-base md:text-lg shadow-xl"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Finish &#10003;
+                </motion.button>
+              </motion.div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

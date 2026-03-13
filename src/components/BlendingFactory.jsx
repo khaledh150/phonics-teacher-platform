@@ -73,21 +73,21 @@ const getPointerCoords = (e) => {
 
 const DragHint = () => (
   <motion.div
-    className="absolute inset-0 z-50 pointer-events-none flex items-center justify-center"
+    className="w-full z-50 pointer-events-none flex items-center justify-center py-2"
     initial={{ opacity: 0 }}
     animate={{ opacity: [0, 1, 1, 0] }}
     transition={{ duration: 3, times: [0, 0.15, 0.75, 1] }}
   >
     <motion.div
       className="flex flex-col items-center"
-      animate={{ y: [40, -40, -40] }}
+      animate={{ y: [15, -15, -15] }}
       transition={{ duration: 2, times: [0, 0.5, 1], ease: 'easeInOut' }}
     >
-      <span className="text-4xl md:text-5xl" style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.25))' }}>
+      <span className="text-3xl md:text-4xl" style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.25))' }}>
         &#9757;
       </span>
       <motion.span
-        className="mt-2 px-4 py-1.5 rounded-full bg-[#3e366b]/80 text-white text-xs md:text-sm font-semibold whitespace-nowrap"
+        className="mt-1 px-4 py-1.5 rounded-full bg-[#3e366b]/80 text-white text-xs md:text-sm font-semibold whitespace-nowrap"
         animate={{ opacity: [0, 1, 1, 0] }}
         transition={{ duration: 3, times: [0, 0.2, 0.7, 1] }}
       >
@@ -343,11 +343,6 @@ const BlendingFactory = ({ group, onComplete }) => {
         )}
       </AnimatePresence>
 
-      {/* Drag hint for first-time users */}
-      <AnimatePresence>
-        {showHint && !blending && !wordDone && <DragHint />}
-      </AnimatePresence>
-
       {/* Progress - top center */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 md:top-4 z-30">
         <div className="bg-white/70 backdrop-blur-sm rounded-full px-3 py-1 md:px-4 md:py-1.5">
@@ -434,6 +429,11 @@ const BlendingFactory = ({ group, onComplete }) => {
         </motion.div>
 
       </div>
+
+      {/* Drag hint - between slots and letters */}
+      <AnimatePresence>
+        {showHint && !blending && !wordDone && <DragHint />}
+      </AnimatePresence>
 
       {/* Bottom section: draggable letters or next button */}
       <div className="pb-12 md:pb-16 px-4 min-h-[130px] md:min-h-[170px]">
