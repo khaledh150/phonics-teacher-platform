@@ -1,0 +1,243 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Home, Lock, Maximize, BookOpen } from 'lucide-react';
+import { PHONICS_GROUPS } from '../data/phonicsData';
+import wonderPhonicsLogo from '../assets/wonder-phonics-logo.png';
+
+const toggleFullscreen = () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen?.();
+  } else {
+    document.exitFullscreen?.();
+  }
+};
+
+const LEVELS = [
+  { id: 1, title: 'Level 1', color: '#4d79ff', locked: false },
+  { id: 2, title: 'Level 2', color: '#ae90fd', locked: true },
+  { id: 3, title: 'Level 3', color: '#22c55e', locked: true },
+  { id: 4, title: 'Level 4', color: '#ffd700', locked: true },
+  { id: 5, title: 'Level 5', color: '#f093fb', locked: true },
+  { id: 6, title: 'Level 6', color: '#ff6b9d', locked: true },
+];
+
+const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
+  const [selectedLevel, setSelectedLevel] = useState(initialLevel || null);
+  const [isPC, setIsPC] = useState(false);
+
+  useEffect(() => {
+    if (initialLevel) {
+      setSelectedLevel(initialLevel);
+      if (onLevelReset) onLevelReset();
+    }
+  }, [initialLevel, onLevelReset]);
+
+  useEffect(() => {
+    const check = () => setIsPC(window.innerWidth >= 1024);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  const handleLevelClick = (level) => {
+    if (level.locked) return;
+    setSelectedLevel(level.id);
+  };
+
+  return (
+    <div
+      className="min-h-screen flex flex-col items-center overflow-auto relative"
+      style={{ background: 'linear-gradient(135deg, #d8e9fa 0%, #e8f4ff 50%, #f0e6ff 100%)' }}
+    >
+      {/* Background particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(12)].map((_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full animate-pulse"
+            style={{
+              width: Math.random() * 100 + 50,
+              height: Math.random() * 100 + 50,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              background: ['#ae90fd15', '#4d79ff15', '#ffd70015', '#f093fb15'][i % 4],
+              animationDelay: `${i * 0.5}s`,
+              animationDuration: `${3 + Math.random() * 2}s`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Top-left: Home (when in groups) + Fullscreen */}
+      <div className="fixed top-3 left-3 md:top-4 md:left-4 z-50 flex items-center gap-2">
+        {selectedLevel && (
+          <motion.button
+            onClick={() => setSelectedLevel(null)}
+            className="p-2 md:p-3 rounded-full bg-[#b4d7ff] hover:bg-[#9fc9ff] transition-all shadow-lg"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            title="Back to Levels"
+          >
+            <Home className="w-5 h-5 md:w-6 md:h-6 lg:w-7 lg:h-7 text-[#3e366b]" />
+          </motion.button>
+        )}
+        <button
+          onClick={toggleFullscreen}
+          className="p-2 md:p-3 rounded-full bg-[#b4d7ff] hover:bg-[#9fc9ff] transition-all shadow-lg"
+          title="Toggle Fullscreen"
+        >
+          <Maximize className="w-5 h-5 md:w-6 md:h-6 lg:w-7 lg:h-7 text-[#3e366b]" />
+        </button>
+      </div>
+
+      <AnimatePresence mode="wait">
+        {!selectedLevel ? (
+          /* ========== LEVEL SELECTION ========== */
+          <motion.div
+            key="levels"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.4 }}
+            className="flex flex-col items-center w-full max-w-4xl px-4 py-8 md:py-12 relative z-10"
+          >
+            {/* Logo */}
+            <img
+              src={wonderPhonicsLogo}
+              alt="Wonder Phonics"
+              className="w-auto mx-auto object-contain mb-8 md:mb-12"
+              style={{ height: isPC ? '280px' : 'min(35vw, 180px)', minHeight: isPC ? '240px' : 'min(38vw, 190px)' }}
+            />
+
+            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-[#3e366b] mb-8 md:mb-12">
+              Choose Your Level
+            </h2>
+
+            {/* 6 Books Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 md:gap-6 lg:gap-8 w-full max-w-2xl lg:max-w-4xl">
+              {LEVELS.map((level, idx) => (
+                <motion.button
+                  key={level.id}
+                  onClick={() => handleLevelClick(level)}
+                  className={`relative flex flex-col items-center justify-center rounded-2xl md:rounded-3xl shadow-xl transition-all ${
+                    level.locked
+                      ? 'bg-gray-200 cursor-not-allowed opacity-60'
+                      : 'bg-white hover:shadow-2xl hover:scale-105 cursor-pointer'
+                  }`}
+                  style={{
+                    borderWidth: '4px',
+                    borderStyle: 'solid',
+                    borderColor: level.locked ? '#d1d5db' : level.color,
+                    padding: isPC ? '2.5rem 1.5rem' : 'min(5vw, 1.5rem) min(3vw, 1rem)',
+                    minHeight: isPC ? '240px' : 'min(35vw, 160px)',
+                  }}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.1, duration: 0.4 }}
+                  whileHover={!level.locked ? { scale: 1.05 } : {}}
+                  whileTap={!level.locked ? { scale: 0.95 } : {}}
+                >
+                  {level.locked ? (
+                    <Lock
+                      className="text-gray-400"
+                      style={{ width: isPC ? 72 : 'min(10vw, 40px)', height: isPC ? 72 : 'min(10vw, 40px)' }}
+                    />
+                  ) : (
+                    <BookOpen
+                      style={{
+                        width: isPC ? 72 : 'min(10vw, 40px)',
+                        height: isPC ? 72 : 'min(10vw, 40px)',
+                        color: level.color,
+                      }}
+                    />
+                  )}
+                  <span
+                    className="font-bold mt-2"
+                    style={{
+                      color: level.locked ? '#9ca3af' : level.color,
+                      fontSize: isPC ? '1.8rem' : 'min(4vw, 1.1rem)',
+                    }}
+                  >
+                    {level.title}
+                  </span>
+                  {level.locked && (
+                    <span className="text-xs lg:text-sm text-gray-400 mt-1">Coming Soon</span>
+                  )}
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        ) : (
+          /* ========== GROUP SELECTION (Level 1) ========== */
+          <motion.div
+            key="groups"
+            initial={{ opacity: 0, x: 100 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -100 }}
+            transition={{ duration: 0.4 }}
+            className="flex flex-col items-center w-full max-w-5xl px-3 md:px-4 py-6 md:py-10 relative z-10"
+          >
+            {/* Spacer for top buttons */}
+            <div className="h-10 md:h-12" />
+
+            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold text-[#3e366b] mb-5 md:mb-8">
+              Level 1 - Sound Groups
+            </h2>
+
+            {/* 20 Groups Grid - 3 per row */}
+            <div className="grid grid-cols-3 gap-3 md:gap-5 lg:gap-6 w-full max-w-3xl lg:max-w-5xl pb-8">
+              {PHONICS_GROUPS.map((group, idx) => (
+                <motion.button
+                  key={group.id}
+                  onClick={() => onSelectGroup(group)}
+                  className="flex flex-col items-center justify-center rounded-2xl md:rounded-3xl bg-white shadow-lg hover:shadow-xl transition-all"
+                  style={{
+                    borderWidth: '3px',
+                    borderStyle: 'solid',
+                    borderColor: group.color,
+                    padding: isPC ? '2rem 1.2rem' : 'min(4vw, 1.2rem) min(2.5vw, 0.8rem)',
+                    minHeight: isPC ? '220px' : 'min(34vw, 150px)',
+                  }}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: idx * 0.03, duration: 0.3 }}
+                  whileHover={{ scale: 1.05, y: -3 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <span style={{ fontSize: isPC ? '4rem' : 'min(11vw, 3rem)', lineHeight: 1.2 }}>
+                    {group.icon}
+                  </span>
+                  <span
+                    className="font-bold mt-1"
+                    style={{
+                      color: group.color,
+                      fontSize: isPC ? '1.5rem' : 'min(4.5vw, 1.15rem)',
+                    }}
+                  >
+                    {group.title}
+                  </span>
+                  <span
+                    className="text-[#3e366b]/70 text-center leading-tight mt-1 font-medium"
+                    style={{ fontSize: isPC ? '1.2rem' : 'min(3.5vw, 0.95rem)' }}
+                  >
+                    {group.sounds.join(', ')}
+                  </span>
+                  {group.subtitle && (
+                    <span
+                      className="text-[#3e366b]/40 mt-0.5"
+                      style={{ fontSize: isPC ? '0.9rem' : 'min(2.5vw, 0.65rem)' }}
+                    >
+                      {group.subtitle}
+                    </span>
+                  )}
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+export default CurriculumMap;

@@ -8,7 +8,17 @@
       "Bash(ping:*)",
       "Bash(npm run build:*)",
       "Bash(npx vite build:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(ls \"C:/Apps and Games Dev/wonder-phonics-platform/src/assets/wonder-phonics-logo\"* 2>/dev/null)",
+      "Bash(find \"C:\\\\Apps and Games Dev\\\\wonder-phonics-platform\\\\src\\\\assets\\\\lvl1\" -type d -name \"*sounds*\" 2>/dev/null | head -20)",
+      "Bash(cd \"C:/Apps and Games Dev/wonder-phonics-platform\" && node -e \"\nconst paths = Object.keys\\(require\\('fs'\\).readdirSync\\('src/assets/lvl1', {recursive: true, withFileTypes: true}\\).reduce\\(\\(acc, d\\) => { if \\(d.isFile\\(\\) && d.parentPath.toLowerCase\\(\\).includes\\('sentence'\\)\\) acc[d.parentPath + '/' + d.name] = 1; return acc; }, {}\\)\\);\npaths.forEach\\(p => console.log\\(p\\)\\);\n\")",
+      "Bash(cd \"C:/Apps and Games Dev/wonder-phonics-platform\" && node -e \"\nconst data = require\\('./src/data/phonicsData.js'\\);\nconst groups = data.PHONICS_GROUPS || data.default;\nfor \\(let i = 0; i < 13; i++\\) {\n  const g = groups[i];\n  if \\(!g\\) continue;\n  console.log\\('=== Group ' + g.id + ' ==='\\);\n  g.words.forEach\\(w => {\n    console.log\\('  word: ' + w.word + ' | image: ' + w.image + ' | sentence: ' + \\(w.sentence || '\\(none\\)'\\)\\);\n  }\\);\n}\n\" 2>&1)",
+      "Bash(cd \"C:/Apps and Games Dev/wonder-phonics-platform\" && node -e \"\nconst normalize = \\(name\\) => name.toLowerCase\\(\\).replace\\(/\\\\.\\(webp|png|jpe?g|svg|mp4|webm|mp3|wav|ogg\\)$/i, ''\\).trim\\(\\);\nconsole.log\\('soap_ normalized:', normalize\\('soap_.png'\\)\\);\nconsole.log\\('bowl_ normalized:', normalize\\('bowl_.png'\\)\\);\nconsole.log\\('own_ normalized:', normalize\\('own_.png'\\)\\);\nconsole.log\\('bike_ normalized:', normalize\\('bike_.png'\\)\\);\nconsole.log\\('light_ normalized:', normalize\\('light_.png'\\)\\);\nconsole.log\\('ride_ normalized:', normalize\\('ride_.png'\\)\\);\n\")",
+      "Bash(ls \"C:/Apps and Games Dev/wonder-phonics-platform/src/assets/lvl1/Group 7/sounds-pics/\" 2>/dev/null || ls \"C:/Apps and Games Dev/wonder-phonics-platform/src/assets/lvl1/Group 7/\" 2>/dev/null | grep -v -E '^\\(sentences-pics|Sentences|sounds-pics|vids|music\\)$')",
+      "Bash(for i:*)",
+      "Bash(do echo:*)",
+      "Read(//c/Apps and Games Dev/wonder-phonics-platform/src/assets/lvl1/**)",
+      "Bash(done)"
     ]
   }
 }
