@@ -73,25 +73,22 @@ const getPointerCoords = (e) => {
 
 const DragHint = () => (
   <motion.div
-    className="w-full z-50 pointer-events-none flex items-center justify-center py-2"
+    className="w-full z-50 pointer-events-none flex items-center justify-center"
     initial={{ opacity: 0 }}
     animate={{ opacity: [0, 1, 1, 0] }}
     transition={{ duration: 3, times: [0, 0.15, 0.75, 1] }}
   >
     <motion.div
       className="flex flex-col items-center"
-      animate={{ y: [15, -15, -15] }}
+      animate={{ y: [20, -10, -10] }}
       transition={{ duration: 2, times: [0, 0.5, 1], ease: 'easeInOut' }}
     >
-      <span className="text-3xl md:text-4xl" style={{ filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.25))' }}>
-        &#9757;
-      </span>
       <motion.span
-        className="mt-1 px-4 py-1.5 rounded-full bg-[#3e366b]/80 text-white text-xs md:text-sm font-semibold whitespace-nowrap"
+        className="px-6 py-2.5 md:px-8 md:py-3 rounded-full bg-[#3e366b]/80 text-white text-sm md:text-lg font-semibold whitespace-nowrap"
         animate={{ opacity: [0, 1, 1, 0] }}
         transition={{ duration: 3, times: [0, 0.2, 0.7, 1] }}
       >
-        Drag letters into the slots!
+        &#9757; Drag letters into the slots!
       </motion.span>
     </motion.div>
   </motion.div>
@@ -366,12 +363,12 @@ const BlendingFactory = ({ group, onComplete }) => {
               src={imageSrc}
               alt={currentWord.word}
               className="rounded-2xl shadow-xl object-contain bg-white border-3 border-[#ae90fd]/30"
-              style={{ width: 'clamp(180px, 48vw, 320px)', height: 'clamp(180px, 48vw, 320px)' }}
+              style={{ width: 'clamp(220px, 48vw, 320px)', height: 'clamp(220px, 48vw, 320px)' }}
               onError={() => setImageError(true)}
             />
           ) : (
             <div className="rounded-2xl shadow-xl flex items-center justify-center bg-white border-3 border-[#ae90fd]/30"
-              style={{ width: 'clamp(180px, 48vw, 320px)', height: 'clamp(180px, 48vw, 320px)' }}>
+              style={{ width: 'clamp(220px, 48vw, 320px)', height: 'clamp(220px, 48vw, 320px)' }}>
               <span className="text-5xl md:text-6xl">&#128522;</span>
             </div>
           )}
@@ -402,8 +399,8 @@ const BlendingFactory = ({ group, onComplete }) => {
                 height: 'clamp(72px, 21vw, 135px)',
                 borderColor: slots[idx] ? SLOT_COLORS[idx % SLOT_COLORS.length] : '#3e366b30',
                 borderStyle: slots[idx] ? 'solid' : 'dashed',
-                backgroundColor: slots[idx] ? `${SLOT_COLORS[idx % SLOT_COLORS.length]}15` : 'white',
-                boxShadow: slots[idx] ? `0 4px 15px ${SLOT_COLORS[idx % SLOT_COLORS.length]}25` : 'none',
+                backgroundColor: slots[idx] ? SLOT_COLORS[idx % SLOT_COLORS.length] : 'white',
+                boxShadow: slots[idx] ? `0 4px 15px ${SLOT_COLORS[idx % SLOT_COLORS.length]}40, 0 2px 8px rgba(0,0,0,0.1)` : 'none',
               }}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -414,8 +411,8 @@ const BlendingFactory = ({ group, onComplete }) => {
                   initial={{ scale: 0 }}
                   animate={blending ? { scale: [1, 1.2, 1] } : { scale: 1 }}
                   transition={blending ? { duration: 0.3, delay: idx * 0.15 } : { type: 'spring' }}
-                  className="font-bold text-[#3e366b] pointer-events-none"
-                  style={{ fontSize: 'clamp(2.2rem, 10vw, 4.5rem)' }}
+                  className="font-bold text-white pointer-events-none"
+                  style={{ fontSize: 'clamp(2.6rem, 12vw, 5rem)' }}
                 >
                   {slots[idx].letter}
                 </motion.span>

@@ -83,9 +83,9 @@ const TeachingFlow = ({ group, onExit }) => {
       setShowPreloader(true);
       setStepIndex((prev) => prev + 1);
     } else {
-      setShowGroupFinish(true);
+      onExit();
     }
-  }, [stepIndex]);
+  }, [stepIndex, onExit]);
 
   const handleHomeClick = () => {
     setShowExitConfirm(true);

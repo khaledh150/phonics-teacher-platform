@@ -309,7 +309,7 @@ const SentenceScramble = ({ group, onComplete }) => {
             src={sentenceImage}
             alt={currentKeyword}
             className="rounded-2xl shadow-lg object-contain"
-            style={{ width: 'clamp(180px, 48vw, 320px)', height: 'clamp(180px, 48vw, 320px)' }}
+            style={{ width: 'clamp(220px, 48vw, 320px)', height: 'clamp(220px, 48vw, 320px)' }}
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3 }}

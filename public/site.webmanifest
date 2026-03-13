@@ -1,12 +1,7 @@
 {
-  "name": "Wonder Phonics Teacher",
-  "short_name": "Wonder Phonics",
+  "name": "MyWebSite",
+  "short_name": "MySite",
   "icons": [
-    {
-      "src": "/favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon"
-    },
     {
       "src": "/web-app-manifest-192x192.png",
       "sizes": "192x192",
@@ -20,8 +15,7 @@
       "purpose": "maskable"
     }
   ],
-  "start_url": ".",
-  "display": "standalone",
-  "theme_color": "#d8e9fa",
-  "background_color": "#d8e9fa"
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
+  "display": "standalone"
 }

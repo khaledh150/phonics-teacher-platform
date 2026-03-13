@@ -80,7 +80,7 @@ const BALLOON_COLORS = [
 ];
 
 const BALLOON_SIZE = { min: 90, vw: 24, max: 170 };
-const TIME_PER_SOUND = 10;
+const TIME_PER_SOUND = 15;
 
 let balloonIdCounter = 0;
 
@@ -108,6 +108,7 @@ const SoundBalloons = ({ group, onComplete }) => {
   const targetSoundRef = useRef(group.sounds[0]);
   const timeLeftRef = useRef(TIME_PER_SOUND);
   const gameOverRef = useRef(false);
+  const timerStartedRef = useRef(false);
 
   const sounds = group.sounds;
 
@@ -126,6 +127,7 @@ const SoundBalloons = ({ group, onComplete }) => {
     targetIdxRef.current = 0;
     targetSoundRef.current = sounds[0];
     timeLeftRef.current = TIME_PER_SOUND;
+    timerStartedRef.current = false;
     soundScoresRef.current = {};
     return () => {
       gameOverRef.current = true;
@@ -162,6 +164,9 @@ const SoundBalloons = ({ group, onComplete }) => {
         clearInterval(timerRef.current);
         return;
       }
+
+      // Don't tick until the user starts tapping
+      if (!timerStartedRef.current) return;
 
       timeLeftRef.current -= 1;
       setDisplayTimeLeft(timeLeftRef.current);
@@ -276,6 +281,11 @@ const SoundBalloons = ({ group, onComplete }) => {
 
   const handleBalloonClick = useCallback((balloon) => {
     if (balloon.popped || shakingId) return;
+
+    // Start the timer on first tap
+    if (!timerStartedRef.current) {
+      timerStartedRef.current = true;
+    }
 
     const currentTarget = targetSoundRef.current;
 
