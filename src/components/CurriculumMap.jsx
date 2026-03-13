@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home, Lock, Maximize, BookOpen } from 'lucide-react';
 import { PHONICS_GROUPS } from '../data/phonicsData';
-import wonderPhonicsLogo from '../assets/wonder-phonics-logo.png';
+import wonderPhonicsLogo from '../assets/wonder-phonics-logo.webp';
 
 const toggleFullscreen = () => {
   if (!document.fullscreenElement) {

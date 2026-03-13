@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Play, Trophy, Gamepad2, BookOpen, Maximize, ChevronRight, X, Settings, Printer } from 'lucide-react';
 import { SET_LETTERS } from '../data/sets';
 import { openPrintableSheet } from './PrintableView';
-import wonderPhonicsLogo from '../assets/wonder-phonics-logo.png';
+import wonderPhonicsLogo from '../assets/wonder-phonics-logo.webp';
 import { getBestVoice } from '../utils/speech';
 
 // Fullscreen toggle
