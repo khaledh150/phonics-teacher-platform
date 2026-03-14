@@ -195,9 +195,10 @@ const GroupSong = ({ group, onComplete }) => {
           {playMode === 'idle' || playMode === 'done' ? (
             <motion.button
               onClick={handleStartSingAlong}
-              className="flex items-center gap-3 px-8 py-4 md:px-10 md:py-5 lg:px-14 lg:py-6 rounded-full bg-[#ffd700] hover:bg-[#e6c200] text-[#3e366b] font-bold text-lg md:text-xl lg:text-2xl shadow-xl"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              className="flex items-center gap-3 px-8 py-4 md:px-10 md:py-5 lg:px-14 lg:py-6 bg-[#FFD000] text-[#3e366b] font-bold text-lg md:text-xl lg:text-2xl"
+              style={{ borderRadius: '1.6rem', borderBottom: '5px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95, y: 4 }}
             >
               <Play className="w-6 h-6 md:w-7 md:h-7 lg:w-9 lg:h-9" fill="#3e366b" />
               {playMode === 'done' ? 'Play Again' : 'Sing All'}
@@ -206,18 +207,20 @@ const GroupSong = ({ group, onComplete }) => {
             <>
               <motion.button
                 onClick={handlePause}
-                className="flex items-center gap-2 px-5 py-3 md:px-7 md:py-4 lg:px-9 lg:py-5 rounded-full bg-white text-[#3e366b] font-bold text-base lg:text-lg shadow-lg border-2 border-[#ae90fd]"
+                className="flex items-center gap-2 px-5 py-3 md:px-7 md:py-4 lg:px-9 lg:py-5 bg-white text-[#3e366b] font-bold text-base lg:text-lg border-2 border-[#ae90fd]"
+                style={{ borderRadius: '1.6rem', borderBottom: '4px solid #d1d5db', boxShadow: '0px 4px 0px rgba(0,0,0,0.08)' }}
                 whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.95, y: 3 }}
               >
                 <Pause className="w-5 h-5" />
                 Pause
               </motion.button>
               <motion.button
                 onClick={handleSkipSound}
-                className="flex items-center gap-2 px-5 py-3 md:px-7 md:py-4 lg:px-9 lg:py-5 rounded-full bg-[#4d79ff] text-white font-bold text-base lg:text-lg shadow-lg"
+                className="flex items-center gap-2 px-5 py-3 md:px-7 md:py-4 lg:px-9 lg:py-5 bg-[#6B3FA0] text-white font-bold text-base lg:text-lg"
+                style={{ borderRadius: '1.6rem', borderBottom: '4px solid #4A2B70', boxShadow: '0px 4px 0px rgba(0,0,0,0.12)' }}
                 whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                whileTap={{ scale: 0.95, y: 3 }}
               >
                 <SkipForward className="w-5 h-5" />
                 Skip

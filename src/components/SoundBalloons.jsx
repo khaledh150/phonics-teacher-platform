@@ -80,7 +80,7 @@ const BALLOON_COLORS = [
 ];
 
 const BALLOON_SIZE = { min: 90, vw: 24, max: 170 };
-const TIME_PER_SOUND = 15;
+const TIME_PER_SOUND = 30;
 
 let balloonIdCounter = 0;
 
@@ -224,9 +224,9 @@ const SoundBalloons = ({ group, onComplete }) => {
         sound, color,
         x: Math.random() * maxX + 10,
         y: 110,
-        speed: 0.18 + Math.random() * 0.18,
+        speed: 0.12 + Math.random() * 0.14,
         swayOffset: Math.random() * Math.PI * 2,
-        swayAmp: 8 + Math.random() * 12,
+        swayAmp: 14 + Math.random() * 18,
         size: balloonW,
         popped: false,
       };
@@ -359,8 +359,9 @@ const SoundBalloons = ({ group, onComplete }) => {
           </div>
           <motion.button
             onClick={handleReplaySound}
-            className="p-2 lg:p-2.5 rounded-full bg-[#4d79ff] shadow-lg"
-            whileTap={{ scale: 0.9 }}
+            className="p-2 lg:p-2.5 rounded-[0.8rem] bg-[#6B3FA0]"
+            style={{ borderBottom: '4px solid #4A2B70', boxShadow: '0px 4px 0px rgba(0,0,0,0.15)' }}
+            whileTap={{ scale: 0.95, y: 3 }}
             whileHover={{ scale: 1.1 }}
           >
             <Volume2 className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
@@ -400,9 +401,9 @@ const SoundBalloons = ({ group, onComplete }) => {
                 filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))',
               }}
               onClick={() => handleBalloonClick(balloon)}
-              animate={shakingId === balloon.id ? { x: [0, -10, 10, -10, 10, 0], rotate: [0, -5, 5, -5, 5, 0] } : {}}
-              transition={shakingId === balloon.id ? { duration: 0.4 } : {}}
-              whileTap={{ scale: 0.9 }}
+              animate={shakingId === balloon.id ? { x: [0, -12, 14, -12, 14, 0], rotate: [0, -8, 8, -8, 8, 0], scale: [1, 1.1, 0.9, 1.1, 0.9, 1] } : {}}
+              transition={shakingId === balloon.id ? { duration: 0.5, ease: 'easeInOut' } : {}}
+              whileTap={{ scale: 0.85 }}
             >
               <svg viewBox="0 0 100 130" className="w-full h-full">
                 <defs>
@@ -520,7 +521,8 @@ const SoundBalloons = ({ group, onComplete }) => {
               initial={{ scale: 0, rotate: -10 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
-              className="bg-white rounded-3xl p-6 md:p-10 shadow-2xl text-center max-w-sm md:max-w-md mx-4 relative z-10"
+              className="bg-white p-6 md:p-10 text-center max-w-sm md:max-w-md mx-4 relative z-10"
+              style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
             >
               <motion.div
                 className="relative inline-block mb-3"
@@ -551,12 +553,13 @@ const SoundBalloons = ({ group, onComplete }) => {
 
               <motion.button
                 onClick={handleFinish}
-                className="px-8 py-3 rounded-full bg-gradient-to-r from-[#22c55e] to-[#16a34a] text-white font-bold text-base md:text-lg shadow-xl"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1 }}
+                className="px-8 py-3 bg-[#E60023] text-white font-bold text-base md:text-lg"
+                style={{ borderRadius: '1.6rem', borderBottom: '5px solid #B3001B', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
+                whileHover={{ scale: 1.05, y: -2 }}
+                whileTap={{ scale: 0.95, y: 4 }}
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 1, type: 'spring', stiffness: 400, damping: 15 }}
               >
                 Next Step &rarr;
               </motion.button>

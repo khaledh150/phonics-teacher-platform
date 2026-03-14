@@ -47,7 +47,7 @@ const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
   return (
     <div
       className="min-h-screen flex flex-col items-center overflow-auto relative"
-      style={{ background: 'linear-gradient(135deg, #d8e9fa 0%, #e8f4ff 50%, #f0e6ff 100%)' }}
+      style={{ background: '#E8F4FF' }}
     >
       {/* Background particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -68,26 +68,31 @@ const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
         ))}
       </div>
 
-      {/* Top-left: Home (when in groups) + Fullscreen */}
+      {/* Top-left: Home (when in groups) + Fullscreen - Juicy 3D buttons */}
       <div className="fixed top-3 left-3 md:top-4 md:left-4 z-50 flex items-center gap-2">
         {selectedLevel && (
           <motion.button
             onClick={() => setSelectedLevel(null)}
-            className="p-2 md:p-3 rounded-full bg-[#b4d7ff] hover:bg-[#9fc9ff] transition-all shadow-lg"
-            initial={{ opacity: 0, scale: 0.8 }}
+            className="p-2 md:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+            style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+            initial={{ opacity: 0, scale: 0.5 }}
             animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+            whileTap={{ scale: 0.95, y: 3, borderBottomWidth: '1px' }}
             title="Back to Levels"
           >
             <Home className="w-5 h-5 md:w-6 md:h-6 lg:w-7 lg:h-7 text-[#3e366b]" />
           </motion.button>
         )}
-        <button
+        <motion.button
           onClick={toggleFullscreen}
-          className="p-2 md:p-3 rounded-full bg-[#b4d7ff] hover:bg-[#9fc9ff] transition-all shadow-lg"
+          className="p-2 md:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
           title="Toggle Fullscreen"
         >
           <Maximize className="w-5 h-5 md:w-6 md:h-6 lg:w-7 lg:h-7 text-[#3e366b]" />
-        </button>
+        </motion.button>
       </div>
 
       <AnimatePresence mode="wait">
@@ -109,7 +114,7 @@ const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
               style={{ height: isPC ? '280px' : 'min(35vw, 180px)', minHeight: isPC ? '240px' : 'min(38vw, 190px)' }}
             />
 
-            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-[#3e366b] mb-8 md:mb-12">
+            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-[#6B3FA0] mb-8 md:mb-12">
               Choose Your Level
             </h2>
 
@@ -119,23 +124,26 @@ const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
                 <motion.button
                   key={level.id}
                   onClick={() => handleLevelClick(level)}
-                  className={`relative flex flex-col items-center justify-center rounded-2xl md:rounded-3xl shadow-xl transition-all ${
+                  className={`relative flex flex-col items-center justify-center transition-all ${
                     level.locked
                       ? 'bg-gray-200 cursor-not-allowed opacity-60'
-                      : 'bg-white hover:shadow-2xl hover:scale-105 cursor-pointer'
+                      : 'bg-white cursor-pointer'
                   }`}
                   style={{
+                    borderRadius: '2.2rem',
                     borderWidth: '4px',
                     borderStyle: 'solid',
+                    borderBottom: level.locked ? '4px solid #d1d5db' : `6px solid ${level.color}`,
                     borderColor: level.locked ? '#d1d5db' : level.color,
                     padding: isPC ? '2.5rem 1.5rem' : 'min(5vw, 1.5rem) min(3vw, 1rem)',
                     minHeight: isPC ? '240px' : 'min(35vw, 160px)',
+                    boxShadow: '0px 8px 0px rgba(0,0,0,0.1)',
                   }}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.1, duration: 0.4 }}
-                  whileHover={!level.locked ? { scale: 1.05 } : {}}
-                  whileTap={!level.locked ? { scale: 0.95 } : {}}
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: idx * 0.1, type: 'spring', stiffness: 400, damping: 15 }}
+                  whileHover={!level.locked ? { scale: 1.05, y: -4 } : {}}
+                  whileTap={!level.locked ? { scale: 0.95, y: 4 } : {}}
                 >
                   {level.locked ? (
                     <Lock
@@ -180,7 +188,7 @@ const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
             {/* Spacer for top buttons */}
             <div className="h-10 md:h-12" />
 
-            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold text-[#3e366b] mb-5 md:mb-8">
+            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold text-[#6B3FA0] mb-5 md:mb-8">
               Level 1 - Sound Groups
             </h2>
 
@@ -190,19 +198,22 @@ const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
                 <motion.button
                   key={group.id}
                   onClick={() => onSelectGroup(group)}
-                  className="flex flex-col items-center justify-center rounded-2xl md:rounded-3xl bg-white shadow-lg hover:shadow-xl transition-all"
+                  className="flex flex-col items-center justify-center bg-white transition-all"
                   style={{
+                    borderRadius: '2.2rem',
                     borderWidth: '3px',
                     borderStyle: 'solid',
                     borderColor: group.color,
+                    borderBottom: `6px solid ${group.color}`,
                     padding: isPC ? '2rem 1.2rem' : 'min(4vw, 1.2rem) min(2.5vw, 0.8rem)',
                     minHeight: isPC ? '220px' : 'min(34vw, 150px)',
+                    boxShadow: '0px 8px 0px rgba(0,0,0,0.1)',
                   }}
-                  initial={{ opacity: 0, scale: 0.8 }}
+                  initial={{ opacity: 0, scale: 0.5 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: idx * 0.03, duration: 0.3 }}
-                  whileHover={{ scale: 1.05, y: -3 }}
-                  whileTap={{ scale: 0.95 }}
+                  transition={{ delay: idx * 0.03, type: 'spring', stiffness: 400, damping: 15 }}
+                  whileHover={{ scale: 1.05, y: -4 }}
+                  whileTap={{ scale: 0.95, y: 4 }}
                 >
                   <span style={{ fontSize: isPC ? '4rem' : 'min(11vw, 3rem)', lineHeight: 1.2 }}>
                     {group.icon}

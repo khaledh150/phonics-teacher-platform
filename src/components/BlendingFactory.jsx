@@ -273,24 +273,26 @@ const BlendingFactory = ({ group, onComplete }) => {
   if (allDone) {
     return (
       <div className="h-full w-full flex items-center justify-center relative overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, #d8e9fa 0%, #e8f4ff 50%, #f0e6ff 100%)' }}>
+        style={{ background: '#E8F4FF' }}>
         <motion.div
           initial={{ scale: 0, rotate: -10 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-          className="bg-white rounded-3xl p-6 md:p-10 shadow-2xl text-center max-w-sm md:max-w-md mx-4"
+          className="bg-white p-6 md:p-10 text-center max-w-sm md:max-w-md mx-4"
+          style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
         >
           <motion.span className="text-6xl md:text-8xl block mb-3"
             animate={{ y: [0, -8, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           >&#127942;</motion.span>
-          <h2 className="text-2xl md:text-3xl font-bold text-[#3e366b] mb-2">Word Builder!</h2>
+          <h2 className="text-2xl md:text-3xl font-bold text-[#6B3FA0] mb-2">Word Builder!</h2>
           <p className="text-[#ae90fd] font-semibold text-lg mb-8">You built {words.length} words!</p>
           <motion.button
             onClick={() => onComplete()}
-            className="px-8 py-3 rounded-full bg-gradient-to-r from-[#22c55e] to-[#16a34a] text-white font-bold text-base md:text-lg shadow-xl"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            className="px-8 py-3 bg-[#E60023] text-white font-bold text-base md:text-lg"
+            style={{ borderRadius: '1.6rem', borderBottom: '5px solid #B3001B', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
+            whileHover={{ scale: 1.05, y: -2 }}
+            whileTap={{ scale: 0.95, y: 4 }}
           >
             Next Step &rarr;
           </motion.button>
@@ -301,7 +303,7 @@ const BlendingFactory = ({ group, onComplete }) => {
 
   return (
     <div ref={containerRef} className="h-full w-full relative overflow-hidden flex flex-col"
-      style={{ background: 'linear-gradient(135deg, #d8e9fa 0%, #e8f4ff 50%, #f0e6ff 100%)' }}>
+      style={{ background: '#E8F4FF' }}>
 
       {/* Confetti overlay */}
       <AnimatePresence>

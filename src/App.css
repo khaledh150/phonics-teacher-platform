@@ -1,72 +1,114 @@
-/* Soroban School Ecosystem Theme - Blue Edition */
+/* Wonder Phonics - Juicy & Tactile Theme */
 :root {
   --bg-main: #d8e9fa;
   --panel-gradient: linear-gradient(150deg, #f0f7ff 65%, #e6f0ff 100%);
   --accent-blue: #4d79ff;
   --accent-blue-light: #b4d7ff;
   --accent-blue-hover: #9fc9ff;
-  --accent-purple: #ae90fd;
+  --accent-purple: #6B3FA0;
+  --accent-purple-light: #ae90fd;
+  --accent-yellow: #FFD000;
+  --accent-yellow-dark: #E0B800;
+  --accent-pink: #E60023;
   --accent-gold: #ffd700;
   --text-dark: #3e366b;
-  --radius-card: 2.7rem;
+  --radius-card: 2.2rem;
+  --radius-button: 1.6rem;
+  --shadow-hard: 0px 6px 0px rgba(0,0,0,0.1);
+  --shadow-hard-lg: 0px 8px 0px rgba(0,0,0,0.1);
 }
 
 body {
   margin: 0;
-  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: 'Fredoka', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color: var(--bg-main);
   min-height: 100vh;
   overflow-x: hidden;
 }
 
-/* Panel Card Style - Light Blue */
+/* ============================================
+   JUICY HEADING STYLE - Logo text effect
+   ============================================ */
+h1, h2, h3 {
+  -webkit-text-stroke: 3px white;
+  paint-order: stroke fill;
+  text-shadow: 3px 4px 0px rgba(62, 54, 107, 0.2);
+}
+
+/* ============================================
+   BOUNCY POP-IN KEYFRAME
+   ============================================ */
+@keyframes pop-in {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.pop-in {
+  animation: pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Panel Card Style - Cloud Card */
 .panel-card {
   background: var(--panel-gradient);
   border-radius: var(--radius-card);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-hard-lg);
 }
 
-/* Choice Cards - Light Blue - WIDER for longer words */
+/* Choice Cards - Cloud Card style */
 .choice-card {
   background: var(--panel-gradient);
-  border-radius: 2rem;
+  border-radius: var(--radius-card);
   border: 4px solid transparent;
   transition: all 0.2s ease;
   cursor: pointer;
   min-width: 180px;
+  box-shadow: var(--shadow-hard);
 }
 
 .choice-card:hover {
   border-color: var(--accent-blue);
-  transform: scale(1.02);
-  box-shadow: 0 8px 30px rgba(77, 121, 255, 0.3);
+  transform: scale(1.02) translateY(-2px);
+  box-shadow: 0px 10px 0px rgba(0,0,0,0.1);
 }
 
 .choice-card:active {
-  transform: scale(0.98);
+  transform: scale(0.97) translateY(3px);
+  box-shadow: 0px 2px 0px rgba(0,0,0,0.1);
 }
 
-/* Accent Button - Blue Theme */
+/* Accent Button - Juicy 3D Bubbly */
 .btn-accent {
-  background: var(--accent-blue-light);
+  background: var(--accent-yellow);
   color: var(--text-dark);
-  font-weight: 600;
-  border-radius: 1.5rem;
+  font-weight: 700;
+  border-radius: var(--radius-button);
   padding: 1rem 2.5rem;
   border: none;
+  border-bottom: 5px solid var(--accent-yellow-dark);
   cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 15px rgba(77, 121, 255, 0.3);
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-hard);
 }
 
 .btn-accent:hover {
-  background: var(--accent-blue-hover);
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(77, 121, 255, 0.4);
+  box-shadow: 0px 10px 0px rgba(0,0,0,0.1);
 }
 
 .btn-accent:active {
-  transform: translateY(0);
+  transform: translateY(3px);
+  border-bottom-width: 2px;
+  box-shadow: 0px 2px 0px rgba(0,0,0,0.1);
 }
 
 .btn-accent:disabled {

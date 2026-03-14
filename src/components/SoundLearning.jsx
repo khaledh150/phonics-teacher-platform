@@ -134,9 +134,10 @@ const SoundLearning = ({ group, onComplete }) => {
                 <audio ref={audioRef} src={musicSrc} onError={() => setMusicError(true)} />
                 <motion.button
                   onClick={handlePlayMusic}
-                  className="flex items-center gap-1.5 px-5 py-2.5 lg:px-6 lg:py-3 rounded-full bg-[#ffd700]/80 hover:bg-[#ffd700] transition-colors shadow-md"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center gap-1.5 px-5 py-2.5 lg:px-6 lg:py-3 bg-[#FFD000] transition-colors"
+                  style={{ borderRadius: '1.6rem', borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95, y: 3 }}
                 >
                   <Music className="w-5 h-5 md:w-5 md:h-5 lg:w-6 lg:h-6 text-[#3e366b]" />
                   <span className="text-sm md:text-sm lg:text-base font-semibold text-[#3e366b]">Play Song</span>
@@ -187,9 +188,10 @@ const SoundLearning = ({ group, onComplete }) => {
       <div className="fixed left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-40">
         <motion.button
           onClick={() => speakSound(currentSound)}
-          className="p-4 md:p-5 lg:p-5 rounded-full bg-[#4d79ff] hover:bg-[#3d69ef] transition-colors shadow-xl"
+          className="p-4 md:p-5 lg:p-5 bg-[#6B3FA0] transition-colors"
+          style={{ borderRadius: '1.6rem', borderBottom: '5px solid #4A2B70', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
           whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
+          whileTap={{ scale: 0.9, y: 4 }}
           animate={
             isSpeaking
               ? { scale: [1, 1.15, 1, 1.15, 1] }
@@ -209,9 +211,10 @@ const SoundLearning = ({ group, onComplete }) => {
       {soundIndex > 0 && (
         <motion.button
           onClick={goPrev}
-          className="fixed left-2 md:left-6 lg:left-10 top-1/2 -translate-y-1/2 z-40 p-3 md:p-4 lg:p-5 rounded-full bg-[#ffd700] hover:bg-[#e6c200] transition-all shadow-xl"
+          className="fixed left-2 md:left-6 lg:left-10 top-1/2 -translate-y-1/2 z-40 p-3 md:p-4 lg:p-5 bg-[#FFD000] transition-all"
+          style={{ borderRadius: '1.6rem', borderBottom: '5px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
           whileHover={{ scale: 1.15, x: -5 }}
-          whileTap={{ scale: 0.9 }}
+          whileTap={{ scale: 0.9, y: 4 }}
         >
           <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-[#3e366b]" />
         </motion.button>
@@ -219,9 +222,10 @@ const SoundLearning = ({ group, onComplete }) => {
 
       <motion.button
         onClick={goNext}
-        className="fixed right-2 md:right-6 lg:right-10 top-1/2 -translate-y-1/2 z-40 p-3 md:p-4 lg:p-5 rounded-full bg-[#ffd700] hover:bg-[#e6c200] transition-all shadow-xl"
+        className="fixed right-2 md:right-6 lg:right-10 top-1/2 -translate-y-1/2 z-40 p-3 md:p-4 lg:p-5 bg-[#FFD000] transition-all"
+        style={{ borderRadius: '1.6rem', borderBottom: '5px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
         whileHover={{ scale: 1.15, x: 5 }}
-        whileTap={{ scale: 0.9 }}
+        whileTap={{ scale: 0.9, y: 4 }}
       >
         <ChevronRight className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-[#3e366b]" />
       </motion.button>

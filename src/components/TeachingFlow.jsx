@@ -144,21 +144,25 @@ const TeachingFlow = ({ group, onExit }) => {
         messages={STEP_MESSAGES[currentStep]}
       />
 
-      {/* Top left buttons: Home + Fullscreen */}
+      {/* Top left buttons: Home + Fullscreen - Juicy 3D */}
       <div className="fixed top-3 left-3 z-50 flex items-center gap-2">
-        <button
+        <motion.button
           onClick={handleHomeClick}
-          className="p-2 md:p-2.5 lg:p-3 rounded-full bg-[#b4d7ff]/80 hover:bg-[#9fc9ff] transition-all shadow-lg"
+          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
         >
           <Home className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
-        </button>
-        <button
+        </motion.button>
+        <motion.button
           onClick={toggleFullscreen}
-          className="p-2 md:p-2.5 lg:p-3 rounded-full bg-[#b4d7ff]/80 hover:bg-[#9fc9ff] transition-all shadow-lg"
+          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
           title="Toggle Fullscreen"
         >
           <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
-        </button>
+        </motion.button>
       </div>
 
       {/* Skip Step button */}
@@ -222,14 +226,15 @@ const TeachingFlow = ({ group, onExit }) => {
           >
             <motion.button
               onClick={handleNextStep}
-              className="px-7 py-3 md:px-10 md:py-4 lg:px-14 lg:py-5 rounded-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold text-base md:text-xl lg:text-2xl shadow-2xl flex items-center gap-2"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              className="px-7 py-3 md:px-10 md:py-4 lg:px-14 lg:py-5 bg-[#22c55e] text-white font-bold text-base md:text-xl lg:text-2xl flex items-center gap-2"
+              style={{ borderRadius: '1.6rem', borderBottom: '6px solid #16a34a', boxShadow: '0px 8px 0px rgba(0,0,0,0.12)' }}
+              whileHover={{ scale: 1.05, y: -3 }}
+              whileTap={{ scale: 0.95, y: 4 }}
               animate={{
                 boxShadow: [
-                  '0 8px 30px rgba(34,197,94,0.4)',
-                  '0 8px 50px rgba(34,197,94,0.6)',
-                  '0 8px 30px rgba(34,197,94,0.4)',
+                  '0px 8px 0px rgba(0,0,0,0.12)',
+                  '0px 8px 0px rgba(0,0,0,0.12), 0 0 20px rgba(34,197,94,0.5)',
+                  '0px 8px 0px rgba(0,0,0,0.12)',
                 ],
               }}
               transition={{ duration: 2, repeat: Infinity }}
@@ -314,7 +319,8 @@ const TeachingFlow = ({ group, onExit }) => {
               initial={{ scale: 0, rotate: -10 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
-              className="bg-white rounded-3xl p-8 md:p-12 shadow-2xl text-center max-w-md mx-4 relative z-10"
+              className="bg-white p-8 md:p-12 text-center max-w-md mx-4 relative z-10"
+              style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
             >
               {/* Trophy with glow */}
               <motion.div
@@ -332,7 +338,7 @@ const TeachingFlow = ({ group, onExit }) => {
               </motion.div>
 
               <motion.h2
-                className="text-3xl md:text-4xl font-bold text-[#3e366b] mb-1"
+                className="text-3xl md:text-4xl font-bold text-[#6B3FA0] mb-1"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
@@ -359,9 +365,10 @@ const TeachingFlow = ({ group, onExit }) => {
                     stopAllAudio();
                     onExit();
                   }}
-                  className="px-8 py-3 md:px-10 md:py-4 rounded-full bg-gradient-to-r from-[#22c55e] to-[#16a34a] text-white font-bold text-base md:text-lg shadow-xl"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  className="px-8 py-3 md:px-10 md:py-4 bg-[#E60023] text-white font-bold text-base md:text-lg"
+                  style={{ borderRadius: '1.6rem', borderBottom: '5px solid #B3001B', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95, y: 4 }}
                 >
                   Finish &#10003;
                 </motion.button>
@@ -382,32 +389,38 @@ const TeachingFlow = ({ group, onExit }) => {
             onClick={() => setShowExitConfirm(false)}
           >
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
+              initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
-              className="bg-white rounded-3xl p-6 md:p-10 shadow-2xl text-center max-w-sm mx-4"
+              transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+              className="bg-white p-6 md:p-10 text-center max-w-sm mx-4"
+              style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
               onClick={(e) => e.stopPropagation()}
             >
-              <Home className="w-12 h-12 md:w-16 md:h-16 text-[#4d79ff] mx-auto mb-4" />
-              <h3 className="text-xl md:text-2xl font-bold text-[#3e366b] mb-2">
+              <Home className="w-12 h-12 md:w-16 md:h-16 text-[#6B3FA0] mx-auto mb-4" />
+              <h3 className="text-xl md:text-2xl font-bold text-[#6B3FA0] mb-2">
                 Go Home?
               </h3>
               <p className="text-[#3e366b]/60 text-sm md:text-base mb-6">
                 Your progress in this group will be lost.
               </p>
               <div className="flex gap-3 justify-center">
-                <button
+                <motion.button
                   onClick={() => setShowExitConfirm(false)}
-                  className="px-6 py-3 rounded-full bg-gray-100 hover:bg-gray-200 text-[#3e366b] font-semibold transition-all"
+                  className="px-6 py-3 bg-gray-100 text-[#3e366b] font-semibold transition-all"
+                  style={{ borderRadius: '1.6rem', borderBottom: '4px solid #d1d5db', boxShadow: '0px 4px 0px rgba(0,0,0,0.08)' }}
+                  whileTap={{ scale: 0.95, y: 3 }}
                 >
                   Stay
-                </button>
-                <button
+                </motion.button>
+                <motion.button
                   onClick={confirmExit}
-                  className="px-6 py-3 rounded-full bg-[#4d79ff] hover:bg-[#3d69ef] text-white font-semibold transition-all shadow-lg"
+                  className="px-6 py-3 bg-[#6B3FA0] text-white font-semibold transition-all"
+                  style={{ borderRadius: '1.6rem', borderBottom: '4px solid #4A2B70', boxShadow: '0px 4px 0px rgba(0,0,0,0.12)' }}
+                  whileTap={{ scale: 0.95, y: 3 }}
                 >
                   Go Home
-                </button>
+                </motion.button>
               </div>
             </motion.div>
           </motion.div>

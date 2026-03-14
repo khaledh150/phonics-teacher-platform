@@ -18,7 +18,9 @@
       "Bash(for i:*)",
       "Bash(do echo:*)",
       "Read(//c/Apps and Games Dev/wonder-phonics-platform/src/assets/lvl1/**)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(find:*)",
+      "Bash(grep:*)"
     ]
   }
 }

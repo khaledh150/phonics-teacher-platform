@@ -271,7 +271,7 @@ const FlashcardViewer = ({ group, onComplete }) => {
                     width: 'clamp(200px, 50vw, 350px)',
                     height: 'clamp(200px, 50vw, 350px)',
                     padding: 'clamp(8px, 2vw, 16px)',
-                    boxShadow: '0 16px 40px -12px rgba(174, 144, 253, 0.4), 0 0 30px rgba(77, 121, 255, 0.12)',
+                    boxShadow: '0px 8px 0px rgba(0,0,0,0.1)',
                   }}
                   animate={{ scale: [1, 1.02, 1] }}
                   transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
@@ -282,7 +282,7 @@ const FlashcardViewer = ({ group, onComplete }) => {
                   style={{
                     width: 'clamp(200px, 50vw, 350px)',
                     height: 'clamp(200px, 50vw, 350px)',
-                    boxShadow: '0 16px 40px -12px rgba(174, 144, 253, 0.4)',
+                    boxShadow: '0px 8px 0px rgba(0,0,0,0.1)',
                   }}
                   animate={{ scale: [1, 1.02, 1] }}
                   transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
@@ -349,7 +349,7 @@ const FlashcardViewer = ({ group, onComplete }) => {
                     width: '420px',
                     height: '420px',
                     padding: '20px',
-                    boxShadow: '0 16px 40px -12px rgba(174, 144, 253, 0.4), 0 0 30px rgba(77, 121, 255, 0.12)',
+                    boxShadow: '0px 8px 0px rgba(0,0,0,0.1)',
                   }}
                   animate={{ scale: [1, 1.02, 1] }}
                   transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
@@ -360,7 +360,7 @@ const FlashcardViewer = ({ group, onComplete }) => {
                   style={{
                     width: '420px',
                     height: '420px',
-                    boxShadow: '0 16px 40px -12px rgba(174, 144, 253, 0.4)',
+                    boxShadow: '0px 8px 0px rgba(0,0,0,0.1)',
                   }}
                   animate={{ scale: [1, 1.02, 1] }}
                   transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
@@ -378,9 +378,10 @@ const FlashcardViewer = ({ group, onComplete }) => {
         <div className="mx-8 xl:mx-12">
           <motion.button
             onClick={handleBlendAndSpeak}
-            className="p-5 rounded-full bg-[#4d79ff] hover:bg-[#3d69ef] transition-colors shadow-xl"
+            className="p-5 bg-[#6B3FA0] transition-colors"
+            style={{ borderRadius: '1.6rem', borderBottom: '5px solid #4A2B70', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
             whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
+            whileTap={{ scale: 0.95, y: 4 }}
             animate={isSpeaking ? { scale: [1, 1.15, 1, 1.15, 1] } : {}}
             transition={isSpeaking ? { duration: 1, repeat: Infinity, ease: 'easeInOut' } : {}}
           >
@@ -419,9 +420,10 @@ const FlashcardViewer = ({ group, onComplete }) => {
       <div className="fixed left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-40 lg:hidden">
         <motion.button
           onClick={handleBlendAndSpeak}
-          className="p-4 md:p-5 rounded-full bg-[#4d79ff] hover:bg-[#3d69ef] transition-colors shadow-xl"
+          className="p-4 md:p-5 bg-[#6B3FA0] transition-colors"
+          style={{ borderRadius: '1.6rem', borderBottom: '5px solid #4A2B70', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
           whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.95 }}
+          whileTap={{ scale: 0.95, y: 4 }}
           animate={isSpeaking ? { scale: [1, 1.15, 1, 1.15, 1] } : {}}
           transition={isSpeaking ? { duration: 1, repeat: Infinity, ease: 'easeInOut' } : {}}
         >
@@ -433,9 +435,10 @@ const FlashcardViewer = ({ group, onComplete }) => {
       {currentIndex > 0 && (
         <motion.button
           onClick={goToPrev}
-          className="fixed left-2 md:left-6 lg:left-10 top-1/2 -translate-y-1/2 z-40 p-3 md:p-4 lg:p-5 rounded-full bg-[#ffd700] hover:bg-[#e6c200] transition-all shadow-xl"
+          className="fixed left-2 md:left-6 lg:left-10 top-1/2 -translate-y-1/2 z-40 p-3 md:p-4 lg:p-5 bg-[#FFD000] transition-all"
+          style={{ borderRadius: '1.6rem', borderBottom: '5px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
           whileHover={{ scale: 1.15, x: -5 }}
-          whileTap={{ scale: 0.9 }}
+          whileTap={{ scale: 0.9, y: 4 }}
         >
           <ChevronLeft className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-[#3e366b]" />
         </motion.button>
@@ -443,9 +446,10 @@ const FlashcardViewer = ({ group, onComplete }) => {
 
       <motion.button
         onClick={goToNext}
-        className="fixed right-2 md:right-6 lg:right-10 top-1/2 -translate-y-1/2 z-40 p-3 md:p-4 lg:p-5 rounded-full bg-[#ffd700] hover:bg-[#e6c200] transition-all shadow-xl"
+        className="fixed right-2 md:right-6 lg:right-10 top-1/2 -translate-y-1/2 z-40 p-3 md:p-4 lg:p-5 bg-[#FFD000] transition-all"
+        style={{ borderRadius: '1.6rem', borderBottom: '5px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
         whileHover={{ scale: 1.15, x: 5 }}
-        whileTap={{ scale: 0.9 }}
+        whileTap={{ scale: 0.9, y: 4 }}
       >
         <ChevronRight className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-[#3e366b]" />
       </motion.button>
