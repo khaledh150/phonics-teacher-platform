@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Volume2, Film, Music } from 'lucide-react';
-import { getSoundVideo, getSoundMusic } from '../utils/assetHelpers';
+import { getSoundVideo, getSoundMusic, getSoundYouTube } from '../utils/assetHelpers';
 import { speakWithVoice } from '../utils/speech';
 import { playLetterSound, getLetterSoundUrl } from '../utils/letterSounds';
 import { playVO, playLetterVO, stopVO, delay } from '../utils/audioPlayer';
@@ -17,6 +17,7 @@ const SoundLearning = ({ group, onComplete }) => {
   const currentSound = sounds[soundIndex];
   const isLastSound = soundIndex === sounds.length - 1;
 
+  const youtubeSrc = getSoundYouTube(group.id, currentSound);
   const videoSrc = getSoundVideo(group.id, currentSound);
   const musicSrc = getSoundMusic(group.id, currentSound);
 
@@ -200,7 +201,18 @@ const SoundLearning = ({ group, onComplete }) => {
                 aspectRatio: '16/9',
               }}
             >
-              {videoSrc && !videoError ? (
+              {youtubeSrc ? (
+                <iframe
+                  key={youtubeSrc}
+                  className="w-full h-full"
+                  src={youtubeSrc}
+                  title={`Letter ${currentSound} Song`}
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  allowFullScreen
+                />
+              ) : videoSrc && !videoError ? (
                 <video
                   key={videoSrc}
                   className="w-full h-full object-cover"
@@ -277,12 +289,12 @@ const SoundLearning = ({ group, onComplete }) => {
       <div className="fixed left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-40">
         <motion.button
           onClick={() => { clearReminder(); speakOnce(currentSound); }}
-          className={`p-4 md:p-5 lg:p-5 transition-colors ${showReminder ? 'bg-[#FFD000]' : 'bg-[#6B3FA0]'}`}
+          className={`p-4 md:p-5 lg:p-5 transition-colors ${showReminder ? 'bg-[#E60023]' : 'bg-[#6B3FA0]'}`}
           style={{
             borderRadius: '1.6rem',
-            borderBottom: showReminder ? '5px solid #E0B800' : '5px solid #4A2B70',
+            borderBottom: showReminder ? '5px solid #B8001B' : '5px solid #4A2B70',
             boxShadow: showReminder
-              ? '0px 6px 0px rgba(0,0,0,0.1), 0 0 20px rgba(255,208,0,0.5)'
+              ? '0px 6px 0px rgba(0,0,0,0.1), 0 0 20px rgba(230,0,35,0.5)'
               : '0px 6px 0px rgba(0,0,0,0.12)',
           }}
           whileHover={{ scale: 1.1 }}
@@ -302,7 +314,7 @@ const SoundLearning = ({ group, onComplete }) => {
               : {}
           }
         >
-          <Volume2 className={`w-8 h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 ${showReminder ? 'text-[#3e366b]' : 'text-white'}`} />
+          <Volume2 className="w-8 h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 text-white" />
         </motion.button>
       </div>
 

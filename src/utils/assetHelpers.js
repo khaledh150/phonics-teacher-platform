@@ -143,6 +143,23 @@ export const findSentenceImage = (groupId, keyword, sentenceText) => {
 };
 
 /**
+ * YouTube video IDs for letter sounds, keyed by "groupId-sound".
+ * Add entries here as videos become available.
+ */
+const YOUTUBE_VIDEOS = {
+  '1-s': 'uSVzk2pqWB4',
+};
+
+/**
+ * Get YouTube embed URL for a sound in a group, or null if none.
+ */
+export const getSoundYouTube = (groupId, soundName) => {
+  const key = `${groupId}-${soundName.toLowerCase()}`;
+  const videoId = YOUTUBE_VIDEOS[key];
+  return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+};
+
+/**
  * Get video for a sound in a group.
  */
 export const getSoundVideo = (groupId, soundName) => {

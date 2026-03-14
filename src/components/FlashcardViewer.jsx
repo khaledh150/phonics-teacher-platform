@@ -234,19 +234,16 @@ const FlashcardViewer = ({ group, onComplete }) => {
 
     let cancelled = false;
     const run = async () => {
-      if (currentIndex === 0) {
-        await playVO('Look at the picture.');
-        if (cancelled) return;
-        await delay(300);
-        if (cancelled) return;
-        await playVO('What is it');
-        if (cancelled) return;
-        await delay(400);
-        if (cancelled) return;
-      } else {
-        await delay(400);
-        if (cancelled) return;
-      }
+      await delay(currentIndex > 0 ? 400 : 100);
+      if (cancelled) return;
+      await playVO('Look at the picture.');
+      if (cancelled) return;
+      await delay(300);
+      if (cancelled) return;
+      await playVO('What is it');
+      if (cancelled) return;
+      await delay(400);
+      if (cancelled) return;
       handleBlendAndSpeak();
     };
     run();
@@ -472,18 +469,18 @@ const FlashcardViewer = ({ group, onComplete }) => {
         <div className="mx-8 xl:mx-12">
           <motion.button
             onClick={() => { clearReminder(); handleBlendOnce(); }}
-            className={`p-5 transition-colors ${showReminder ? 'bg-[#FFD000]' : 'bg-[#6B3FA0]'}`}
+            className={`p-5 transition-colors ${showReminder ? 'bg-[#E60023]' : 'bg-[#6B3FA0]'}`}
             style={{
               borderRadius: '1.6rem',
-              borderBottom: showReminder ? '5px solid #E0B800' : '5px solid #4A2B70',
-              boxShadow: showReminder ? '0px 6px 0px rgba(0,0,0,0.1), 0 0 20px rgba(255,208,0,0.5)' : '0px 6px 0px rgba(0,0,0,0.12)',
+              borderBottom: showReminder ? '5px solid #B8001B' : '5px solid #4A2B70',
+              boxShadow: showReminder ? '0px 6px 0px rgba(0,0,0,0.1), 0 0 20px rgba(230,0,35,0.5)' : '0px 6px 0px rgba(0,0,0,0.12)',
             }}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95, y: 4 }}
             animate={isSpeaking ? { scale: [1, 1.15, 1, 1.15, 1] } : showReminder ? { scale: [1, 1.12, 1] } : {}}
             transition={isSpeaking ? { duration: 1, repeat: Infinity, ease: 'easeInOut' } : showReminder ? { duration: 0.8, repeat: Infinity, ease: 'easeInOut' } : {}}
           >
-            <Volume2 className={`w-10 h-10 ${showReminder ? 'text-[#3e366b]' : 'text-white'}`} />
+            <Volume2 className="w-10 h-10 text-white" />
           </motion.button>
         </div>
 
@@ -518,18 +515,18 @@ const FlashcardViewer = ({ group, onComplete }) => {
       <div className="fixed left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-40 lg:hidden">
         <motion.button
           onClick={() => { clearReminder(); handleBlendOnce(); }}
-          className={`p-4 md:p-5 transition-colors ${showReminder ? 'bg-[#FFD000]' : 'bg-[#6B3FA0]'}`}
+          className={`p-4 md:p-5 transition-colors ${showReminder ? 'bg-[#E60023]' : 'bg-[#6B3FA0]'}`}
           style={{
             borderRadius: '1.6rem',
-            borderBottom: showReminder ? '5px solid #E0B800' : '5px solid #4A2B70',
-            boxShadow: showReminder ? '0px 6px 0px rgba(0,0,0,0.1), 0 0 20px rgba(255,208,0,0.5)' : '0px 6px 0px rgba(0,0,0,0.12)',
+            borderBottom: showReminder ? '5px solid #B8001B' : '5px solid #4A2B70',
+            boxShadow: showReminder ? '0px 6px 0px rgba(0,0,0,0.1), 0 0 20px rgba(230,0,35,0.5)' : '0px 6px 0px rgba(0,0,0,0.12)',
           }}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95, y: 4 }}
           animate={isSpeaking ? { scale: [1, 1.15, 1, 1.15, 1] } : showReminder ? { scale: [1, 1.12, 1] } : {}}
           transition={isSpeaking ? { duration: 1, repeat: Infinity, ease: 'easeInOut' } : showReminder ? { duration: 0.8, repeat: Infinity, ease: 'easeInOut' } : {}}
         >
-          <Volume2 className={`w-8 h-8 md:w-9 md:h-9 ${showReminder ? 'text-[#3e366b]' : 'text-white'}`} />
+          <Volume2 className="w-8 h-8 md:w-9 md:h-9 text-white" />
         </motion.button>
       </div>
 

@@ -80,7 +80,7 @@ const BALLOON_COLORS = [
   '#0080FF', '#E60023', '#00CC44', '#FF9500', '#00B894',
 ];
 
-const BALLOON_SIZE = { min: 90, vw: 24, max: 170 };
+const BALLOON_SIZE = { min: 110, vw: 26, max: 170 };
 const TIME_PER_SOUND = 30;
 
 let balloonIdCounter = 0;
@@ -113,6 +113,11 @@ const SoundBalloons = ({ group, onComplete }) => {
   const transitioningRef = useRef(false);
 
   const sounds = group.sounds;
+  const idleReminderRef = useRef(null);
+
+  const clearIdleReminder = useCallback(() => {
+    clearTimeout(idleReminderRef.current);
+  }, []);
 
   const announceSound = useCallback((sound) => {
     const url = getLetterSoundUrl(sound);
@@ -129,6 +134,29 @@ const SoundBalloons = ({ group, onComplete }) => {
     announceSound(sound);
   }, [announceSound]);
 
+  // Idle reminder — first at 5s, then every 10s
+  const idleFirstRef = useRef(true);
+  const startIdleReminderFnRef = useRef(null);
+  startIdleReminderFnRef.current = () => {
+    clearTimeout(idleReminderRef.current);
+    const wait = idleFirstRef.current ? 5000 : 10000;
+    idleReminderRef.current = setTimeout(async () => {
+      if (gameOverRef.current || transitioningRef.current) return;
+      idleFirstRef.current = false;
+      await playVO('Pop the balloons that make the sound...');
+      if (gameOverRef.current) return;
+      announceSound(targetSoundRef.current);
+      // Schedule next reminder at 10s
+      if (!gameOverRef.current && !transitioningRef.current) {
+        startIdleReminderFnRef.current?.();
+      }
+    }, wait);
+  };
+  const startIdleReminder = useCallback((resetFirst) => {
+    if (resetFirst) idleFirstRef.current = true;
+    startIdleReminderFnRef.current?.();
+  }, []);
+
   // Reset on mount, cleanup on unmount
   useEffect(() => {
     gameOverRef.current = false;
@@ -141,6 +169,7 @@ const SoundBalloons = ({ group, onComplete }) => {
       gameOverRef.current = true;
       clearInterval(timerRef.current);
       clearInterval(spawnIntervalRef.current);
+      clearTimeout(idleReminderRef.current);
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
   }, [sounds]);
@@ -151,6 +180,13 @@ const SoundBalloons = ({ group, onComplete }) => {
     let cancelled = false;
 
     const run = async () => {
+      // VO before countdown
+      await playVO('Pop the balloons that make the sound...');
+      if (cancelled) return;
+      announceSound(sounds[0]);
+      await delay(800);
+      if (cancelled) return;
+
       // Visual countdown 3-2-1-GO
       playCountdownTick(false);
       await delay(1000);
@@ -165,14 +201,12 @@ const SoundBalloons = ({ group, onComplete }) => {
       await delay(700);
       if (cancelled) return;
 
-      // VO after GO, then start
-      await playVO('Pop the balloons that make the sound...');
-      if (cancelled) return;
+      // Start game
       setGameStarted(true);
-      announceSound(sounds[0]);
+      startIdleReminder(true);
     };
     run();
-    return () => { cancelled = true; stopVO(); };
+    return () => { cancelled = true; stopVO(); clearIdleReminder(); };
   }, [gameStarted, sounds, announceSound]);
 
   // Single game timer - one setInterval, all logic via refs
@@ -187,8 +221,6 @@ const SoundBalloons = ({ group, onComplete }) => {
         return;
       }
 
-      // Don't tick until the user starts tapping
-      if (!timerStartedRef.current) return;
       if (transitioningRef.current) return;
 
       timeLeftRef.current -= 1;
@@ -205,6 +237,7 @@ const SoundBalloons = ({ group, onComplete }) => {
           gameOverRef.current = true;
           clearInterval(timerRef.current);
           clearInterval(spawnIntervalRef.current);
+          clearTimeout(idleReminderRef.current);
           setShowResults(true);
           transitioningRef.current = false;
         } else {
@@ -231,6 +264,7 @@ const SoundBalloons = ({ group, onComplete }) => {
 
             await announceWithVO(sounds[nextIdx]);
             transitioningRef.current = false;
+            startIdleReminder(true);
           };
           handleTransition();
         }
@@ -325,6 +359,9 @@ const SoundBalloons = ({ group, onComplete }) => {
       timerStartedRef.current = true;
     }
 
+    // Reset idle reminder on every tap (reset to 5s first wait)
+    startIdleReminder(true);
+
     const currentTarget = targetSoundRef.current;
 
     if (balloon.sound === currentTarget) {
@@ -342,7 +379,7 @@ const SoundBalloons = ({ group, onComplete }) => {
       setShakingId(balloon.id);
       setTimeout(() => setShakingId(null), 500);
     }
-  }, [shakingId]);
+  }, [shakingId, startIdleReminder]);
 
   const handleReplaySound = () => {
     announceSound(targetSoundRef.current);
@@ -371,21 +408,26 @@ const SoundBalloons = ({ group, onComplete }) => {
         background: 'linear-gradient(180deg, #87CEEB 0%, #B8E4F0 40%, #E8F8E0 100%)',
       }} />
 
-      {/* Clouds */}
-      {[...Array(4)].map((_, i) => (
-        <motion.div
-          key={`cloud-${i}`}
-          className="absolute rounded-full bg-white/60"
-          style={{
-            width: `clamp(80px, 20vw, 200px)`,
-            height: `clamp(30px, 8vw, 70px)`,
-            top: `${8 + i * 12}%`,
-            left: `${10 + i * 22}%`,
-          }}
-          animate={{ x: [0, 30, 0] }}
-          transition={{ duration: 8 + i * 3, repeat: Infinity, ease: 'easeInOut' }}
-        />
-      ))}
+      {/* Soft floating circles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(10)].map((_, i) => (
+          <motion.div
+            key={`bg-circle-${i}`}
+            className="absolute rounded-full"
+            style={{
+              width: 40 + i * 20,
+              height: 40 + i * 20,
+              left: `${5 + i * 10}%`,
+              top: `${10 + (i % 3) * 30}%`,
+              background: ['rgba(174,144,253,0.12)', 'rgba(77,121,255,0.10)', 'rgba(255,215,0,0.10)', 'rgba(240,147,251,0.10)', 'rgba(34,197,94,0.08)'][i % 5],
+              filter: 'blur(2px)',
+            }}
+            animate={{ y: [0, -15, 0], x: [0, 10, 0], scale: [1, 1.1, 1] }}
+            transition={{ duration: 5 + i * 1.5, repeat: Infinity, ease: 'easeInOut', delay: i * 0.7 }}
+          />
+        ))}
+      </div>
+
 
       {/* Header: progress + timer + replay - top right */}
       <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-end px-4 pt-3 md:pt-4 lg:pt-6">
@@ -497,7 +539,7 @@ const SoundBalloons = ({ group, onComplete }) => {
 
       {/* Ground */}
       <div className="absolute bottom-0 left-0 right-0 h-[8%] z-10" style={{
-        background: 'linear-gradient(180deg, #7BC67E 0%, #5AA85D 100%)',
+        background: 'linear-gradient(180deg, #34D058 0%, #22a740 100%)',
         borderTopLeftRadius: '50% 20px',
         borderTopRightRadius: '50% 20px',
       }} />
