@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Volume2, Film, Music } from 'lucide-react';
 import { getSoundVideo, getSoundMusic } from '../utils/assetHelpers';
 import { speakWithVoice } from '../utils/speech';
 import { playLetterSound, getLetterSoundUrl } from '../utils/letterSounds';
-import { playVO, stopVO, delay } from '../utils/audioPlayer';
+import { playVO, playLetterVO, stopVO, delay } from '../utils/audioPlayer';
 
 const SoundLearning = ({ group, onComplete }) => {
   const [soundIndex, setSoundIndex] = useState(0);
@@ -21,17 +21,21 @@ const SoundLearning = ({ group, onComplete }) => {
   const musicSrc = getSoundMusic(group.id, currentSound);
 
   const reminderRef = useRef(null);
+  const [showReminder, setShowReminder] = useState(false);
 
   // Start idle reminder timer — plays "Tap the speaker" VO after 6s of no interaction
   const startReminderTimer = useCallback(() => {
     clearTimeout(reminderRef.current);
+    setShowReminder(false);
     reminderRef.current = setTimeout(() => {
+      setShowReminder(true);
       playVO('Tap the speaker to hear it again!');
     }, 6000);
   }, []);
 
   const clearReminder = useCallback(() => {
     clearTimeout(reminderRef.current);
+    setShowReminder(false);
   }, []);
 
   const cancelledRef = useRef(false);
@@ -62,6 +66,15 @@ const SoundLearning = ({ group, onComplete }) => {
       }
     });
   }, []);
+
+  // Single play — used when user taps the speaker button
+  const speakOnce = useCallback(async (sound) => {
+    stopVO();
+    clearTimeout(reminderRef.current);
+    cancelledRef.current = false;
+    await playOnce(sound);
+    if (!cancelledRef.current) startReminderTimer();
+  }, [playOnce, startReminderTimer]);
 
   // Full sequence: play → "Say it with me!" → play → "Listen closely..." → play → reminder
   const speakSound = useCallback(async (sound) => {
@@ -104,19 +117,17 @@ const SoundLearning = ({ group, onComplete }) => {
 
     let cancelled = false;
     const run = async () => {
-      if (soundIndex === 0) {
-        await playVO("Let's learn!");
-        if (cancelled) return;
-        await delay(300);
-        if (cancelled) return;
-        await playVO('Listen to the sound.');
-        if (cancelled) return;
-        await delay(600);
-        if (cancelled) return;
-      } else {
+      if (soundIndex > 0) {
         await delay(400);
         if (cancelled) return;
       }
+      // "Let's learn the sound of letter..." + letter name VO for every sound
+      await playVO("Let's learn the sound of letter..");
+      if (cancelled) return;
+      await playLetterVO(currentSound);
+      if (cancelled) return;
+      await delay(400);
+      if (cancelled) return;
       speakSound(currentSound);
     };
     run();
@@ -265,23 +276,33 @@ const SoundLearning = ({ group, onComplete }) => {
       {/* Speaker button - fixed center, aligned with yellow nav buttons */}
       <div className="fixed left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-40">
         <motion.button
-          onClick={() => speakSound(currentSound)}
-          className="p-4 md:p-5 lg:p-5 bg-[#6B3FA0] transition-colors"
-          style={{ borderRadius: '1.6rem', borderBottom: '5px solid #4A2B70', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
+          onClick={() => { clearReminder(); speakOnce(currentSound); }}
+          className={`p-4 md:p-5 lg:p-5 transition-colors ${showReminder ? 'bg-[#FFD000]' : 'bg-[#6B3FA0]'}`}
+          style={{
+            borderRadius: '1.6rem',
+            borderBottom: showReminder ? '5px solid #E0B800' : '5px solid #4A2B70',
+            boxShadow: showReminder
+              ? '0px 6px 0px rgba(0,0,0,0.1), 0 0 20px rgba(255,208,0,0.5)'
+              : '0px 6px 0px rgba(0,0,0,0.12)',
+          }}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9, y: 4 }}
           animate={
             isSpeaking
               ? { scale: [1, 1.15, 1, 1.15, 1] }
+              : showReminder
+              ? { scale: [1, 1.12, 1] }
               : {}
           }
           transition={
             isSpeaking
               ? { duration: 1, repeat: Infinity, ease: 'easeInOut' }
+              : showReminder
+              ? { duration: 0.8, repeat: Infinity, ease: 'easeInOut' }
               : {}
           }
         >
-          <Volume2 className="w-8 h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 text-white" />
+          <Volume2 className={`w-8 h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 ${showReminder ? 'text-[#3e366b]' : 'text-white'}`} />
         </motion.button>
       </div>
 

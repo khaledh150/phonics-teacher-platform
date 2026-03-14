@@ -302,7 +302,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
     let cancelled = false;
     const run = async () => {
       await delay(500);
-      if (!cancelled) await playVO('Amazing job!');
+      if (!cancelled) await playVO('You did it!');
     };
     run();
     return () => { cancelled = true; };
@@ -342,7 +342,9 @@ const ExerciseMatch = ({ group, onComplete }) => {
               await delay(500);
               setRoundBurst(true);
               playFanfare();
-              await delay(2000);
+              await delay(1500);
+              await playVO('Great job!');
+              await delay(500);
               setRoundBurst(false);
               handleNextRound();
             };

@@ -367,7 +367,7 @@ const BlendingFactory = ({ group, onComplete }) => {
       </div>
 
       {/* Top section: picture + slots */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 pt-4 md:pt-6">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 pt-4 md:pt-6" style={{ paddingBottom: 'clamp(100px, 18vh, 160px)' }}>
         {/* Picture hint - always visible, BIGGER */}
         <motion.div
           key={`pic-${wordIdx}`}
@@ -444,13 +444,17 @@ const BlendingFactory = ({ group, onComplete }) => {
 
       </div>
 
-      {/* Drag hint - between slots and letters */}
+      {/* Drag hint - above choice boxes */}
       <AnimatePresence>
-        {showHint && !blending && !wordDone && <DragHint />}
+        {showHint && !blending && !wordDone && (
+          <div className="absolute bottom-60 md:bottom-52 lg:bottom-56 left-0 right-0 z-30">
+            <DragHint />
+          </div>
+        )}
       </AnimatePresence>
 
       {/* Bottom section: draggable letters or next button */}
-      <div className="pb-12 md:pb-16 px-4 min-h-[130px] md:min-h-[170px]">
+      <div className="absolute bottom-32 md:bottom-28 lg:bottom-32 left-0 right-0 px-4 z-20">
         <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 lg:gap-5">
           <AnimatePresence>
             {letters.map((letter, i) => (

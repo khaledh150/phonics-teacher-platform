@@ -110,6 +110,7 @@ const SoundBalloons = ({ group, onComplete }) => {
   const timeLeftRef = useRef(TIME_PER_SOUND);
   const gameOverRef = useRef(false);
   const timerStartedRef = useRef(false);
+  const transitioningRef = useRef(false);
 
   const sounds = group.sounds;
 
@@ -121,6 +122,12 @@ const SoundBalloons = ({ group, onComplete }) => {
       setTimeout(() => speakWithVoice(sound, { rate: 0.7 }), 300);
     }
   }, []);
+
+  // Full VO announcement for new sounds: "Pop the balloons..." + letter sound
+  const announceWithVO = useCallback(async (sound) => {
+    await playVO('Pop the balloons that make the sound...');
+    announceSound(sound);
+  }, [announceSound]);
 
   // Reset on mount, cleanup on unmount
   useEffect(() => {
@@ -182,12 +189,15 @@ const SoundBalloons = ({ group, onComplete }) => {
 
       // Don't tick until the user starts tapping
       if (!timerStartedRef.current) return;
+      if (transitioningRef.current) return;
 
       timeLeftRef.current -= 1;
       setDisplayTimeLeft(timeLeftRef.current);
 
       if (timeLeftRef.current <= 0) {
-        // Time's up for this sound - advance
+        // Time's up for this sound
+        transitioningRef.current = true;
+
         const nextIdx = targetIdxRef.current + 1;
 
         if (nextIdx >= sounds.length) {
@@ -196,20 +206,33 @@ const SoundBalloons = ({ group, onComplete }) => {
           clearInterval(timerRef.current);
           clearInterval(spawnIntervalRef.current);
           setShowResults(true);
+          transitioningRef.current = false;
         } else {
-          // Move to next sound
-          targetIdxRef.current = nextIdx;
-          targetSoundRef.current = sounds[nextIdx];
-          timeLeftRef.current = TIME_PER_SOUND;
+          // Play VO, wait, then advance to next sound
+          const handleTransition = async () => {
+            await playVO("Time's up!");
+            await delay(1000);
+            if (gameOverRef.current) {
+              transitioningRef.current = false;
+              return;
+            }
 
-          setDisplayTargetIdx(nextIdx);
-          setDisplayTimeLeft(TIME_PER_SOUND);
-          setDisplayTarget(sounds[nextIdx]);
+            // Move to next sound
+            targetIdxRef.current = nextIdx;
+            targetSoundRef.current = sounds[nextIdx];
+            timeLeftRef.current = TIME_PER_SOUND;
 
-          // Clear non-popped balloons
-          setBalloons(prev => prev.filter(b => b.popped));
+            setDisplayTargetIdx(nextIdx);
+            setDisplayTimeLeft(TIME_PER_SOUND);
+            setDisplayTarget(sounds[nextIdx]);
 
-          announceSound(sounds[nextIdx]);
+            // Clear non-popped balloons
+            setBalloons(prev => prev.filter(b => b.popped));
+
+            await announceWithVO(sounds[nextIdx]);
+            transitioningRef.current = false;
+          };
+          handleTransition();
         }
       }
     }, 1000);

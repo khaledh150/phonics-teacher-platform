@@ -164,6 +164,7 @@ const SentenceScramble = ({ group, onComplete }) => {
     } else {
       // Wrong order — shake and dump back
       playErrorBuzz();
+      playVO('Oops, try again!');
       setCheckWrong(true);
       setTimeout(() => {
         setCheckWrong(false);

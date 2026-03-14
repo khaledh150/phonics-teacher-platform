@@ -53,6 +53,32 @@ export const playVO = (fileName) => {
 };
 
 /**
+ * Play a letter name VO from /sounds/vo-letters/ (e.g. "s" → S.mp3).
+ * @param {string} letter - The letter (will be uppercased)
+ * @returns {Promise<void>}
+ */
+export const playLetterVO = (letter) => {
+  return new Promise((resolve) => {
+    stopVO();
+    currentResolve = resolve;
+    const audio = new Audio(`/sounds/vo-letters/${letter.toUpperCase()}.mp3`);
+    currentVO = audio;
+    audio.addEventListener('ended', () => {
+      if (currentVO === audio) { currentVO = null; currentResolve = null; }
+      resolve();
+    }, { once: true });
+    audio.addEventListener('error', () => {
+      if (currentVO === audio) { currentVO = null; currentResolve = null; }
+      resolve();
+    }, { once: true });
+    audio.play().catch(() => {
+      if (currentVO === audio) { currentVO = null; currentResolve = null; }
+      resolve();
+    });
+  });
+};
+
+/**
  * Stop the currently playing VO and resolve any pending promise.
  */
 export const stopVO = () => {

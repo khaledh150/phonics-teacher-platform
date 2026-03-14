@@ -55,6 +55,7 @@ const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
 
   const handleTapToStart = async () => {
     setHasInteracted(true);
+    document.documentElement.requestFullscreen?.().catch(() => {});
     welcomePlayingRef.current = true;
     await playVO('Welcome to Wonder Phonics!');
     welcomePlayingRef.current = false;
@@ -105,7 +106,7 @@ const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
               src={wonderPhonicsLogo}
               alt="Wonder Phonics"
               className="w-auto mx-auto object-contain mb-8"
-              style={{ height: isPC ? '300px' : 'min(55vw, 260px)' }}
+              style={{ height: isPC ? '420px' : 'min(70vw, 340px)' }}
               animate={{ scale: [1, 1.03, 1] }}
               transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
             />
@@ -117,6 +118,9 @@ const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
             >
               Tap to Start!
             </motion.div>
+            <span className="fixed bottom-4 left-1/2 -translate-x-1/2 text-[#3e366b]/30 text-xs md:text-sm font-medium whitespace-nowrap">
+              &copy; 2026 Wonder Kids Co. All rights reserved.
+            </span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -164,7 +168,7 @@ const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
               src={wonderPhonicsLogo}
               alt="Wonder Phonics"
               className="w-auto mx-auto object-contain mb-8 md:mb-12"
-              style={{ height: isPC ? '280px' : 'min(35vw, 180px)', minHeight: isPC ? '240px' : 'min(38vw, 190px)' }}
+              style={{ height: isPC ? '380px' : 'min(50vw, 260px)', minHeight: isPC ? '320px' : 'min(45vw, 220px)' }}
             />
 
             <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-[#6B3FA0] mb-8 md:mb-12">

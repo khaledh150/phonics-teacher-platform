@@ -43,8 +43,20 @@ const TeachingFlow = ({ group, onExit }) => {
   const currentStep = STEPS[stepIndex];
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowPreloader(false), 2000);
-    return () => clearTimeout(timer);
+    let cancelled = false;
+    const run = async () => {
+      // Play "Let's learn!" VO during preloader for step 1
+      if (stepIndex === 0) {
+        await playVO("Let's learn!");
+        if (cancelled) return;
+        await delay(300);
+        if (cancelled) return;
+      }
+      setShowPreloader(false);
+    };
+    // Minimum preloader display time
+    const timer = setTimeout(() => { if (!cancelled) run(); }, 1500);
+    return () => { cancelled = true; clearTimeout(timer); stopVO(); };
   }, [stepIndex]);
 
   const handleStepComplete = useCallback(() => {

@@ -121,16 +121,20 @@ const FlashcardViewer = ({ group, onComplete }) => {
 
   const reminderRef = useRef(null);
   const cancelledRef = useRef(false);
+  const [showReminder, setShowReminder] = useState(false);
 
   const startReminderTimer = useCallback(() => {
     clearTimeout(reminderRef.current);
+    setShowReminder(false);
     reminderRef.current = setTimeout(() => {
+      setShowReminder(true);
       playVO('Tap the speaker to hear it again!');
     }, 6000);
   }, []);
 
   const clearReminder = useCallback(() => {
     clearTimeout(reminderRef.current);
+    setShowReminder(false);
   }, []);
 
   // Single blend+speak cycle, returns promise that resolves when the final word is spoken
@@ -172,7 +176,21 @@ const FlashcardViewer = ({ group, onComplete }) => {
     });
   }, [displayText]);
 
-  // Full sequence: play → "Say it with me!" → play → "Listen closely..." → play → reminder
+  // Single play — used when user taps the speaker button
+  const handleBlendOnce = useCallback(async () => {
+    if (blendingRef.current) return;
+    clearTimeout(reminderRef.current);
+    stopVO();
+    window.speechSynthesis.cancel();
+    blendingRef.current = true;
+    cancelledRef.current = false;
+
+    await runOneBlendCycle();
+    blendingRef.current = false;
+    if (!cancelledRef.current) startReminderTimer();
+  }, [runOneBlendCycle, startReminderTimer]);
+
+  // Full 3x sequence: play → "Say it with me!" → play → "Listen closely..." → play → reminder
   const handleBlendAndSpeak = useCallback(async () => {
     if (blendingRef.current) return;
     clearTimeout(reminderRef.current);
@@ -285,11 +303,11 @@ const FlashcardViewer = ({ group, onComplete }) => {
     const handleKeyDown = (e) => {
       if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); goToNext(); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); goToPrev(); }
-      else if (e.key === 'r' || e.key === 'R') { handleBlendAndSpeak(); }
+      else if (e.key === 'r' || e.key === 'R') { handleBlendOnce(); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, handleBlendAndSpeak]);
+  }, [currentIndex, handleBlendOnce]);
 
   return (
     <div className="h-full w-full overflow-hidden relative">
@@ -387,7 +405,7 @@ const FlashcardViewer = ({ group, onComplete }) => {
               <h1
                 className="font-bold tracking-wide"
                 style={{
-                  fontSize: 'clamp(6rem, 24vw, 10rem)',
+                  fontSize: 'clamp(8rem, 30vw, 10rem)',
                   lineHeight: 1.1,
                 }}
               >
@@ -453,15 +471,19 @@ const FlashcardViewer = ({ group, onComplete }) => {
         {/* Speaker center */}
         <div className="mx-8 xl:mx-12">
           <motion.button
-            onClick={handleBlendAndSpeak}
-            className="p-5 bg-[#6B3FA0] transition-colors"
-            style={{ borderRadius: '1.6rem', borderBottom: '5px solid #4A2B70', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
+            onClick={() => { clearReminder(); handleBlendOnce(); }}
+            className={`p-5 transition-colors ${showReminder ? 'bg-[#FFD000]' : 'bg-[#6B3FA0]'}`}
+            style={{
+              borderRadius: '1.6rem',
+              borderBottom: showReminder ? '5px solid #E0B800' : '5px solid #4A2B70',
+              boxShadow: showReminder ? '0px 6px 0px rgba(0,0,0,0.1), 0 0 20px rgba(255,208,0,0.5)' : '0px 6px 0px rgba(0,0,0,0.12)',
+            }}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95, y: 4 }}
-            animate={isSpeaking ? { scale: [1, 1.15, 1, 1.15, 1] } : {}}
-            transition={isSpeaking ? { duration: 1, repeat: Infinity, ease: 'easeInOut' } : {}}
+            animate={isSpeaking ? { scale: [1, 1.15, 1, 1.15, 1] } : showReminder ? { scale: [1, 1.12, 1] } : {}}
+            transition={isSpeaking ? { duration: 1, repeat: Infinity, ease: 'easeInOut' } : showReminder ? { duration: 0.8, repeat: Infinity, ease: 'easeInOut' } : {}}
           >
-            <Volume2 className="w-10 h-10 text-white" />
+            <Volume2 className={`w-10 h-10 ${showReminder ? 'text-[#3e366b]' : 'text-white'}`} />
           </motion.button>
         </div>
 
@@ -495,15 +517,19 @@ const FlashcardViewer = ({ group, onComplete }) => {
       {/* Speaker button - FIXED CENTER for small/medium screens only, same level as yellow arrows */}
       <div className="fixed left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-40 lg:hidden">
         <motion.button
-          onClick={handleBlendAndSpeak}
-          className="p-4 md:p-5 bg-[#6B3FA0] transition-colors"
-          style={{ borderRadius: '1.6rem', borderBottom: '5px solid #4A2B70', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
+          onClick={() => { clearReminder(); handleBlendOnce(); }}
+          className={`p-4 md:p-5 transition-colors ${showReminder ? 'bg-[#FFD000]' : 'bg-[#6B3FA0]'}`}
+          style={{
+            borderRadius: '1.6rem',
+            borderBottom: showReminder ? '5px solid #E0B800' : '5px solid #4A2B70',
+            boxShadow: showReminder ? '0px 6px 0px rgba(0,0,0,0.1), 0 0 20px rgba(255,208,0,0.5)' : '0px 6px 0px rgba(0,0,0,0.12)',
+          }}
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95, y: 4 }}
-          animate={isSpeaking ? { scale: [1, 1.15, 1, 1.15, 1] } : {}}
-          transition={isSpeaking ? { duration: 1, repeat: Infinity, ease: 'easeInOut' } : {}}
+          animate={isSpeaking ? { scale: [1, 1.15, 1, 1.15, 1] } : showReminder ? { scale: [1, 1.12, 1] } : {}}
+          transition={isSpeaking ? { duration: 1, repeat: Infinity, ease: 'easeInOut' } : showReminder ? { duration: 0.8, repeat: Infinity, ease: 'easeInOut' } : {}}
         >
-          <Volume2 className="w-8 h-8 md:w-9 md:h-9 text-white" />
+          <Volume2 className={`w-8 h-8 md:w-9 md:h-9 ${showReminder ? 'text-[#3e366b]' : 'text-white'}`} />
         </motion.button>
       </div>
 
