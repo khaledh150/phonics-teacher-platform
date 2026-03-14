@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2 } from 'lucide-react';
 import { playLetterSound, getLetterSoundUrl } from '../utils/letterSounds';
 import { speakWithVoice } from '../utils/speech';
+import { playVO, stopVO, delay } from '../utils/audioPlayer';
 
 let sharedCtx = null;
 const getCtx = () => {
@@ -137,20 +138,34 @@ const SoundBalloons = ({ group, onComplete }) => {
     };
   }, [sounds]);
 
-  // 3-2-1-GO countdown
+  // 3-2-1-GO countdown then VO sequence
   useEffect(() => {
     if (gameStarted) return;
-    playCountdownTick(false);
-    const timers = [
-      setTimeout(() => { setCountdown(2); playCountdownTick(false); }, 1000),
-      setTimeout(() => { setCountdown(1); playCountdownTick(false); }, 2000),
-      setTimeout(() => { setCountdown(0); playCountdownTick(true); }, 3000),
-      setTimeout(() => {
-        setGameStarted(true);
-        announceSound(sounds[0]);
-      }, 3700),
-    ];
-    return () => timers.forEach(clearTimeout);
+    let cancelled = false;
+
+    const run = async () => {
+      // Visual countdown 3-2-1-GO
+      playCountdownTick(false);
+      await delay(1000);
+      if (cancelled) return;
+      setCountdown(2); playCountdownTick(false);
+      await delay(1000);
+      if (cancelled) return;
+      setCountdown(1); playCountdownTick(false);
+      await delay(1000);
+      if (cancelled) return;
+      setCountdown(0); playCountdownTick(true);
+      await delay(700);
+      if (cancelled) return;
+
+      // VO after GO, then start
+      await playVO('Pop the balloons that make the sound...');
+      if (cancelled) return;
+      setGameStarted(true);
+      announceSound(sounds[0]);
+    };
+    run();
+    return () => { cancelled = true; stopVO(); };
   }, [gameStarted, sounds, announceSound]);
 
   // Single game timer - one setInterval, all logic via refs
@@ -296,6 +311,9 @@ const SoundBalloons = ({ group, onComplete }) => {
       spawnParticles(balloon.currentX || balloon.x, (balloon.y / 100) * containerH, balloon.color);
       setBalloons((prev) => prev.map((b) => b.id === balloon.id ? { ...b, popped: true } : b));
       soundScoresRef.current[currentTarget] = (soundScoresRef.current[currentTarget] || 0) + 1;
+      const total = Object.values(soundScoresRef.current).reduce((a, b) => a + b, 0);
+      if (total === 10) playVO('Keep popping!');
+      else if (Math.random() < 0.15) playVO('Pop!');
     } else {
       playBoing();
       setShakingId(balloon.id);
@@ -307,7 +325,15 @@ const SoundBalloons = ({ group, onComplete }) => {
     announceSound(targetSoundRef.current);
   };
 
+  // VO on results screen
+  useEffect(() => {
+    if (showResults) {
+      playVO('Wow, look at them go!');
+    }
+  }, [showResults]);
+
   const handleFinish = () => {
+    stopVO();
     setShowResults(false);
     onComplete();
   };

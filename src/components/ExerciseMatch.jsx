@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { RotateCcw, Volume2 } from 'lucide-react';
 import { getWordImage } from '../utils/assetHelpers';
 import { speakWithVoice } from '../utils/speech';
+import { playVO, stopVO, delay } from '../utils/audioPlayer';
 
 // Web Audio sounds
 let sharedAudioContext = null;
@@ -255,6 +256,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
   const [gameKey, setGameKey] = useState(0);
   const [matchBurst, setMatchBurst] = useState(false);
   const [roundBurst, setRoundBurst] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const checkTimeoutRef = useRef(null);
 
   const currentRoundWords = roundsRef.current[round] || [];
@@ -269,11 +271,14 @@ const ExerciseMatch = ({ group, onComplete }) => {
     setGameKey((prev) => prev + 1);
   }, []);
 
+  const matchCountRef = useRef(0);
+
   // Init on mount — build fresh randomized rounds each time
   useEffect(() => {
     const rounds = buildRounds();
     setRound(0);
     setAllComplete(false);
+    matchCountRef.current = 0;
     // Init directly from freshly built rounds
     const words = rounds[0] || [];
     setShuffledWords(shuffle(words.map((w) => w.word)));
@@ -282,7 +287,26 @@ const ExerciseMatch = ({ group, onComplete }) => {
     setSelectedPic(null);
     setMatchedPairs(new Set());
     setGameKey((prev) => prev + 1);
+    // VO on mount
+    let cancelled = false;
+    const run = async () => {
+      await playVO('Match the word to the picture!');
+    };
+    run();
+    return () => { cancelled = true; stopVO(); };
   }, [buildRounds]);
+
+  // VO on all rounds complete
+  useEffect(() => {
+    if (!allComplete) return;
+    let cancelled = false;
+    const run = async () => {
+      await delay(500);
+      if (!cancelled) await playVO('Amazing job!');
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [allComplete]);
 
   const handleNextRound = useCallback(() => {
     const nextRound = round + 1;
@@ -298,31 +322,40 @@ const ExerciseMatch = ({ group, onComplete }) => {
   useEffect(() => {
     if (selectedWord === null || selectedPic === null) return;
 
+    setIsProcessing(true);
     checkTimeoutRef.current = setTimeout(() => {
       if (selectedWord === selectedPic) {
         playPop();
         setMatchBurst(true);
         setTimeout(() => setMatchBurst(false), 800);
+        // Occasional match VO (every 3rd match)
+        matchCountRef.current += 1;
+        if (matchCountRef.current % 3 === 0) {
+          setTimeout(() => playVO('You found one!'), 300);
+        }
 
         setMatchedPairs((prev) => {
           const next = new Set(prev);
           next.add(selectedWord);
           if (next.size === currentRoundWords.length) {
-            setTimeout(() => {
+            const runRoundEnd = async () => {
+              await delay(500);
               setRoundBurst(true);
               playFanfare();
-              setTimeout(() => {
-                setRoundBurst(false);
-                handleNextRound();
-              }, 1800);
-            }, 500);
+              await delay(2000);
+              setRoundBurst(false);
+              handleNextRound();
+            };
+            runRoundEnd();
           }
           return next;
         });
         setSelectedWord(null);
         setSelectedPic(null);
+        setIsProcessing(false);
       } else {
         playError();
+        playVO('Oops, try again!');
         setShakeWord(selectedWord);
         setShakePic(selectedPic);
         setTimeout(() => {
@@ -330,7 +363,8 @@ const ExerciseMatch = ({ group, onComplete }) => {
           setShakePic(null);
           setSelectedWord(null);
           setSelectedPic(null);
-        }, 600);
+          setIsProcessing(false);
+        }, 700);
       }
     }, 200);
 
@@ -340,13 +374,13 @@ const ExerciseMatch = ({ group, onComplete }) => {
   }, [selectedWord, selectedPic, currentRoundWords.length, handleNextRound]);
 
   const handleWordClick = (word) => {
-    if (matchedPairs.has(word) || shakeWord) return;
+    if (matchedPairs.has(word) || shakeWord || isProcessing) return;
     speakWithVoice(word, { rate: 0.85 });
     setSelectedWord(word);
   };
 
   const handlePicClick = (word) => {
-    if (matchedPairs.has(word) || shakePic) return;
+    if (matchedPairs.has(word) || shakePic || isProcessing) return;
     setSelectedPic(word);
   };
 
@@ -421,7 +455,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 20 }}
         >
-          {shuffledPics.map((word) => {
+          {shuffledPics.map((word, idx) => {
             const isMatched = matchedPairs.has(word);
             const isSelected = selectedPic === word;
             const isShaking = shakePic === word;
@@ -432,7 +466,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
                 key={word + '-pic'}
                 initial={{ scale: 1 }}
                 animate={{ scale: 0, opacity: 0 }}
-                transition={{ duration: 0.4, ease: 'backIn' }}
+                transition={{ duration: 0.6, ease: 'backIn' }}
                 className="w-full aspect-square"
               />
             );
@@ -454,8 +488,9 @@ const ExerciseMatch = ({ group, onComplete }) => {
                   maxHeight: '200px',
                   padding: 'clamp(8px, 2.5vw, 14px)',
                 }}
-                animate={isShaking ? { x: [0, -8, 8, -8, 8, 0] } : {}}
-                transition={isShaking ? { duration: 0.4 } : {}}
+                initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                animate={isShaking ? { opacity: 1, y: 0, scale: 1, x: [0, -8, 8, -8, 8, 0] } : { opacity: 1, y: 0, scale: 1 }}
+                transition={isShaking ? { duration: 0.5 } : { delay: idx * 0.06, duration: 0.5 }}
                 whileHover={{ y: -3, scale: 1.03 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -492,7 +527,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ delay: 0.2, type: 'spring', stiffness: 200, damping: 20 }}
         >
-          {shuffledWords.map((word) => {
+          {shuffledWords.map((word, idx) => {
             const isMatched = matchedPairs.has(word);
             const isSelected = selectedWord === word;
             const isShaking = shakeWord === word;
@@ -502,7 +537,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
                 key={word}
                 initial={{ scale: 1 }}
                 animate={{ scale: 0, opacity: 0 }}
-                transition={{ duration: 0.4, ease: 'backIn' }}
+                transition={{ duration: 0.6, ease: 'backIn' }}
                 className="w-full aspect-square"
                 style={{ maxWidth: '200px' }}
               />
@@ -526,8 +561,9 @@ const ExerciseMatch = ({ group, onComplete }) => {
                   fontSize: 'clamp(16px, 5vw, 32px)',
                   padding: 'clamp(6px, 2vw, 12px)',
                 }}
-                animate={isShaking ? { x: [0, -8, 8, -8, 8, 0] } : {}}
-                transition={isShaking ? { duration: 0.4 } : {}}
+                initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                animate={isShaking ? { opacity: 1, y: 0, scale: 1, x: [0, -8, 8, -8, 8, 0] } : { opacity: 1, y: 0, scale: 1 }}
+                transition={isShaking ? { duration: 0.5 } : { delay: idx * 0.06, duration: 0.5 }}
                 whileHover={{ y: -3, scale: 1.03 }}
                 whileTap={{ scale: 0.95 }}
               >

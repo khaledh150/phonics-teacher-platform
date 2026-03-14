@@ -151,3 +151,20 @@ export const speakWithVoice = (text, { rate = 0.85, onStart, onEnd, onError } = 
 
   return utterance;
 };
+
+/**
+ * Promise-returning version of speakWithVoice.
+ * Resolves when TTS finishes speaking.
+ * @param {string} text - Text to speak
+ * @param {{ rate?: number }} opts
+ * @returns {Promise<void>}
+ */
+export const speakAsync = (text, { rate = 0.85 } = {}) => {
+  return new Promise((resolve) => {
+    speakWithVoice(text, {
+      rate,
+      onEnd: resolve,
+      onError: resolve, // resolve on error so chains don't break
+    });
+  });
+};

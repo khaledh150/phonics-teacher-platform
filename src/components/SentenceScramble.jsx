@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { RotateCcw } from 'lucide-react';
 import { speakWithVoice } from '../utils/speech';
 import { findSentenceImage } from '../utils/assetHelpers';
+import { playVO, stopVO, delay } from '../utils/audioPlayer';
 
 let sharedCtx = null;
 const getCtx = () => {
@@ -101,6 +102,20 @@ const SentenceScramble = ({ group, onComplete }) => {
   const sentenceImage = findSentenceImage(group.id, currentKeyword, currentSentence);
   const correctWords = currentSentence.split(/\s+/).filter(Boolean);
 
+  // VO on mount - sequenced
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      await playVO("Let's build a sentence!");
+      if (cancelled) return;
+      await delay(200);
+      if (cancelled) return;
+      await playVO('Tap the words to put them in order');
+    };
+    run();
+    return () => { cancelled = true; stopVO(); };
+  }, []);
+
   // Initialize shuffled words
   useEffect(() => {
     setShelfWords([]);
@@ -130,14 +145,22 @@ const SentenceScramble = ({ group, onComplete }) => {
       setIsLocked(true);
       setShowConfetti(true);
       playSuccessChime();
-      // Wait for last word dictation to finish, then read full sentence
-      setTimeout(() => {
-        speakWithVoice(currentSentence, {
-          rate: 0.85,
-          onEnd: () => autoAdvance(),
-          onError: () => autoAdvance(),
+      // Sequence: wait -> TTS reads sentence -> delay -> VO -> linger -> advance
+      const runCompletion = async () => {
+        await delay(800);
+        await new Promise((resolve) => {
+          speakWithVoice(currentSentence, {
+            rate: 0.85,
+            onEnd: resolve,
+            onError: resolve,
+          });
         });
-      }, 1200);
+        await delay(300);
+        await playVO('What a great sentence!');
+        await delay(1500);
+        autoAdvance();
+      };
+      runCompletion();
     } else {
       // Wrong order — shake and dump back
       playErrorBuzz();
@@ -329,8 +352,8 @@ const SentenceScramble = ({ group, onComplete }) => {
               backgroundColor: isCorrect ? '#22c55e15' : checkWrong ? '#E6002310' : 'white',
               boxShadow: isCorrect ? '0 0 30px rgba(34,197,94,0.3), inset 0 0 20px rgba(34,197,94,0.1)' : 'none',
             }}
-            animate={checkWrong ? { x: [0, -6, 6, -6, 6, 0] } : {}}
-            transition={checkWrong ? { duration: 0.4 } : {}}
+            animate={checkWrong ? { x: [0, -6, 6, -6, 6, 0] } : shelfWords.length === 0 && !isCorrect ? { scale: [1, 1.01, 1] } : {}}
+            transition={checkWrong ? { duration: 0.4 } : shelfWords.length === 0 && !isCorrect ? { scale: { duration: 2.5, repeat: Infinity, ease: 'easeInOut' } } : {}}
           >
             {shelfWords.length === 0 && (
               <span className="text-[#3e366b]/25 text-sm md:text-base lg:text-lg font-medium">
@@ -365,7 +388,7 @@ const SentenceScramble = ({ group, onComplete }) => {
           style={{ maxWidth: 'calc(4 * (clamp(5rem, 20vw, 10rem) + 1rem))' }}
         >
           <AnimatePresence>
-            {sourceWords.map((word) => (
+            {sourceWords.map((word, idx) => (
               <motion.button
                 key={word.id}
                 onClick={() => handleWordTap(word)}
@@ -380,6 +403,7 @@ const SentenceScramble = ({ group, onComplete }) => {
                 initial={{ opacity: 0, scale: 0.5, rotate: Math.random() * 10 - 5 }}
                 animate={{ opacity: 1, scale: 1, rotate: 0 }}
                 exit={{ opacity: 0, scale: 0, transition: { duration: 0.2 } }}
+                transition={{ delay: idx * 0.06, duration: 0.5 }}
                 whileHover={{ scale: 1.08, y: -3 }}
                 whileTap={{ scale: 0.92 }}
                 layout

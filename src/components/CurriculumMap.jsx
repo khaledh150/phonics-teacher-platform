@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home, Lock, Maximize, BookOpen } from 'lucide-react';
 import { PHONICS_GROUPS } from '../data/phonicsData';
 import wonderPhonicsLogo from '../assets/wonder-phonics-logo.webp';
+import { playVO, stopVO, delay } from '../utils/audioPlayer';
 
 const toggleFullscreen = () => {
   if (!document.fullscreenElement) {
@@ -24,10 +25,13 @@ const LEVELS = [
 const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
   const [selectedLevel, setSelectedLevel] = useState(initialLevel || null);
   const [isPC, setIsPC] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
+  const welcomePlayingRef = useRef(false);
 
   useEffect(() => {
     if (initialLevel) {
       setSelectedLevel(initialLevel);
+      setHasInteracted(true); // returning from teaching, skip splash
       if (onLevelReset) onLevelReset();
     }
   }, [initialLevel, onLevelReset]);
@@ -38,6 +42,23 @@ const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
+
+  // VO when entering group selection (after user has interacted)
+  useEffect(() => {
+    if (!hasInteracted) return;
+    if (!selectedLevel) return;
+    // Don't interrupt welcome VO
+    if (welcomePlayingRef.current) return;
+    playVO('Choose a group to start!');
+    return () => stopVO();
+  }, [selectedLevel, hasInteracted]);
+
+  const handleTapToStart = async () => {
+    setHasInteracted(true);
+    welcomePlayingRef.current = true;
+    await playVO('Welcome to Wonder Phonics!');
+    welcomePlayingRef.current = false;
+  };
 
   const handleLevelClick = (level) => {
     if (level.locked) return;
@@ -67,6 +88,38 @@ const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
           />
         ))}
       </div>
+
+      {/* Tap to Start overlay — shown only on first cold load */}
+      <AnimatePresence>
+        {!hasInteracted && (
+          <motion.div
+            key="splash"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6 }}
+            className="fixed inset-0 z-[200] flex flex-col items-center justify-center cursor-pointer"
+            style={{ background: 'radial-gradient(ellipse at center, #E8F4FF 0%, #c8dcf8 100%)' }}
+            onClick={handleTapToStart}
+          >
+            <motion.img
+              src={wonderPhonicsLogo}
+              alt="Wonder Phonics"
+              className="w-auto mx-auto object-contain mb-8"
+              style={{ height: isPC ? '300px' : 'min(55vw, 260px)' }}
+              animate={{ scale: [1, 1.03, 1] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+            />
+            <motion.div
+              className="px-10 py-5 bg-[#FFD000] text-[#3e366b] font-bold text-xl md:text-2xl lg:text-3xl"
+              style={{ borderRadius: '2rem', borderBottom: '6px solid #E0B800', boxShadow: '0px 8px 0px rgba(0,0,0,0.12)' }}
+              animate={{ scale: [1, 1.06, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              Tap to Start!
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Top-left: Home (when in groups) + Fullscreen - Juicy 3D buttons */}
       <div className="fixed top-3 left-3 md:top-4 md:left-4 z-50 flex items-center gap-2">
@@ -103,7 +156,7 @@ const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.6 }}
             className="flex flex-col items-center w-full max-w-4xl px-4 py-8 md:py-12 relative z-10"
           >
             {/* Logo */}
@@ -141,7 +194,7 @@ const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
                   }}
                   initial={{ opacity: 0, scale: 0.5 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: idx * 0.1, type: 'spring', stiffness: 400, damping: 15 }}
+                  transition={{ delay: idx * 0.1, type: 'spring', bounce: 0.5, duration: 0.8 }}
                   whileHover={!level.locked ? { scale: 1.05, y: -4 } : {}}
                   whileTap={!level.locked ? { scale: 0.95, y: 4 } : {}}
                 >
@@ -182,7 +235,7 @@ const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
             initial={{ opacity: 0, x: 100 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -100 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.6 }}
             className="flex flex-col items-center w-full max-w-5xl px-3 md:px-4 py-6 md:py-10 relative z-10"
           >
             {/* Spacer for top buttons */}
@@ -211,7 +264,7 @@ const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
                   }}
                   initial={{ opacity: 0, scale: 0.5 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: idx * 0.03, type: 'spring', stiffness: 400, damping: 15 }}
+                  transition={{ delay: idx * 0.05, type: 'spring', bounce: 0.5, duration: 0.8 }}
                   whileHover={{ scale: 1.05, y: -4 }}
                   whileTap={{ scale: 0.95, y: 4 }}
                 >

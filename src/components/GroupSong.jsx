@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Play, Pause, SkipForward, Volume2 } from 'lucide-react';
 import { getSoundMusic, getSoundVideo } from '../utils/assetHelpers';
 import { speakWithVoice } from '../utils/speech';
+import { playVO, stopVO, delay } from '../utils/audioPlayer';
 
 const GroupSong = ({ group, onComplete }) => {
   const [currentSoundIdx, setCurrentSoundIdx] = useState(0);
@@ -80,6 +81,16 @@ const GroupSong = ({ group, onComplete }) => {
     // Use TTS for the individual sound
     speakWithVoice(sound, { rate: 0.7 });
   };
+
+  // VO on mount - async sequenced
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      await playVO('Sing along time!');
+    };
+    run();
+    return () => { cancelled = true; stopVO(); };
+  }, []);
 
   return (
     <div className="h-full w-full relative overflow-hidden">

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Volume2 } from 'lucide-react';
 import { getWordImage } from '../utils/assetHelpers';
 import { speakWithVoice } from '../utils/speech';
 import { playBlendingSequence, wordToPhonemes } from '../utils/letterSounds';
+import { playVO, stopVO, delay } from '../utils/audioPlayer';
 
 // Whoosh sound for transitions
 let sharedAudioContext = null;
@@ -118,43 +119,91 @@ const FlashcardViewer = ({ group, onComplete }) => {
   const imagePath = getWordImage(group.id, currentItem.image);
   const displayText = currentItem.word;
 
+  const reminderRef = useRef(null);
+  const cancelledRef = useRef(false);
+
+  const startReminderTimer = useCallback(() => {
+    clearTimeout(reminderRef.current);
+    reminderRef.current = setTimeout(() => {
+      playVO('Tap the speaker to hear it again!');
+    }, 6000);
+  }, []);
+
+  const clearReminder = useCallback(() => {
+    clearTimeout(reminderRef.current);
+  }, []);
+
+  // Single blend+speak cycle, returns promise that resolves when the final word is spoken
+  const runOneBlendCycle = useCallback(() => {
+    return new Promise(async (resolve) => {
+      setIsBlending(true);
+      setIsSpeaking(true);
+      setActivePhoneme(null);
+      try {
+        await playBlendingSequence(
+          displayText,
+          (word) => {
+            speakWithVoice(word, {
+              rate: 0.85,
+              onEnd: () => {
+                setIsSpeaking(false);
+                setIsBlending(false);
+                setTimeout(() => setActivePhoneme(null), 600);
+                resolve();
+              },
+              onError: () => {
+                setIsSpeaking(false);
+                setIsBlending(false);
+                setActivePhoneme(null);
+                resolve();
+              },
+            });
+          },
+          (phonemeIdx) => {
+            setActivePhoneme(phonemeIdx);
+          }
+        );
+      } catch {
+        setIsSpeaking(false);
+        setIsBlending(false);
+        setActivePhoneme(null);
+        resolve();
+      }
+    });
+  }, [displayText]);
+
+  // Full sequence: play → "Say it with me!" → play → "Listen closely..." → play → reminder
   const handleBlendAndSpeak = useCallback(async () => {
     if (blendingRef.current) return;
+    clearTimeout(reminderRef.current);
+    stopVO();
+    window.speechSynthesis.cancel();
     blendingRef.current = true;
-    setIsBlending(true);
-    setIsSpeaking(true);
-    setActivePhoneme(null);
-    try {
-      await playBlendingSequence(
-        displayText,
-        (word) => {
-          speakWithVoice(word, {
-            rate: 0.85,
-            onEnd: () => {
-              setIsSpeaking(false);
-              setIsBlending(false);
-              blendingRef.current = false;
-              setTimeout(() => setActivePhoneme(null), 600);
-            },
-            onError: () => {
-              setIsSpeaking(false);
-              setIsBlending(false);
-              blendingRef.current = false;
-              setActivePhoneme(null);
-            },
-          });
-        },
-        (phonemeIdx) => {
-          setActivePhoneme(phonemeIdx);
-        }
-      );
-    } catch {
-      setIsSpeaking(false);
-      setIsBlending(false);
-      blendingRef.current = false;
-      setActivePhoneme(null);
-    }
-  }, [displayText]);
+    cancelledRef.current = false;
+
+    // 1st play
+    await runOneBlendCycle();
+    if (cancelledRef.current) { blendingRef.current = false; return; }
+    await delay(800);
+    if (cancelledRef.current) { blendingRef.current = false; return; }
+    // "Say it with me!" + 2nd play
+    await playVO('Say it with me!');
+    if (cancelledRef.current) { blendingRef.current = false; return; }
+    await delay(600);
+    if (cancelledRef.current) { blendingRef.current = false; return; }
+    await runOneBlendCycle();
+    if (cancelledRef.current) { blendingRef.current = false; return; }
+    await delay(1000);
+    if (cancelledRef.current) { blendingRef.current = false; return; }
+    // "Listen closely..." + 3rd play
+    await playVO('Listen closely...');
+    if (cancelledRef.current) { blendingRef.current = false; return; }
+    await delay(600);
+    if (cancelledRef.current) { blendingRef.current = false; return; }
+    await runOneBlendCycle();
+    blendingRef.current = false;
+    if (!cancelledRef.current) startReminderTimer();
+  }, [runOneBlendCycle, startReminderTimer]);
 
   useEffect(() => {
     window.speechSynthesis.cancel();
@@ -163,14 +212,35 @@ const FlashcardViewer = ({ group, onComplete }) => {
     blendingRef.current = false;
     setIsBlending(false);
     setIsSpeaking(false);
-    speechTimeoutRef.current = setTimeout(() => {
+    clearReminder();
+
+    let cancelled = false;
+    const run = async () => {
+      if (currentIndex === 0) {
+        await playVO('Look at the picture.');
+        if (cancelled) return;
+        await delay(300);
+        if (cancelled) return;
+        await playVO('What is it');
+        if (cancelled) return;
+        await delay(400);
+        if (cancelled) return;
+      } else {
+        await delay(400);
+        if (cancelled) return;
+      }
       handleBlendAndSpeak();
-    }, 400);
+    };
+    run();
     return () => {
-      if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
+      cancelled = true;
+      cancelledRef.current = true;
+      blendingRef.current = false;
+      stopVO();
+      clearReminder();
       window.speechSynthesis.cancel();
     };
-  }, [currentIndex, handleBlendAndSpeak]);
+  }, [currentIndex, handleBlendAndSpeak, clearReminder]);
 
   useEffect(() => {
     return () => {
@@ -180,7 +250,10 @@ const FlashcardViewer = ({ group, onComplete }) => {
   }, []);
 
   const goToNext = () => {
+    cancelledRef.current = true;
     window.speechSynthesis.cancel();
+    clearReminder();
+    stopVO();
     blendingRef.current = false;
     setIsSpeaking(false);
     setIsBlending(false);
@@ -194,7 +267,10 @@ const FlashcardViewer = ({ group, onComplete }) => {
   };
 
   const goToPrev = () => {
+    cancelledRef.current = true;
     window.speechSynthesis.cancel();
+    clearReminder();
+    stopVO();
     blendingRef.current = false;
     setIsSpeaking(false);
     setIsBlending(false);

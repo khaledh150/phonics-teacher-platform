@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { playLetterSound, getLetterSoundUrl } from '../utils/letterSounds';
 import { speakWithVoice } from '../utils/speech';
 import { getWordImage } from '../utils/assetHelpers';
+import { playVO, stopVO, delay } from '../utils/audioPlayer';
 
 let sharedCtx = null;
 const getCtx = () => {
@@ -113,6 +114,20 @@ const BlendingFactory = ({ group, onComplete }) => {
   const wordLetters = currentWord.word.split('');
   const imageSrc = getWordImage(group.id, currentWord.image);
 
+  // VO on mount - sequenced
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      await playVO("Let's build the word together!");
+      if (cancelled) return;
+      await delay(200);
+      if (cancelled) return;
+      await playVO('Drag the correct letter to the empty box.');
+    };
+    run();
+    return () => { cancelled = true; stopVO(); };
+  }, []);
+
   // Initialize letters and slots for current word
   useEffect(() => {
     setWordDone(false);
@@ -189,25 +204,25 @@ const BlendingFactory = ({ group, onComplete }) => {
     await new Promise(r => setTimeout(r, 150));
     if (!blendingRef.current) return;
 
-    // Speak the full word
+    // Speak the full word, then VO, then linger
     speakWithVoice(currentWord.word, {
       rate: 0.8,
-      onEnd: () => {
+      onEnd: async () => {
         if (!blendingRef.current) return;
         setWordDone(true);
-        // Auto-advance after short delay
-        setTimeout(() => {
-          if (!blendingRef.current) return;
-          autoAdvance();
-        }, 800);
+        await delay(300);
+        if (!blendingRef.current) return;
+        await playVO('Great job!');
+        await delay(1500);
+        if (!blendingRef.current) return;
+        autoAdvance();
       },
-      onError: () => {
+      onError: async () => {
         if (!blendingRef.current) return;
         setWordDone(true);
-        setTimeout(() => {
-          if (!blendingRef.current) return;
-          autoAdvance();
-        }, 800);
+        await delay(1500);
+        if (!blendingRef.current) return;
+        autoAdvance();
       },
     });
   };
@@ -405,8 +420,8 @@ const BlendingFactory = ({ group, onComplete }) => {
                 boxShadow: slots[idx] ? `0 4px 15px ${SLOT_COLORS[idx % SLOT_COLORS.length]}40, 0 2px 8px rgba(0,0,0,0.1)` : 'none',
               }}
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.08 }}
+              animate={slots[idx] ? { opacity: 1, y: 0 } : { opacity: 1, y: 0, scale: [1, 1.03, 1] }}
+              transition={slots[idx] ? { delay: idx * 0.08 } : { delay: idx * 0.08, scale: { duration: 2, repeat: Infinity, ease: 'easeInOut' } }}
             >
               {slots[idx] ? (
                 <motion.span
@@ -438,12 +453,13 @@ const BlendingFactory = ({ group, onComplete }) => {
       <div className="pb-12 md:pb-16 px-4 min-h-[130px] md:min-h-[170px]">
         <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 lg:gap-5">
           <AnimatePresence>
-            {letters.map((letter) => (
+            {letters.map((letter, i) => (
               <DraggableLetter
                 key={letter.id}
                 letter={letter}
                 onDrop={handleDrop}
                 color={SLOT_COLORS[letter.originalIdx % SLOT_COLORS.length]}
+                entranceDelay={i * 0.08}
               />
             ))}
           </AnimatePresence>
@@ -454,7 +470,7 @@ const BlendingFactory = ({ group, onComplete }) => {
 };
 
 // Draggable letter block
-const DraggableLetter = ({ letter, onDrop, color }) => {
+const DraggableLetter = ({ letter, onDrop, color, entranceDelay = 0 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const lastPointerRef = useRef({ x: 0, y: 0 });
 
@@ -497,7 +513,7 @@ const DraggableLetter = ({ letter, onDrop, color }) => {
         });
       }}
       initial={{ opacity: 0, scale: 0.5, y: 30 }}
-      animate={{ opacity: 1, scale: isDragging ? 1.15 : 1, y: 0 }}
+      animate={{ opacity: 1, scale: isDragging ? 1.15 : 1, y: 0, transition: { delay: entranceDelay, duration: 0.3 } }}
       exit={{ opacity: 0, scale: 0, transition: { duration: 0.2 } }}
       whileHover={{ scale: 1.08 }}
       style={{ zIndex: isDragging ? 100 : 10 }}

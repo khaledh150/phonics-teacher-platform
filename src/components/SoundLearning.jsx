@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Volume2, Film, Music } from 'lucide-react';
 import { getSoundVideo, getSoundMusic } from '../utils/assetHelpers';
 import { speakWithVoice } from '../utils/speech';
 import { playLetterSound, getLetterSoundUrl } from '../utils/letterSounds';
+import { playVO, stopVO, delay } from '../utils/audioPlayer';
 
 const SoundLearning = ({ group, onComplete }) => {
   const [soundIndex, setSoundIndex] = useState(0);
@@ -19,47 +20,120 @@ const SoundLearning = ({ group, onComplete }) => {
   const videoSrc = getSoundVideo(group.id, currentSound);
   const musicSrc = getSoundMusic(group.id, currentSound);
 
+  const reminderRef = useRef(null);
+
+  // Start idle reminder timer — plays "Tap the speaker" VO after 6s of no interaction
+  const startReminderTimer = useCallback(() => {
+    clearTimeout(reminderRef.current);
+    reminderRef.current = setTimeout(() => {
+      playVO('Tap the speaker to hear it again!');
+    }, 6000);
+  }, []);
+
+  const clearReminder = useCallback(() => {
+    clearTimeout(reminderRef.current);
+  }, []);
+
+  const cancelledRef = useRef(false);
+
+  // Play a single letter sound and return a promise
+  const playOnce = useCallback((sound) => {
+    return new Promise((resolve) => {
+      const url = getLetterSoundUrl(sound);
+      if (url) {
+        setIsSpeaking(true);
+        playLetterSound(sound)
+          .then(() => { setIsSpeaking(false); resolve(); })
+          .catch(() => {
+            speakWithVoice(sound, {
+              rate: 0.7,
+              onStart: () => setIsSpeaking(true),
+              onEnd: () => { setIsSpeaking(false); resolve(); },
+              onError: () => { setIsSpeaking(false); resolve(); },
+            });
+          });
+      } else {
+        speakWithVoice(sound, {
+          rate: 0.7,
+          onStart: () => setIsSpeaking(true),
+          onEnd: () => { setIsSpeaking(false); resolve(); },
+          onError: () => { setIsSpeaking(false); resolve(); },
+        });
+      }
+    });
+  }, []);
+
+  // Full sequence: play → "Say it with me!" → play → "Listen closely..." → play → reminder
+  const speakSound = useCallback(async (sound) => {
+    stopVO();
+    clearTimeout(reminderRef.current);
+    cancelledRef.current = false;
+
+    // 1st play
+    await playOnce(sound);
+    if (cancelledRef.current) return;
+    await delay(800);
+    if (cancelledRef.current) return;
+    // "Say it with me!" + 2nd play
+    await playVO('Say it with me!');
+    if (cancelledRef.current) return;
+    await delay(600);
+    if (cancelledRef.current) return;
+    await playOnce(sound);
+    if (cancelledRef.current) return;
+    await delay(1000);
+    if (cancelledRef.current) return;
+    // "Listen closely..." + 3rd play
+    await playVO('Listen closely...');
+    if (cancelledRef.current) return;
+    await delay(600);
+    if (cancelledRef.current) return;
+    await playOnce(sound);
+    if (cancelledRef.current) return;
+    startReminderTimer();
+  }, [playOnce, startReminderTimer]);
+
   useEffect(() => {
     setVideoError(false);
     setMusicError(false);
+    clearReminder();
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
-  }, [soundIndex]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
+    let cancelled = false;
+    const run = async () => {
+      if (soundIndex === 0) {
+        await playVO("Let's learn!");
+        if (cancelled) return;
+        await delay(300);
+        if (cancelled) return;
+        await playVO('Listen to the sound.');
+        if (cancelled) return;
+        await delay(600);
+        if (cancelled) return;
+      } else {
+        await delay(400);
+        if (cancelled) return;
+      }
       speakSound(currentSound);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [currentSound]);
-
-  const speakSound = useCallback((sound) => {
-    const url = getLetterSoundUrl(sound);
-    if (url) {
-      setIsSpeaking(true);
-      playLetterSound(sound)
-        .then(() => setIsSpeaking(false))
-        .catch(() => {
-          speakWithVoice(sound, {
-            rate: 0.7,
-            onStart: () => setIsSpeaking(true),
-            onEnd: () => setIsSpeaking(false),
-            onError: () => setIsSpeaking(false),
-          });
-        });
-    } else {
-      speakWithVoice(sound, {
-        rate: 0.7,
-        onStart: () => setIsSpeaking(true),
-        onEnd: () => setIsSpeaking(false),
-        onError: () => setIsSpeaking(false),
-      });
-    }
-  }, []);
+    };
+    run();
+    return () => {
+      cancelled = true;
+      cancelledRef.current = true;
+      stopVO();
+      clearReminder();
+      window.speechSynthesis.cancel();
+    };
+  }, [currentSound, speakSound, clearReminder]);
 
   const goNext = () => {
+    cancelledRef.current = true;
+    clearReminder();
+    stopVO();
+    window.speechSynthesis.cancel();
     if (isLastSound) {
       onComplete();
     } else {
@@ -68,6 +142,10 @@ const SoundLearning = ({ group, onComplete }) => {
   };
 
   const goPrev = () => {
+    cancelledRef.current = true;
+    clearReminder();
+    stopVO();
+    window.speechSynthesis.cancel();
     if (soundIndex > 0) {
       setSoundIndex((prev) => prev - 1);
     }

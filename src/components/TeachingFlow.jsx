@@ -10,6 +10,7 @@ import BlendingFactory from './BlendingFactory';
 import SentenceScramble from './SentenceScramble';
 import Preloader from './Preloader';
 import { stopAllAudio } from '../utils/letterSounds';
+import { playVO, stopVO, delay } from '../utils/audioPlayer';
 
 const toggleFullscreen = () => {
   if (!document.fullscreenElement) {
@@ -53,6 +54,7 @@ const TeachingFlow = ({ group, onExit }) => {
   const handleNextStep = useCallback(() => {
     window.speechSynthesis.cancel();
     stopAllAudio();
+    stopVO();
     if (stepIndex < STEPS.length - 1) {
       setStepComplete(false);
       setStepReady(false);
@@ -66,6 +68,7 @@ const TeachingFlow = ({ group, onExit }) => {
   const handlePrevStep = useCallback(() => {
     window.speechSynthesis.cancel();
     stopAllAudio();
+    stopVO();
     if (stepIndex > 0) {
       setStepComplete(false);
       setStepReady(false);
@@ -77,6 +80,7 @@ const TeachingFlow = ({ group, onExit }) => {
   const handleSkipStep = useCallback(() => {
     window.speechSynthesis.cancel();
     stopAllAudio();
+    stopVO();
     if (stepIndex < STEPS.length - 1) {
       setStepComplete(false);
       setStepReady(false);
@@ -95,8 +99,30 @@ const TeachingFlow = ({ group, onExit }) => {
     setShowExitConfirm(false);
     window.speechSynthesis.cancel();
     stopAllAudio();
+    stopVO();
     onExit();
   };
+
+  // VO on group finish celebration
+  useEffect(() => {
+    if (!showGroupFinish) return;
+    let cancelled = false;
+    const run = async () => {
+      await delay(800);
+      if (cancelled) return;
+      await playVO('You did it!');
+      if (cancelled) return;
+      await delay(300);
+      if (cancelled) return;
+      await playVO('You are a Phonics Master!');
+      if (cancelled) return;
+      await delay(400);
+      if (cancelled) return;
+      await playVO('Hooray!');
+    };
+    run();
+    return () => { cancelled = true; stopVO(); };
+  }, [showGroupFinish]);
 
   const renderStep = () => {
     switch (currentStep) {
@@ -126,10 +152,10 @@ const TeachingFlow = ({ group, onExit }) => {
         {stepReady && (
           <motion.div
             key={currentStep}
-            initial={{ opacity: 0, x: 50 }}
+            initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -50 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0, x: -40 }}
+            transition={{ duration: 0.7, ease: 'easeInOut' }}
             className="h-full"
           >
             {renderStep()}
@@ -363,6 +389,7 @@ const TeachingFlow = ({ group, onExit }) => {
                   onClick={() => {
                     window.speechSynthesis.cancel();
                     stopAllAudio();
+                    stopVO();
                     onExit();
                   }}
                   className="px-8 py-3 md:px-10 md:py-4 bg-[#E60023] text-white font-bold text-base md:text-lg"
