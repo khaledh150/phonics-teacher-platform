@@ -3,14 +3,17 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@pixi/react": "^8.0.5",
     "@tailwindcss/postcss": "^4.1.18",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^13.5.0",
     "framer-motion": "^12.33.0",
+    "pixi.js": "^8.17.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "canvas-confetti": "^1.9.4",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -40,7 +43,6 @@
     "@tailwindcss/vite": "^4.1.18",
     "@vitejs/plugin-react": "^5.1.2",
     "autoprefixer": "^10.4.23",
-    "canvas-confetti": "^1.9.4",
     "lucide-react": "^0.563.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",

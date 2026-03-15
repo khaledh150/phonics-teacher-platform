@@ -20,7 +20,8 @@
       "Read(//c/Apps and Games Dev/wonder-phonics-platform/src/assets/lvl1/**)",
       "Bash(done)",
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(cd:*)"
     ]
   }
 }

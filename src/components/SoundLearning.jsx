@@ -6,6 +6,24 @@ import { speakWithVoice } from '../utils/speech';
 import { playLetterSound, getLetterSoundUrl } from '../utils/letterSounds';
 import { playVO, playLetterVO, stopVO, delay } from '../utils/audioPlayer';
 
+// For multi-letter sounds like "ew", "ai", "ch" — play each letter name individually
+const playMultiLetterVO = async (sound) => {
+  // Strip hyphens for sounds like "a-e" → "ae"
+  const cleaned = sound.replace(/-/g, '');
+  if (cleaned.length <= 1) {
+    // Single letter — use normal letter VO
+    await playLetterVO(sound);
+    return;
+  }
+  // Multi-letter: play each letter name one by one
+  for (let i = 0; i < cleaned.length; i++) {
+    await playLetterVO(cleaned[i]);
+    if (i < cleaned.length - 1) {
+      await delay(200);
+    }
+  }
+};
+
 const SoundLearning = ({ group, onComplete }) => {
   const [soundIndex, setSoundIndex] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -123,9 +141,10 @@ const SoundLearning = ({ group, onComplete }) => {
         if (cancelled) return;
       }
       // "Let's learn the sound of letter..." + letter name VO for every sound
+      // For multi-letter sounds (ew, ai, ch, etc.) play each letter name individually
       await playVO("Let's learn the sound of letter..");
       if (cancelled) return;
-      await playLetterVO(currentSound);
+      await playMultiLetterVO(currentSound);
       if (cancelled) return;
       await delay(400);
       if (cancelled) return;
@@ -263,7 +282,7 @@ const SoundLearning = ({ group, onComplete }) => {
             <motion.span
               className="font-bold leading-none text-center"
               style={{
-                fontSize: 'clamp(16rem, 50vw, 24rem)',
+                fontSize: 'clamp(10rem, 28vw, 18rem)',
                 color: isSpeaking ? '#E60023' : '#3e366b',
                 textShadow: isSpeaking
                   ? '0 0 30px rgba(230, 0, 35, 0.5), 0 4px 20px rgba(62, 54, 107, 0.15)'

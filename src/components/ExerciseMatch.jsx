@@ -4,6 +4,8 @@ import { RotateCcw, Volume2 } from 'lucide-react';
 import { getWordImage } from '../utils/assetHelpers';
 import { speakWithVoice } from '../utils/speech';
 import { playVO, stopVO, delay } from '../utils/audioPlayer';
+import { triggerCelebration, triggerSmallBurst } from '../utils/confetti';
+import { playMatchEncouragement, playCompletionEncouragement } from '../utils/encouragement';
 
 // Web Audio sounds
 let sharedAudioContext = null;
@@ -272,6 +274,18 @@ const ExerciseMatch = ({ group, onComplete }) => {
   }, []);
 
   const matchCountRef = useRef(0);
+  const idleReminderRef = useRef(null);
+
+  const clearIdleReminder = useCallback(() => {
+    clearTimeout(idleReminderRef.current);
+  }, []);
+
+  const startIdleReminder = useCallback(() => {
+    clearTimeout(idleReminderRef.current);
+    idleReminderRef.current = setTimeout(() => {
+      playVO('Match the word to the picture!');
+    }, 6000);
+  }, []);
 
   // Init on mount — build fresh randomized rounds each time
   useEffect(() => {
@@ -287,18 +301,20 @@ const ExerciseMatch = ({ group, onComplete }) => {
     setSelectedPic(null);
     setMatchedPairs(new Set());
     setGameKey((prev) => prev + 1);
-    // VO on mount
+    // VO on mount + start idle reminder
     let cancelled = false;
     const run = async () => {
       await playVO('Match the word to the picture!');
+      if (!cancelled) startIdleReminder();
     };
     run();
-    return () => { cancelled = true; stopVO(); };
+    return () => { cancelled = true; stopVO(); clearIdleReminder(); };
   }, [buildRounds]);
 
-  // VO on all rounds complete
+  // VO + confetti on all rounds complete
   useEffect(() => {
     if (!allComplete) return;
+    triggerCelebration();
     let cancelled = false;
     const run = async () => {
       await delay(500);
@@ -326,24 +342,27 @@ const ExerciseMatch = ({ group, onComplete }) => {
     checkTimeoutRef.current = setTimeout(() => {
       if (selectedWord === selectedPic) {
         playPop();
+        clearIdleReminder();
         setMatchBurst(true);
         setTimeout(() => setMatchBurst(false), 800);
-        // Occasional match VO (every 3rd match)
         matchCountRef.current += 1;
-        if (matchCountRef.current % 3 === 0) {
-          setTimeout(() => playVO('You found one!'), 300);
-        }
 
         setMatchedPairs((prev) => {
           const next = new Set(prev);
           next.add(selectedWord);
-          if (next.size === currentRoundWords.length) {
+          const isRoundComplete = next.size === currentRoundWords.length;
+          // Only play match encouragement if NOT the last pair (round completion VO handles that)
+          if (!isRoundComplete) {
+            setTimeout(() => playMatchEncouragement(), 300);
+          }
+          if (isRoundComplete) {
             const runRoundEnd = async () => {
               await delay(500);
               setRoundBurst(true);
+              triggerSmallBurst();
               playFanfare();
               await delay(1500);
-              await playVO('Great job!');
+              await playCompletionEncouragement();
               await delay(500);
               setRoundBurst(false);
               handleNextRound();
@@ -355,8 +374,10 @@ const ExerciseMatch = ({ group, onComplete }) => {
         setSelectedWord(null);
         setSelectedPic(null);
         setIsProcessing(false);
+        startIdleReminder();
       } else {
         playError();
+        clearIdleReminder();
         playVO('Oops, try again!');
         setShakeWord(selectedWord);
         setShakePic(selectedPic);
@@ -366,6 +387,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
           setSelectedWord(null);
           setSelectedPic(null);
           setIsProcessing(false);
+          startIdleReminder();
         }, 700);
       }
     }, 200);
@@ -377,12 +399,16 @@ const ExerciseMatch = ({ group, onComplete }) => {
 
   const handleWordClick = (word) => {
     if (matchedPairs.has(word) || shakeWord || isProcessing) return;
+    clearIdleReminder();
+    startIdleReminder();
     speakWithVoice(word, { rate: 0.85 });
     setSelectedWord(word);
   };
 
   const handlePicClick = (word) => {
     if (matchedPairs.has(word) || shakePic || isProcessing) return;
+    clearIdleReminder();
+    startIdleReminder();
     setSelectedPic(word);
   };
 
@@ -405,9 +431,6 @@ const ExerciseMatch = ({ group, onComplete }) => {
       {/* Title - center top */}
       <div className="w-full text-center pt-3 md:pt-4 lg:pt-6 z-30">
         <h2 className="text-lg md:text-2xl lg:text-3xl font-bold text-[#3e366b]">Match the Pair</h2>
-        <p className="text-[#3e366b]/40 text-xs lg:text-sm mt-0.5">
-          Round {round + 1} of {TOTAL_ROUNDS} &middot; Tap a word, then tap its picture
-        </p>
       </div>
 
       {/* Progress & reset - top right */}
@@ -447,12 +470,12 @@ const ExerciseMatch = ({ group, onComplete }) => {
       </div>
 
       {/* Game area: pictures on top, words on bottom */}
-      <div className="flex-1 w-full flex flex-col items-center justify-center px-4 md:px-8 lg:px-12 py-4 md:py-6 lg:py-8 gap-5 md:gap-6 lg:gap-7">
+      <div className="flex-1 w-full flex flex-col items-center justify-center px-4 md:px-8 lg:px-10 py-4 md:py-6 lg:py-6 gap-4 md:gap-5 lg:gap-5">
 
         {/* Pictures Grid */}
         <motion.div
           key={`pics-${gameKey}`}
-          className="grid grid-cols-3 justify-items-center gap-3 md:gap-4 lg:gap-6 w-full max-w-3xl lg:max-w-5xl"
+          className="grid grid-cols-3 justify-items-center gap-3 md:gap-4 lg:gap-5 w-full max-w-3xl lg:max-w-4xl"
           initial={{ opacity: 0, y: 40, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 20 }}
@@ -486,9 +509,9 @@ const ExerciseMatch = ({ group, onComplete }) => {
                     : 'bg-white border-3 border-[#ffd700]/70 hover:border-[#4d79ff] hover:shadow-xl'
                 }`}
                 style={{
-                  maxWidth: '200px',
-                  maxHeight: '200px',
-                  padding: 'clamp(8px, 2.5vw, 14px)',
+                  maxWidth: 'clamp(140px, 22vw, 180px)',
+                  maxHeight: 'clamp(140px, 22vw, 180px)',
+                  padding: 'clamp(6px, 2vw, 10px)',
                 }}
                 initial={{ opacity: 0, y: 20, scale: 0.9 }}
                 animate={isShaking ? { opacity: 1, y: 0, scale: 1, x: [0, -8, 8, -8, 8, 0] } : { opacity: 1, y: 0, scale: 1 }}
@@ -524,7 +547,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
         {/* Words Grid */}
         <motion.div
           key={`words-${gameKey}`}
-          className="grid grid-cols-3 justify-items-center gap-3 md:gap-4 lg:gap-6 w-full max-w-3xl lg:max-w-5xl"
+          className="grid grid-cols-3 justify-items-center gap-3 md:gap-4 lg:gap-5 w-full max-w-3xl lg:max-w-4xl"
           initial={{ opacity: 0, y: 40, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ delay: 0.2, type: 'spring', stiffness: 200, damping: 20 }}
@@ -558,10 +581,10 @@ const ExerciseMatch = ({ group, onComplete }) => {
                     : 'bg-white text-[#3e366b] border-3 border-[#ae90fd]/60 hover:border-[#4d79ff] hover:shadow-xl'
                 }`}
                 style={{
-                  maxWidth: '200px',
-                  maxHeight: '200px',
-                  fontSize: 'clamp(16px, 5vw, 32px)',
-                  padding: 'clamp(6px, 2vw, 12px)',
+                  maxWidth: 'clamp(140px, 22vw, 180px)',
+                  maxHeight: 'clamp(140px, 22vw, 180px)',
+                  fontSize: 'clamp(16px, 4.5vw, 28px)',
+                  padding: 'clamp(6px, 1.5vw, 10px)',
                 }}
                 initial={{ opacity: 0, y: 20, scale: 0.9 }}
                 animate={isShaking ? { opacity: 1, y: 0, scale: 1, x: [0, -8, 8, -8, 8, 0] } : { opacity: 1, y: 0, scale: 1 }}

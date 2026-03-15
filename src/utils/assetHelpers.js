@@ -116,10 +116,12 @@ export const getSentencePicMap = (groupId) => {
  * First tries exact keyword match, then scans sentence words for any matching pic.
  */
 export const findSentenceImage = (groupId, keyword, sentenceText) => {
-  // First try direct keyword match from sentences-pics
+  // Only use images from sentences-pics — never fall back to word images
+  // (word images represent individual words, not sentences)
   const groupPrefix = `../assets/lvl1/group-${groupId}`;
   const normalizedKeyword = normalize(keyword);
 
+  // Try direct keyword match from sentences-pics
   for (const [path, url] of Object.entries(allWordImages)) {
     if (!path.startsWith(groupPrefix)) continue;
     if (!path.toLowerCase().includes('sentences-pics')) continue;
@@ -129,17 +131,8 @@ export const findSentenceImage = (groupId, keyword, sentenceText) => {
     }
   }
 
-  // Get all available sentence pics for this group
-  const picMap = getSentencePicMap(groupId);
-
-  // Try matching any word in the sentence to a pic filename
-  const sentenceWords = sentenceText.toLowerCase().replace(/[^a-z\s]/g, '').split(/\s+/);
-  for (const w of sentenceWords) {
-    if (picMap[w]) return picMap[w];
-  }
-
-  // Fallback: word image from sounds-pics
-  return getWordImage(groupId, keyword);
+  // No sentence-specific image found — return null (don't show a misleading word image)
+  return null;
 };
 
 /**

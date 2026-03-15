@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Volume2 } from 'lucide-react';
 import { playLetterSound, getLetterSoundUrl } from '../utils/letterSounds';
 import { speakWithVoice } from '../utils/speech';
 import { getWordImage } from '../utils/assetHelpers';
 import { playVO, stopVO, delay } from '../utils/audioPlayer';
+import { triggerCelebration, triggerSmallBurst } from '../utils/confetti';
+import { playCompletionEncouragement } from '../utils/encouragement';
 
 let sharedCtx = null;
 const getCtx = () => {
@@ -61,7 +64,6 @@ const playErrorBuzz = () => {
 
 const SLOT_COLORS = ['#FF6B9D', '#4ECDC4', '#FFE66D', '#ae90fd', '#4d79ff', '#FF6600', '#22c55e', '#00B894'];
 
-// Get pointer coords from any event (mouse or touch)
 const getPointerCoords = (e) => {
   if (e.changedTouches && e.changedTouches.length > 0) {
     return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
@@ -105,28 +107,69 @@ const BlendingFactory = ({ group, onComplete }) => {
   const [allDone, setAllDone] = useState(false);
   const [shakeAll, setShakeAll] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
   const [showHint, setShowHint] = useState(true);
   const containerRef = useRef(null);
   const blendingRef = useRef(false);
+  const idleReminderRef = useRef(null);
+  const cancelledRef = useRef(false);
 
   const currentWord = words[wordIdx];
   const wordLetters = currentWord.word.split('');
   const imageSrc = getWordImage(group.id, currentWord.image);
 
+  // Clear idle reminder
+  const clearIdleReminder = useCallback(() => {
+    clearTimeout(idleReminderRef.current);
+  }, []);
+
+  // Start idle reminder — reminds to drag letters after 6s
+  const startIdleReminder = useCallback(() => {
+    clearTimeout(idleReminderRef.current);
+    idleReminderRef.current = setTimeout(async () => {
+      if (cancelledRef.current || blendingRef.current) return;
+      await playVO('Drag the correct letter to the empty box.');
+    }, 6000);
+  }, []);
+
+  // Speak the full word (for the speaker button)
+  const speakWord = useCallback(() => {
+    speakWithVoice(currentWord.word, { rate: 0.8 });
+  }, [currentWord.word]);
+
   // VO on mount - sequenced
   useEffect(() => {
-    let cancelled = false;
+    cancelledRef.current = false;
     const run = async () => {
       await playVO("Let's build the word together!");
-      if (cancelled) return;
+      if (cancelledRef.current) return;
       await delay(200);
-      if (cancelled) return;
+      if (cancelledRef.current) return;
       await playVO('Drag the correct letter to the empty box.');
+      if (cancelledRef.current) return;
+      startIdleReminder();
     };
     run();
-    return () => { cancelled = true; stopVO(); };
+    return () => { cancelledRef.current = true; stopVO(); clearIdleReminder(); };
   }, []);
+
+  // Per-word VO reminder + dictation
+  useEffect(() => {
+    if (wordIdx === 0) return; // First word handled by mount VO
+    cancelledRef.current = false;
+    const run = async () => {
+      await delay(400);
+      if (cancelledRef.current) return;
+      // Speak the target word so kids know what to build
+      speakWithVoice(currentWord.word, { rate: 0.8 });
+      await delay(1200);
+      if (cancelledRef.current) return;
+      await playVO('Drag the correct letter to the empty box.');
+      if (cancelledRef.current) return;
+      startIdleReminder();
+    };
+    run();
+    return () => { cancelledRef.current = true; stopVO(); clearIdleReminder(); };
+  }, [wordIdx]);
 
   // Initialize letters and slots for current word
   useEffect(() => {
@@ -134,16 +177,13 @@ const BlendingFactory = ({ group, onComplete }) => {
     setImageError(false);
     setBlending(false);
     setShakeAll(false);
-    setShowConfetti(false);
     blendingRef.current = false;
 
-    // Show hint only on the very first word
     if (wordIdx > 0) setShowHint(false);
 
     const newSlots = wordLetters.map(() => null);
     setSlots(newSlots);
 
-    // Fisher-Yates shuffle, ensure result differs from original order
     const makeShuffled = () => {
       const a = wordLetters.map((letter, idx) => ({ id: `${wordIdx}-r${Math.random()}-${idx}`, letter, originalIdx: idx }));
       for (let i = a.length - 1; i > 0; i--) {
@@ -153,7 +193,6 @@ const BlendingFactory = ({ group, onComplete }) => {
       return a;
     };
     let shuffled = makeShuffled();
-    // If it ended up in original order, shuffle again (up to 5 tries)
     for (let attempt = 0; attempt < 5; attempt++) {
       const isSameOrder = shuffled.every((item, idx) => item.originalIdx === idx);
       if (!isSameOrder) break;
@@ -167,15 +206,18 @@ const BlendingFactory = ({ group, onComplete }) => {
     if (slots.length === 0 || slots.some(s => s === null)) return;
     const builtWord = slots.map(s => s.letter).join('');
     if (builtWord === currentWord.word) {
+      clearIdleReminder();
       setTimeout(() => startBlendAnimation(), 400);
     } else {
       playErrorBuzz();
+      playVO('Oops, try again!');
       setShakeAll(true);
       setTimeout(() => {
         setShakeAll(false);
         const allLetters = slots.filter(s => s !== null);
         setLetters(prev => [...prev, ...allLetters].sort(() => Math.random() - 0.5));
         setSlots(wordLetters.map(() => null));
+        startIdleReminder();
       }, 600);
     }
   }, [slots]);
@@ -184,10 +226,9 @@ const BlendingFactory = ({ group, onComplete }) => {
     if (blendingRef.current) return;
     blendingRef.current = true;
     setBlending(true);
-    setShowConfetti(true);
+    triggerSmallBurst();
     playSuccessSound();
 
-    // Play each letter sound sequentially
     for (let i = 0; i < wordLetters.length; i++) {
       if (!blendingRef.current) return;
       await new Promise(resolve => {
@@ -204,7 +245,6 @@ const BlendingFactory = ({ group, onComplete }) => {
     await new Promise(r => setTimeout(r, 150));
     if (!blendingRef.current) return;
 
-    // Speak the full word, then VO, then linger
     speakWithVoice(currentWord.word, {
       rate: 0.8,
       onEnd: async () => {
@@ -212,7 +252,7 @@ const BlendingFactory = ({ group, onComplete }) => {
         setWordDone(true);
         await delay(300);
         if (!blendingRef.current) return;
-        await playVO('Great job!');
+        await playCompletionEncouragement();
         await delay(1500);
         if (!blendingRef.current) return;
         autoAdvance();
@@ -233,19 +273,15 @@ const BlendingFactory = ({ group, onComplete }) => {
       setWordIdx(prev => prev + 1);
     } else {
       setAllDone(true);
+      triggerCelebration();
     }
   };
 
-  // Find which slot is at a given screen coordinate using elementFromPoint
   const findSlotAtPoint = useCallback((x, y) => {
-    // Temporarily hide dragged elements so elementFromPoint hits the slot beneath
     const els = document.elementsFromPoint(x, y);
     for (const el of els) {
       const slotIdx = el.getAttribute('data-slot-idx');
-      if (slotIdx !== null) {
-        return parseInt(slotIdx, 10);
-      }
-      // Check parent too
+      if (slotIdx !== null) return parseInt(slotIdx, 10);
       if (el.parentElement) {
         const parentIdx = el.parentElement.getAttribute('data-slot-idx');
         if (parentIdx !== null) return parseInt(parentIdx, 10);
@@ -256,13 +292,13 @@ const BlendingFactory = ({ group, onComplete }) => {
 
   const handleDrop = useCallback((letterId, letterObj, nativeEvent) => {
     if (blending || wordDone) return;
-
     const { x, y } = getPointerCoords(nativeEvent);
     const slotIdx = findSlotAtPoint(x, y);
-
     if (slotIdx === -1 || slots[slotIdx] !== null) return;
 
     setShowHint(false);
+    clearIdleReminder();
+    startIdleReminder();
     playSnapSound();
     setSlots(prev => {
       const next = [...prev];
@@ -270,9 +306,8 @@ const BlendingFactory = ({ group, onComplete }) => {
       return next;
     });
     setLetters(prev => prev.filter(l => l.id !== letterId));
-  }, [blending, wordDone, slots, findSlotAtPoint]);
+  }, [blending, wordDone, slots, findSlotAtPoint, clearIdleReminder, startIdleReminder]);
 
-  // Tap a filled slot to return letter to source
   const handleSlotTap = (idx) => {
     if (blending || wordDone) return;
     if (slots[idx] === null) return;
@@ -320,43 +355,6 @@ const BlendingFactory = ({ group, onComplete }) => {
     <div ref={containerRef} className="h-full w-full relative overflow-hidden flex flex-col"
       style={{ background: '#E8F4FF' }}>
 
-      {/* Confetti overlay */}
-      <AnimatePresence>
-        {showConfetti && (
-          <motion.div
-            className="fixed inset-0 z-[70] pointer-events-none overflow-hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            {[...Array(40)].map((_, i) => (
-              <motion.div
-                key={`confetti-${i}`}
-                className="absolute"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: -10,
-                  width: 6 + Math.random() * 8,
-                  height: 6 + Math.random() * 8,
-                  borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-                  backgroundColor: ['#FF1E56', '#00C9A7', '#FFD000', '#FF6600', '#8B00FF', '#0080FF', '#E60023', '#00CC44', '#FF9500', '#22c55e'][i % 10],
-                }}
-                animate={{
-                  y: [0, window.innerHeight + 50],
-                  x: [(Math.random() - 0.5) * 60, (Math.random() - 0.5) * 120],
-                  rotate: [0, 360 * (Math.random() > 0.5 ? 1 : -1)],
-                }}
-                transition={{
-                  duration: 1.5 + Math.random() * 1.5,
-                  delay: Math.random() * 0.5,
-                  ease: 'easeIn',
-                }}
-              />
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Progress - top center */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 md:top-4 z-30">
         <div className="bg-white/70 backdrop-blur-sm rounded-full px-3 py-1 md:px-4 md:py-1.5">
@@ -366,9 +364,9 @@ const BlendingFactory = ({ group, onComplete }) => {
         </div>
       </div>
 
-      {/* Top section: picture + slots */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 pt-4 md:pt-6" style={{ paddingBottom: 'clamp(100px, 18vh, 160px)' }}>
-        {/* Picture hint - always visible, BIGGER */}
+      {/* Top section: picture + speaker + slots */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4 pt-4 md:pt-6" style={{ paddingBottom: 'clamp(120px, 22vh, 200px)' }}>
+        {/* Picture hint */}
         <motion.div
           key={`pic-${wordIdx}`}
           initial={{ opacity: 0, scale: 0.8 }}
@@ -391,17 +389,29 @@ const BlendingFactory = ({ group, onComplete }) => {
           )}
         </motion.div>
 
-        <motion.span
-          className="text-base md:text-xl lg:text-2xl font-bold text-[#3e366b]/60 mb-3 md:mb-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          Build the word!
-        </motion.span>
+        {/* Speaker button + "Build the word!" label */}
+        <div className="flex items-center gap-3 mb-3 md:mb-4">
+          <motion.button
+            onClick={speakWord}
+            className="p-3 md:p-4 rounded-[1.2rem] bg-[#6B3FA0]"
+            style={{ borderBottom: '4px solid #4A2B70', boxShadow: '0px 4px 0px rgba(0,0,0,0.15)' }}
+            whileTap={{ scale: 0.9, y: 3 }}
+            whileHover={{ scale: 1.1 }}
+          >
+            <Volume2 className="w-6 h-6 md:w-7 md:h-7 text-white" />
+          </motion.button>
+          <motion.span
+            className="text-base md:text-xl lg:text-2xl font-bold text-[#3e366b]/60"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            Build the word!
+          </motion.span>
+        </div>
 
-        {/* Drop zone slots */}
+        {/* Drop zone slots — mt-4 on phone for breathing room, no extra margin on larger screens */}
         <motion.div
-          className="flex items-center justify-center gap-3 md:gap-4 lg:gap-5 mb-4"
+          className="flex items-center justify-center gap-3 md:gap-4 lg:gap-5 mb-4 mt-4 md:mt-0"
           animate={shakeAll ? { x: [0, -10, 10, -10, 10, 0] } : {}}
           transition={shakeAll ? { duration: 0.4 } : {}}
         >
@@ -444,7 +454,7 @@ const BlendingFactory = ({ group, onComplete }) => {
 
       </div>
 
-      {/* Drag hint - above choice boxes */}
+      {/* Drag hint */}
       <AnimatePresence>
         {showHint && !blending && !wordDone && (
           <div className="absolute bottom-60 md:bottom-52 lg:bottom-56 left-0 right-0 z-30">
@@ -453,8 +463,8 @@ const BlendingFactory = ({ group, onComplete }) => {
         )}
       </AnimatePresence>
 
-      {/* Bottom section: draggable letters or next button */}
-      <div className="absolute bottom-32 md:bottom-28 lg:bottom-32 left-0 right-0 px-4 z-20">
+      {/* Bottom section: draggable letters */}
+      <div className="absolute bottom-32 md:bottom-28 lg:bottom-36 xl:bottom-40 left-0 right-0 px-4 z-20">
         <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 lg:gap-5">
           <AnimatePresence>
             {letters.map((letter, i) => (
@@ -473,12 +483,10 @@ const BlendingFactory = ({ group, onComplete }) => {
   );
 };
 
-// Draggable letter block
 const DraggableLetter = ({ letter, onDrop, color, entranceDelay = 0 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const lastPointerRef = useRef({ x: 0, y: 0 });
 
-  // Track pointer position via native events so we always have accurate coords
   useEffect(() => {
     if (!isDragging) return;
     const onMove = (e) => {
@@ -504,13 +512,11 @@ const DraggableLetter = ({ letter, onDrop, color, entranceDelay = 0 }) => {
         setIsDragging(true);
         const t = e.touches?.[0] || e;
         lastPointerRef.current = { x: t.clientX || 0, y: t.clientY || 0 };
-        // Play sound on pickup
         const url = getLetterSoundUrl(letter.letter);
         if (url) playLetterSound(letter.letter).catch(() => {});
       }}
       onDragEnd={(e) => {
         setIsDragging(false);
-        // Use tracked pointer position — most reliable across all devices
         onDrop(letter.id, letter, {
           clientX: lastPointerRef.current.x,
           clientY: lastPointerRef.current.y,

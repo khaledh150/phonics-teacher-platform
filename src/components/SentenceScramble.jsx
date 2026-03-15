@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RotateCcw } from 'lucide-react';
-import { speakWithVoice } from '../utils/speech';
+import { speakWithVoice, speakAsync } from '../utils/speech';
 import { findSentenceImage } from '../utils/assetHelpers';
 import { playVO, stopVO, delay } from '../utils/audioPlayer';
+import { triggerCelebration, triggerSmallBurst } from '../utils/confetti';
+import { playCompletionEncouragement } from '../utils/encouragement';
 
 let sharedCtx = null;
 const getCtx = () => {
@@ -60,7 +62,6 @@ const playErrorBuzz = () => {
 };
 
 const BLOCK_COLORS = ['#4d79ff', '#ae90fd', '#FF6B9D', '#4ECDC4', '#FFE66D', '#FF6600', '#22c55e', '#00B894', '#E60023', '#8B00FF'];
-const CONFETTI_COLORS = ['#FF1E56', '#00C9A7', '#FFD000', '#FF6600', '#8B00FF', '#0080FF', '#E60023', '#00CC44', '#FF9500', '#22c55e'];
 
 function shuffle(arr) {
   const a = [...arr];
@@ -68,7 +69,6 @@ function shuffle(arr) {
     const j = Math.floor(Math.random() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
-  // Ensure not in original order
   const isSame = a.every((item, idx) => item.originalIdx === idx);
   if (isSame && a.length > 1) return shuffle(arr);
   return a;
@@ -79,7 +79,6 @@ const SentenceScramble = ({ group, onComplete }) => {
     const data = group.words
       .filter(w => w.sentence)
       .map(w => ({ sentence: w.sentence, keyword: w.word }));
-    // Shuffle sentence order
     for (let i = data.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [data[i], data[j]] = [data[j], data[i]];
@@ -94,27 +93,63 @@ const SentenceScramble = ({ group, onComplete }) => {
   const [isLocked, setIsLocked] = useState(false);
   const [allDone, setAllDone] = useState(false);
   const [checkWrong, setCheckWrong] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
+  // Reading animation state
+  const [readingPhase, setReadingPhase] = useState(null); // 'dictation' | 'reading' | null
+  const [highlightIdx, setHighlightIdx] = useState(-1);
+  const [showBorders, setShowBorders] = useState(true);
   const advancingRef = useRef(false);
+  const cancelledRef = useRef(false);
+  const idleReminderRef = useRef(null);
 
   const currentSentence = sentences[sentenceIdx] || '';
   const currentKeyword = sentenceData[sentenceIdx]?.keyword || '';
   const sentenceImage = findSentenceImage(group.id, currentKeyword, currentSentence);
   const correctWords = currentSentence.split(/\s+/).filter(Boolean);
 
-  // VO on mount - sequenced
+  // Clear idle reminder
+  const clearIdleReminder = () => {
+    clearTimeout(idleReminderRef.current);
+  };
+
+  // Start idle reminder
+  const startIdleReminder = () => {
+    clearTimeout(idleReminderRef.current);
+    idleReminderRef.current = setTimeout(async () => {
+      if (cancelledRef.current || isLocked) return;
+      await playVO('Tap the words to put them in order');
+    }, 6000);
+  };
+
+  // VO on mount — no sentence dictation (don't reveal answer before user tries)
   useEffect(() => {
-    let cancelled = false;
+    cancelledRef.current = false;
     const run = async () => {
       await playVO("Let's build a sentence!");
-      if (cancelled) return;
+      if (cancelledRef.current) return;
       await delay(200);
-      if (cancelled) return;
+      if (cancelledRef.current) return;
       await playVO('Tap the words to put them in order');
+      if (cancelledRef.current) return;
+      startIdleReminder();
     };
     run();
-    return () => { cancelled = true; stopVO(); };
+    return () => { cancelledRef.current = true; stopVO(); clearIdleReminder(); };
   }, []);
+
+  // Per-sentence VO reminder — no dictation (don't reveal answer)
+  useEffect(() => {
+    if (sentenceIdx === 0) return;
+    cancelledRef.current = false;
+    const run = async () => {
+      await delay(400);
+      if (cancelledRef.current) return;
+      await playVO('Tap the words to put them in order');
+      if (cancelledRef.current) return;
+      startIdleReminder();
+    };
+    run();
+    return () => { cancelledRef.current = true; stopVO(); clearIdleReminder(); };
+  }, [sentenceIdx]);
 
   // Initialize shuffled words
   useEffect(() => {
@@ -122,7 +157,9 @@ const SentenceScramble = ({ group, onComplete }) => {
     setIsCorrect(false);
     setIsLocked(false);
     setCheckWrong(false);
-    setShowConfetti(false);
+    setReadingPhase(null);
+    setHighlightIdx(-1);
+    setShowBorders(true);
     advancingRef.current = false;
 
     const words = correctWords.map((word, idx) => ({
@@ -143,35 +180,94 @@ const SentenceScramble = ({ group, onComplete }) => {
     if (built === target) {
       setIsCorrect(true);
       setIsLocked(true);
-      setShowConfetti(true);
+      clearIdleReminder();
+      triggerSmallBurst();
       playSuccessChime();
-      // Sequence: wait -> TTS reads sentence -> delay -> VO -> linger -> advance
-      const runCompletion = async () => {
+
+      // Reading animation sequence
+      const runReadingAnimation = async () => {
+        cancelledRef.current = false;
         await delay(800);
+        if (cancelledRef.current) return;
+
+        // Phase 1: Word-by-word dictation — TTS reads each word while it pops
+        setReadingPhase('dictation');
+        for (let i = 0; i < correctWords.length; i++) {
+          if (cancelledRef.current) return;
+          setHighlightIdx(i);
+          await new Promise((resolve) => {
+            speakWithVoice(correctWords[i], {
+              rate: 0.7,
+              onEnd: resolve,
+              onError: resolve,
+            });
+          });
+          // Extra delay between words so last word doesn't get cut off
+          await delay(350);
+        }
+
+        if (cancelledRef.current) return;
+        setHighlightIdx(-1);
+        await delay(800);
+        if (cancelledRef.current) return;
+
+        // Phase 2: Full sentence dictation — reads the whole sentence at once
         await new Promise((resolve) => {
           speakWithVoice(currentSentence, {
-            rate: 0.85,
+            rate: 0.8,
             onEnd: resolve,
             onError: resolve,
           });
         });
-        await delay(300);
-        await playVO('What a great sentence!');
-        await delay(1500);
+        if (cancelledRef.current) return;
+        await delay(600);
+        if (cancelledRef.current) return;
+
+        // Phase 3: "Let's read together" VO
+        await playVO("Let's read together");
+        if (cancelledRef.current) return;
+        await delay(500);
+        if (cancelledRef.current) return;
+
+        // Remove borders/frames
+        setShowBorders(false);
+        setReadingPhase('reading');
+        await delay(400);
+
+        // Phase 4: Words pop one by one (no TTS — kids read along, slower pace)
+        for (let i = 0; i < correctWords.length; i++) {
+          if (cancelledRef.current) return;
+          setHighlightIdx(i);
+          // Slower timing to give kids time to read
+          await delay(600 + correctWords[i].length * 100);
+        }
+
+        if (cancelledRef.current) return;
+        setHighlightIdx(-1);
+        await delay(400);
+
+        // Completion VO
+        await playCompletionEncouragement();
+        await delay(800);
+        if (cancelledRef.current) return;
         autoAdvance();
       };
-      runCompletion();
+      runReadingAnimation();
     } else {
-      // Wrong order — shake and dump back
       playErrorBuzz();
       playVO('Oops, try again!');
       setCheckWrong(true);
       setTimeout(() => {
         setCheckWrong(false);
-        setShelfWords(prev => {
-          setSourceWords(prevSource => shuffle([...prev, ...prevSource]));
-          return [];
-        });
+        // Create fresh word objects to avoid duplication
+        const freshWords = correctWords.map((word, idx) => ({
+          id: `${sentenceIdx}-r${Math.random()}-${idx}`,
+          text: word,
+          originalIdx: idx,
+        }));
+        setShelfWords([]);
+        setSourceWords(shuffle(freshWords));
+        startIdleReminder();
       }, 700);
     }
   }, [shelfWords]);
@@ -185,16 +281,16 @@ const SentenceScramble = ({ group, onComplete }) => {
         setSentenceIdx(prev => prev + 1);
       } else {
         setAllDone(true);
+        triggerCelebration();
       }
-    }, 1000);
+    }, 500);
   };
 
   const handleWordTap = (word) => {
-    // Always speak the word on tap
     speakWithVoice(word.text, { rate: 0.85 });
-
-    // If not locked, also add to shelf
     if (!isLocked) {
+      clearIdleReminder();
+      startIdleReminder();
       playPlaceSound();
       setSourceWords(prev => prev.filter(w => w.id !== word.id));
       setShelfWords(prev => [...prev, word]);
@@ -204,7 +300,6 @@ const SentenceScramble = ({ group, onComplete }) => {
 
   const handleRemoveFromShelf = (word) => {
     if (isLocked) return;
-    // Speak it
     speakWithVoice(word.text, { rate: 0.85 });
     setShelfWords(prev => prev.filter(w => w.id !== word.id));
     setSourceWords(prev => [...prev, word]);
@@ -259,43 +354,6 @@ const SentenceScramble = ({ group, onComplete }) => {
     <div className="h-full w-full relative overflow-hidden flex flex-col"
       style={{ background: '#E8F4FF' }}>
 
-      {/* Confetti overlay */}
-      <AnimatePresence>
-        {showConfetti && (
-          <motion.div
-            className="fixed inset-0 z-[70] pointer-events-none overflow-hidden"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            {[...Array(40)].map((_, i) => (
-              <motion.div
-                key={`confetti-${i}`}
-                className="absolute"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: -10,
-                  width: 6 + Math.random() * 8,
-                  height: 6 + Math.random() * 8,
-                  borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-                  backgroundColor: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-                }}
-                animate={{
-                  y: [0, window.innerHeight + 50],
-                  x: [(Math.random() - 0.5) * 60, (Math.random() - 0.5) * 120],
-                  rotate: [0, 360 * (Math.random() > 0.5 ? 1 : -1)],
-                }}
-                transition={{
-                  duration: 1.5 + Math.random() * 1.5,
-                  delay: Math.random() * 0.5,
-                  ease: 'easeIn',
-                }}
-              />
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Progress - top center */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 md:top-4 z-30">
         <div className="bg-white/70 backdrop-blur-sm rounded-full px-3 py-1 md:px-4 md:py-1.5 flex items-center gap-2">
@@ -328,7 +386,7 @@ const SentenceScramble = ({ group, onComplete }) => {
       {/* Main content area */}
       <div className="flex-1 flex flex-col items-center justify-evenly px-4 md:px-8 lg:px-16 py-2">
 
-        {/* Sentence picture hint */}
+        {/* Sentence picture hint — only shown if a proper sentence-level image exists */}
         {sentenceImage && (
           <motion.img
             key={`img-${sentenceIdx}`}
@@ -342,12 +400,13 @@ const SentenceScramble = ({ group, onComplete }) => {
           />
         )}
 
-        {/* Shelf (answer zone) — ABOVE the source words */}
+        {/* Shelf (answer zone) */}
         <div className="w-full max-w-3xl">
           <motion.div
-            className="rounded-2xl border-3 p-3 md:p-4 flex flex-wrap items-center justify-center gap-2 md:gap-3 transition-all duration-500"
+            className="rounded-2xl p-3 md:p-4 flex flex-wrap items-center justify-center gap-2 md:gap-3 transition-all duration-500"
             style={{
               minHeight: 'clamp(60px, 12vw, 90px)',
+              borderWidth: showBorders ? 3 : 0,
               borderColor: isCorrect ? '#22c55e' : checkWrong ? '#E60023' : '#3e366b30',
               borderStyle: isCorrect ? 'solid' : 'dashed',
               backgroundColor: isCorrect ? '#22c55e15' : checkWrong ? '#E6002310' : 'white',
@@ -362,29 +421,47 @@ const SentenceScramble = ({ group, onComplete }) => {
               </span>
             )}
             <AnimatePresence>
-              {shelfWords.map((word) => (
-                <motion.button
-                  key={word.id}
-                  onClick={() => isLocked ? speakWithVoice(word.text, { rate: 0.85 }) : handleRemoveFromShelf(word)}
-                  className="px-4 py-2.5 md:px-5 md:py-3 lg:px-6 lg:py-3.5 rounded-xl font-bold text-white shadow-md select-none"
-                  style={{
-                    backgroundColor: isCorrect ? '#22c55e' : BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length],
-                    fontSize: 'clamp(1rem, 4vw, 1.6rem)',
-                  }}
-                  initial={{ opacity: 0, scale: 0.5, y: 15 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.15 } }}
-                  whileTap={!isLocked ? { scale: 0.95 } : {}}
-                  layout
-                >
-                  {word.text}
-                </motion.button>
-              ))}
+              {shelfWords.map((word, idx) => {
+                const isHighlighted = highlightIdx === idx;
+                const isInReadingPhase = readingPhase === 'reading';
+                const isDictationPhase = readingPhase === 'dictation';
+
+                return (
+                  <motion.button
+                    key={word.id}
+                    onClick={() => isLocked ? speakWithVoice(word.text, { rate: 0.85 }) : handleRemoveFromShelf(word)}
+                    className="px-4 py-2.5 md:px-5 md:py-3 lg:px-6 lg:py-3.5 font-bold text-white shadow-md select-none"
+                    style={{
+                      backgroundColor: isCorrect ? '#22c55e' : BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length],
+                      fontSize: 'clamp(1rem, 4vw, 1.6rem)',
+                      borderRadius: showBorders ? '0.75rem' : '0.5rem',
+                      border: showBorders ? undefined : 'none',
+                      boxShadow: showBorders ? undefined : 'none',
+                    }}
+                    initial={{ opacity: 0, scale: 0.5, y: 15 }}
+                    animate={{
+                      opacity: 1,
+                      scale: isHighlighted ? 1.2 : 1,
+                      y: isHighlighted ? -8 : 0,
+                      backgroundColor: isHighlighted && isDictationPhase ? '#FFD000'
+                        : isHighlighted && isInReadingPhase ? '#FF6600'
+                        : isCorrect ? '#22c55e'
+                        : BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length],
+                    }}
+                    exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.15 } }}
+                    whileTap={!isLocked ? { scale: 0.95 } : {}}
+                    layout
+                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                  >
+                    {word.text}
+                  </motion.button>
+                );
+              })}
             </AnimatePresence>
           </motion.div>
         </div>
 
-        {/* Source words - below the shelf, 4 per row max, last row centered */}
+        {/* Source words */}
         <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 w-full max-w-2xl lg:max-w-3xl"
           style={{ maxWidth: 'calc(4 * (clamp(5rem, 20vw, 10rem) + 1rem))' }}
         >

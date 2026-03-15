@@ -11,6 +11,8 @@ import SentenceScramble from './SentenceScramble';
 import Preloader from './Preloader';
 import { stopAllAudio } from '../utils/letterSounds';
 import { playVO, stopVO, delay } from '../utils/audioPlayer';
+import { triggerCelebration } from '../utils/confetti';
+import { resetEncouragementCycles } from '../utils/encouragement';
 
 const toggleFullscreen = () => {
   if (!document.fullscreenElement) {
@@ -115,9 +117,15 @@ const TeachingFlow = ({ group, onExit }) => {
     onExit();
   };
 
-  // VO on group finish celebration
+  // Reset encouragement cycles when starting a new group
+  useEffect(() => {
+    resetEncouragementCycles();
+  }, [group]);
+
+  // VO + confetti on group finish celebration
   useEffect(() => {
     if (!showGroupFinish) return;
+    triggerCelebration();
     let cancelled = false;
     const run = async () => {
       await delay(800);
@@ -182,8 +190,8 @@ const TeachingFlow = ({ group, onExit }) => {
         messages={STEP_MESSAGES[currentStep]}
       />
 
-      {/* Top left buttons: Home + Fullscreen - Juicy 3D */}
-      <div className="fixed top-3 left-3 z-50 flex items-center gap-2">
+      {/* Top left buttons: Home + Fullscreen + Group Label — z-[70] above results */}
+      <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
         <motion.button
           onClick={handleHomeClick}
           className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
@@ -201,22 +209,29 @@ const TeachingFlow = ({ group, onExit }) => {
         >
           <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
         </motion.button>
+        {/* Group label - always visible */}
+        <div
+          className="rounded-full px-3 py-1 md:px-4 md:py-1.5 text-white font-semibold text-xs md:text-sm lg:text-base"
+          style={{ backgroundColor: group.color, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}
+        >
+          {group.title}
+        </div>
       </div>
 
-      {/* Skip Step button */}
+      {/* Skip Step button — z-[70] to stay above results panels (z-[60]) */}
       <button
         onClick={handleSkipStep}
-        className="fixed bottom-3 right-3 z-50 flex items-center gap-1 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-white/40 hover:bg-white/70 text-[#3e366b]/50 hover:text-[#3e366b]/80 text-xs lg:text-sm font-medium transition-all backdrop-blur-sm"
+        className="fixed bottom-3 right-3 z-[70] flex items-center gap-1 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-white/40 hover:bg-white/70 text-[#3e366b]/50 hover:text-[#3e366b]/80 text-xs lg:text-sm font-medium transition-all backdrop-blur-sm"
       >
         Skip
         <SkipForward className="w-3 h-3 lg:w-4 lg:h-4" />
       </button>
 
-      {/* Back one step button */}
+      {/* Back one step button — z-[70] to stay above results panels */}
       {stepIndex > 0 && (
         <button
           onClick={handlePrevStep}
-          className="fixed bottom-3 left-3 z-50 flex items-center gap-1 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-white/40 hover:bg-white/70 text-[#3e366b]/50 hover:text-[#3e366b]/80 text-xs lg:text-sm font-medium transition-all backdrop-blur-sm"
+          className="fixed bottom-3 left-3 z-[70] flex items-center gap-1 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-white/40 hover:bg-white/70 text-[#3e366b]/50 hover:text-[#3e366b]/80 text-xs lg:text-sm font-medium transition-all backdrop-blur-sm"
         >
           <ChevronLeft className="w-3 h-3 lg:w-4 lg:h-4" />
           Back
@@ -302,56 +317,7 @@ const TeachingFlow = ({ group, onExit }) => {
             className="fixed inset-0 z-[80] flex items-center justify-center overflow-hidden"
             style={{ background: 'radial-gradient(ellipse at center, rgba(62,54,107,0.85) 0%, rgba(0,0,0,0.9) 100%)' }}
           >
-            {/* Confetti rain */}
-            {[...Array(50)].map((_, i) => (
-              <motion.div
-                key={`confetti-${i}`}
-                className="absolute pointer-events-none"
-                style={{
-                  left: `${Math.random() * 100}%`,
-                  top: -20,
-                  width: 6 + Math.random() * 8,
-                  height: 6 + Math.random() * 8,
-                  borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-                  backgroundColor: ['#FF6B9D', '#4ECDC4', '#FFE66D', '#FF8A5B', '#9B59B6', '#3498DB', '#22c55e', '#ffd700'][i % 8],
-                }}
-                animate={{
-                  y: ['0vh', '110vh'],
-                  x: [0, (Math.random() - 0.5) * 100],
-                  rotate: [0, 360 * (Math.random() > 0.5 ? 1 : -1)],
-                }}
-                transition={{
-                  duration: 2 + Math.random() * 3,
-                  delay: Math.random() * 2,
-                  repeat: Infinity,
-                  ease: 'linear',
-                }}
-              />
-            ))}
-
-            {/* Sparkle particles */}
-            {[...Array(20)].map((_, i) => (
-              <motion.div
-                key={`spark-${i}`}
-                className="absolute rounded-full pointer-events-none"
-                style={{
-                  left: `${20 + Math.random() * 60}%`,
-                  top: `${20 + Math.random() * 60}%`,
-                  width: 3 + Math.random() * 5,
-                  height: 3 + Math.random() * 5,
-                  backgroundColor: '#ffd700',
-                }}
-                animate={{
-                  scale: [0, 1, 0],
-                  opacity: [0, 1, 0],
-                }}
-                transition={{
-                  duration: 1 + Math.random(),
-                  delay: Math.random() * 3,
-                  repeat: Infinity,
-                }}
-              />
-            ))}
+            {/* Confetti handled by canvas-confetti (triggerCelebration) */}
 
             <motion.div
               initial={{ scale: 0, rotate: -10 }}
