@@ -6,6 +6,10 @@ import TeachingFlow from './components/TeachingFlow';
 import PlaygroundHub from './components/PlaygroundHub';
 import MagicFlashlight from './components/games/MagicFlashlight';
 import BubbleSpell from './components/games/BubbleSpell';
+import MonsterFeeder from './components/games/MonsterFeeder';
+import WhackASound from './components/games/WhackASound';
+import CatchTheDrop from './components/games/CatchTheDrop';
+import BouncyMemory from './components/games/BouncyMemory';
 
 // Increment this manually when you want to force a cache reset on deployed versions
 const APP_VERSION = "2.0.0";
@@ -112,6 +116,34 @@ function App() {
 
         {screen === 'playground' && selectedGroup && activeGame === 'bubble-spell' && (
           <BubbleSpell
+            group={selectedGroup}
+            onBack={() => setActiveGame(null)}
+          />
+        )}
+
+        {screen === 'playground' && selectedGroup && activeGame === 'monster-feeder' && (
+          <MonsterFeeder
+            group={selectedGroup}
+            onBack={() => setActiveGame(null)}
+          />
+        )}
+
+        {screen === 'playground' && selectedGroup && activeGame === 'whack-a-sound' && (
+          <WhackASound
+            group={selectedGroup}
+            onBack={() => setActiveGame(null)}
+          />
+        )}
+
+        {screen === 'playground' && selectedGroup && activeGame === 'catch-drop' && (
+          <CatchTheDrop
+            group={selectedGroup}
+            onBack={() => setActiveGame(null)}
+          />
+        )}
+
+        {screen === 'playground' && selectedGroup && activeGame === 'bouncy-memory' && (
+          <BouncyMemory
             group={selectedGroup}
             onBack={() => setActiveGame(null)}
           />
