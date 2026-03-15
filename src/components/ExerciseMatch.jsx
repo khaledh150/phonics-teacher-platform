@@ -607,7 +607,6 @@ const ExerciseMatch = ({ group, onComplete }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden"
-            style={{ background: 'radial-gradient(ellipse at center, rgba(62,54,107,0.85) 0%, rgba(0,0,0,0.9) 100%)' }}
           >
             <FinalCelebration />
 

@@ -1,6 +1,8 @@
 // Phonics World - Level 1 Data
 // Based on the Phonics Workbook Level 1 - 20 Sound Groups
 
+import { getGroupWordNames } from '../utils/assetHelpers';
+
 export const PHONICS_GROUPS = [
   {
     id: 1,
@@ -46,10 +48,7 @@ export const PHONICS_GROUPS = [
       { word: "kit", image: "kit", sentence: "She brings her art kit." },
       { word: "ham", image: "ham", sentence: "I eat ham and eggs." },
       { word: "cam", image: "cam", sentence: "I open the cam." },
-      { word: "egg", image: "egg", sentence: "I eat an egg for breakfast." },
-      { word: "elf", image: "elf", sentence: "The elf is very small." },
       { word: "red", image: "red", sentence: "The apple is red." },
-      { word: "bed", image: "bed", sentence: "I sleep in my bed." },
     ],
     exercises: {
       fillBlank: [
@@ -573,6 +572,37 @@ export const PHONICS_GROUPS = [
     },
   },
 ];
+
+// Auto-generate words for groups 1-13 from sounds-pics images.
+// Images are the source of truth — adding/removing a pic auto-updates the word list.
+// Existing sentence data is preserved; new words get a simple default sentence.
+const AUTO_GEN_GROUPS = 13; // groups 1 through 13
+
+PHONICS_GROUPS.forEach((group) => {
+  if (group.id > AUTO_GEN_GROUPS) return;
+
+  const imageWords = getGroupWordNames(group.id);
+  if (imageWords.length === 0) return;
+
+  // Build a lookup of existing word data (sentences, etc.) by word name
+  const existingData = {};
+  group.words.forEach((w) => {
+    existingData[w.word.toLowerCase()] = w;
+  });
+
+  // Rebuild words array from images, preserving existing sentence data
+  group.words = imageWords.map((wordName) => {
+    const existing = existingData[wordName];
+    if (existing) return existing;
+    // New word from image — generate a minimal entry
+    const capitalized = wordName.charAt(0).toUpperCase() + wordName.slice(1);
+    return {
+      word: wordName,
+      image: wordName,
+      sentence: `I see a ${wordName}.`,
+    };
+  });
+});
 
 // Letter paths for tracing (SVG path data for each letter)
 export const LETTER_PATHS = {

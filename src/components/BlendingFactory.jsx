@@ -111,24 +111,31 @@ const BlendingFactory = ({ group, onComplete }) => {
   const containerRef = useRef(null);
   const blendingRef = useRef(false);
   const idleReminderRef = useRef(null);
+  const speakerReminderRef = useRef(null);
   const cancelledRef = useRef(false);
 
   const currentWord = words[wordIdx];
   const wordLetters = currentWord.word.split('');
   const imageSrc = getWordImage(group.id, currentWord.image);
 
-  // Clear idle reminder
+  // Clear idle reminders
   const clearIdleReminder = useCallback(() => {
     clearTimeout(idleReminderRef.current);
+    clearTimeout(speakerReminderRef.current);
   }, []);
 
-  // Start idle reminder — reminds to drag letters after 6s
+  // Start idle reminder — reminds to drag letters after 6s, then tap speaker after 15s
   const startIdleReminder = useCallback(() => {
     clearTimeout(idleReminderRef.current);
+    clearTimeout(speakerReminderRef.current);
     idleReminderRef.current = setTimeout(async () => {
       if (cancelledRef.current || blendingRef.current) return;
       await playVO('Drag the correct letter to the empty box.');
     }, 6000);
+    speakerReminderRef.current = setTimeout(async () => {
+      if (cancelledRef.current || blendingRef.current) return;
+      await playVO('Tap the speaker to hear the word!');
+    }, 15000);
   }, []);
 
   // Speak the full word (for the speaker button)
@@ -136,7 +143,7 @@ const BlendingFactory = ({ group, onComplete }) => {
     speakWithVoice(currentWord.word, { rate: 0.8 });
   }, [currentWord.word]);
 
-  // VO on mount - sequenced
+  // VO on mount - sequenced (no auto dictation — user must tap speaker)
   useEffect(() => {
     cancelledRef.current = false;
     const run = async () => {
@@ -152,22 +159,11 @@ const BlendingFactory = ({ group, onComplete }) => {
     return () => { cancelledRef.current = true; stopVO(); clearIdleReminder(); };
   }, []);
 
-  // Per-word VO reminder + dictation
+  // Per-word idle reminder (no auto dictation — user must tap speaker)
   useEffect(() => {
     if (wordIdx === 0) return; // First word handled by mount VO
     cancelledRef.current = false;
-    const run = async () => {
-      await delay(400);
-      if (cancelledRef.current) return;
-      // Speak the target word so kids know what to build
-      speakWithVoice(currentWord.word, { rate: 0.8 });
-      await delay(1200);
-      if (cancelledRef.current) return;
-      await playVO('Drag the correct letter to the empty box.');
-      if (cancelledRef.current) return;
-      startIdleReminder();
-    };
-    run();
+    startIdleReminder();
     return () => { cancelledRef.current = true; stopVO(); clearIdleReminder(); };
   }, [wordIdx]);
 
@@ -424,10 +420,10 @@ const BlendingFactory = ({ group, onComplete }) => {
               style={{
                 width: 'clamp(62px, 18vw, 120px)',
                 height: 'clamp(72px, 21vw, 135px)',
-                borderColor: slots[idx] ? SLOT_COLORS[idx % SLOT_COLORS.length] : '#3e366b30',
+                borderColor: slots[idx] ? SLOT_COLORS[slots[idx].originalIdx % SLOT_COLORS.length] : '#3e366b30',
                 borderStyle: slots[idx] ? 'solid' : 'dashed',
-                backgroundColor: slots[idx] ? SLOT_COLORS[idx % SLOT_COLORS.length] : 'white',
-                boxShadow: slots[idx] ? `0 4px 15px ${SLOT_COLORS[idx % SLOT_COLORS.length]}40, 0 2px 8px rgba(0,0,0,0.1)` : 'none',
+                backgroundColor: slots[idx] ? SLOT_COLORS[slots[idx].originalIdx % SLOT_COLORS.length] : 'white',
+                boxShadow: slots[idx] ? `0 4px 15px ${SLOT_COLORS[slots[idx].originalIdx % SLOT_COLORS.length]}40, 0 2px 8px rgba(0,0,0,0.1)` : 'none',
               }}
               initial={{ opacity: 0, y: 20 }}
               animate={slots[idx] ? { opacity: 1, y: 0 } : { opacity: 1, y: 0, scale: [1, 1.03, 1] }}

@@ -44,6 +44,7 @@ const allMusic = buildLookup(musicModules);
 const normalize = (name) =>
   name.toLowerCase().replace(/\.(webp|png|jpe?g|svg|mp4|webm|mp3|wav|ogg)$/i, '').replace(/_+$/, '').trim();
 
+
 /**
  * Find a word image for a given group and word.
  * Searches in: group-{N}/sounds-pics/ subfolder, then legacy images folder.
@@ -51,12 +52,11 @@ const normalize = (name) =>
  */
 export const getWordImage = (groupId, wordName) => {
   const target = normalize(wordName);
-  const groupPrefix = `../assets/lvl1/group-${groupId}`;
+  const groupPrefix = `../assets/lvl1/group-${groupId}/`;
 
   // Search sounds-pics for this group
   for (const [path, url] of Object.entries(allWordImages)) {
     if (!path.startsWith(groupPrefix)) continue;
-    // Only match from sounds-pics (skip sentences-pics)
     if (path.toLowerCase().includes('sentences-pics')) continue;
     const fileName = normalize(path.split('/').pop());
     if (fileName === target || fileName === `${target}_` || fileName.startsWith(`${target}(`)) {
@@ -80,7 +80,7 @@ export const getWordImage = (groupId, wordName) => {
  */
 export const getSentenceImage = (groupId, wordName) => {
   const target = normalize(wordName);
-  const groupPrefix = `../assets/lvl1/group-${groupId}`;
+  const groupPrefix = `../assets/lvl1/group-${groupId}/`;
 
   for (const [path, url] of Object.entries(allWordImages)) {
     if (!path.startsWith(groupPrefix)) continue;
@@ -100,7 +100,7 @@ export const getSentenceImage = (groupId, wordName) => {
  * Returns { picName: url, ... } e.g. { "cat": "/assets/cat-abc.png", "dip": "..." }
  */
 export const getSentencePicMap = (groupId) => {
-  const groupPrefix = `../assets/lvl1/group-${groupId}`;
+  const groupPrefix = `../assets/lvl1/group-${groupId}/`;
   const map = {};
   for (const [path, url] of Object.entries(allWordImages)) {
     if (!path.startsWith(groupPrefix)) continue;
@@ -118,7 +118,7 @@ export const getSentencePicMap = (groupId) => {
 export const findSentenceImage = (groupId, keyword, sentenceText) => {
   // Only use images from sentences-pics — never fall back to word images
   // (word images represent individual words, not sentences)
-  const groupPrefix = `../assets/lvl1/group-${groupId}`;
+  const groupPrefix = `../assets/lvl1/group-${groupId}/`;
   const normalizedKeyword = normalize(keyword);
 
   // Try direct keyword match from sentences-pics
@@ -133,6 +133,28 @@ export const findSentenceImage = (groupId, keyword, sentenceText) => {
 
   // No sentence-specific image found — return null (don't show a misleading word image)
   return null;
+};
+
+/**
+ * Build the list of word names available in a group's sounds-pics folder.
+ * Images are the source of truth — if a pic exists, the word exists.
+ * Skips files named "untitled" or similar non-word filenames.
+ * Returns a sorted array of normalized word names, e.g. ["cat", "hat", "mat"]
+ */
+export const getGroupWordNames = (groupId) => {
+  const groupPrefix = `../assets/lvl1/group-${groupId}/`;
+  const words = new Set();
+  for (const path of Object.keys(allWordImages)) {
+    if (!path.startsWith(groupPrefix)) continue;
+    if (path.toLowerCase().includes('sentences-pics')) continue;
+    const raw = normalize(path.split('/').pop());
+    // Skip non-word filenames (e.g. "untitled design", empty)
+    if (!raw || raw.includes('untitled') || raw.includes('design')) continue;
+    // Strip trailing parenthetical duplicates like "beef(1)" → "beef"
+    const clean = raw.replace(/\(\d+\)$/, '').replace(/_+$/, '').trim();
+    if (clean) words.add(clean);
+  }
+  return [...words].sort();
 };
 
 /**
@@ -157,7 +179,7 @@ export const getSoundYouTube = (groupId, soundName) => {
  */
 export const getSoundVideo = (groupId, soundName) => {
   const target = normalize(soundName);
-  const groupPrefix = `../assets/lvl1/group-${groupId}`;
+  const groupPrefix = `../assets/lvl1/group-${groupId}/`;
 
   for (const [path, url] of Object.entries(allVideos)) {
     if (!path.startsWith(groupPrefix)) continue;
@@ -172,7 +194,7 @@ export const getSoundVideo = (groupId, soundName) => {
  */
 export const getSoundMusic = (groupId, soundName) => {
   const target = normalize(soundName);
-  const groupPrefix = `../assets/lvl1/group-${groupId}`;
+  const groupPrefix = `../assets/lvl1/group-${groupId}/`;
 
   for (const [path, url] of Object.entries(allMusic)) {
     if (!path.startsWith(groupPrefix)) continue;

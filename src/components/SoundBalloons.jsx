@@ -690,7 +690,52 @@ const SoundBalloons = ({ group, onComplete }) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden"
+            style={{ background: 'radial-gradient(ellipse at center, rgba(62,54,107,0.85) 0%, rgba(0,0,0,0.9) 100%)' }}
           >
+            {/* Continuous confetti rain */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              {[...Array(70)].map((_, i) => (
+                <motion.div
+                  key={`confetti-${i}`}
+                  className="absolute"
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    top: -20,
+                    width: 7 + Math.random() * 10,
+                    height: 7 + Math.random() * 10,
+                    borderRadius: Math.random() > 0.5 ? '50%' : '2px',
+                    backgroundColor: ['#FF6B9D', '#4ECDC4', '#FFE66D', '#FF8A5B', '#9B59B6', '#3498DB', '#22c55e', '#ffd700', '#E60023', '#6B3FA0'][i % 10],
+                  }}
+                  animate={{
+                    y: ['0vh', '110vh'],
+                    x: [0, (Math.random() - 0.5) * 120],
+                    rotate: [0, 360 * (Math.random() > 0.5 ? 1 : -1)],
+                  }}
+                  transition={{
+                    duration: 2 + Math.random() * 3,
+                    delay: Math.random() * 2,
+                    repeat: Infinity,
+                    ease: 'linear',
+                  }}
+                />
+              ))}
+              {[...Array(25)].map((_, i) => (
+                <motion.div
+                  key={`spark-${i}`}
+                  className="absolute rounded-full"
+                  style={{
+                    left: `${15 + Math.random() * 70}%`,
+                    top: `${15 + Math.random() * 70}%`,
+                    width: 3 + Math.random() * 6,
+                    height: 3 + Math.random() * 6,
+                    backgroundColor: '#ffd700',
+                  }}
+                  animate={{ scale: [0, 1, 0], opacity: [0, 1, 0] }}
+                  transition={{ duration: 1 + Math.random(), delay: Math.random() * 3, repeat: Infinity }}
+                />
+              ))}
+            </div>
+
             <motion.div
               initial={{ scale: 0, rotate: -10 }}
               animate={{ scale: 1, rotate: 0 }}

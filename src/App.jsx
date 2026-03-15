@@ -3,6 +3,9 @@ import './App.css';
 import InAppBrowserGuard from './components/InAppBrowserGuard';
 import CurriculumMap from './components/CurriculumMap';
 import TeachingFlow from './components/TeachingFlow';
+import PlaygroundHub from './components/PlaygroundHub';
+import MagicFlashlight from './components/games/MagicFlashlight';
+import BubbleSpell from './components/games/BubbleSpell';
 
 // Increment this manually when you want to force a cache reset on deployed versions
 const APP_VERSION = "2.0.0";
@@ -40,9 +43,10 @@ function App() {
     }
   }, []);
 
-  const [screen, setScreen] = useState('curriculum'); // curriculum, teaching
+  const [screen, setScreen] = useState('curriculum'); // curriculum, teaching, playground
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [returnToGroups, setReturnToGroups] = useState(false);
+  const [activeGame, setActiveGame] = useState(null);
 
   const handleSelectGroup = useCallback((group) => {
     window.speechSynthesis.cancel();
@@ -57,12 +61,28 @@ function App() {
     setScreen('curriculum');
   }, []);
 
+  const handleOpenPlayground = useCallback((group) => {
+    window.speechSynthesis.cancel();
+    setSelectedGroup(group);
+    setActiveGame(null);
+    setScreen('playground');
+  }, []);
+
+  const handleExitPlayground = useCallback(() => {
+    window.speechSynthesis.cancel();
+    setSelectedGroup(null);
+    setActiveGame(null);
+    setReturnToGroups(true);
+    setScreen('curriculum');
+  }, []);
+
   return (
     <InAppBrowserGuard>
       <div className="min-h-screen bg-[#d8e9fa]">
         {screen === 'curriculum' && (
           <CurriculumMap
             onSelectGroup={handleSelectGroup}
+            onOpenPlayground={handleOpenPlayground}
             initialLevel={returnToGroups ? 1 : null}
             onLevelReset={() => setReturnToGroups(false)}
           />
@@ -72,6 +92,28 @@ function App() {
           <TeachingFlow
             group={selectedGroup}
             onExit={handleExitTeaching}
+          />
+        )}
+
+        {screen === 'playground' && selectedGroup && !activeGame && (
+          <PlaygroundHub
+            group={selectedGroup}
+            onBack={handleExitPlayground}
+            onSelectGame={(gameId) => setActiveGame(gameId)}
+          />
+        )}
+
+        {screen === 'playground' && selectedGroup && activeGame === 'flashlight' && (
+          <MagicFlashlight
+            group={selectedGroup}
+            onBack={() => setActiveGame(null)}
+          />
+        )}
+
+        {screen === 'playground' && selectedGroup && activeGame === 'bubble-spell' && (
+          <BubbleSpell
+            group={selectedGroup}
+            onBack={() => setActiveGame(null)}
           />
         )}
       </div>

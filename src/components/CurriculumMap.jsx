@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Lock, Maximize, BookOpen } from 'lucide-react';
+import { Home, Lock, Maximize, BookOpen, Gamepad2 } from 'lucide-react';
 import { PHONICS_GROUPS } from '../data/phonicsData';
 import wonderPhonicsLogo from '../assets/wonder-phonics-logo.webp';
 import { playVO, stopVO, delay } from '../utils/audioPlayer';
@@ -22,11 +22,13 @@ const LEVELS = [
   { id: 6, title: 'Level 6', color: '#ff6b9d', locked: true },
 ];
 
-const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
+const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelReset }) => {
   const [selectedLevel, setSelectedLevel] = useState(initialLevel || null);
   const [isPC, setIsPC] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const welcomePlayingRef = useRef(false);
+  const [longPressGroup, setLongPressGroup] = useState(null);
+  const longPressTimerRef = useRef(null);
 
   useEffect(() => {
     if (initialLevel) {
@@ -252,53 +254,92 @@ const CurriculumMap = ({ onSelectGroup, initialLevel, onLevelReset }) => {
             {/* 20 Groups Grid - 3 per row */}
             <div className="grid grid-cols-3 gap-3 md:gap-5 lg:gap-6 w-full max-w-3xl lg:max-w-5xl pb-8">
               {PHONICS_GROUPS.map((group, idx) => (
-                <motion.button
-                  key={group.id}
-                  onClick={() => onSelectGroup(group)}
-                  className="flex flex-col items-center justify-center bg-white transition-all"
-                  style={{
-                    borderRadius: '2.2rem',
-                    borderWidth: '3px',
-                    borderStyle: 'solid',
-                    borderColor: group.color,
-                    borderBottom: `6px solid ${group.color}`,
-                    padding: isPC ? '2rem 1.2rem' : 'min(4vw, 1.2rem) min(2.5vw, 0.8rem)',
-                    minHeight: isPC ? '220px' : 'min(34vw, 150px)',
-                    boxShadow: '0px 8px 0px rgba(0,0,0,0.1)',
-                  }}
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: idx * 0.05, type: 'spring', bounce: 0.5, duration: 0.8 }}
-                  whileHover={{ scale: 1.05, y: -4 }}
-                  whileTap={{ scale: 0.95, y: 4 }}
-                >
-                  <span style={{ fontSize: isPC ? '4rem' : 'min(11vw, 3rem)', lineHeight: 1.2 }}>
-                    {group.icon}
-                  </span>
-                  <span
-                    className="font-bold mt-1"
-                    style={{
-                      color: group.color,
-                      fontSize: isPC ? '1.5rem' : 'min(4.5vw, 1.15rem)',
+                <div key={group.id} className="relative flex flex-col items-center">
+                  <motion.button
+                    onClick={() => {
+                      if (longPressGroup === group.id) return;
+                      onSelectGroup(group);
                     }}
+                    onPointerDown={() => {
+                      longPressTimerRef.current = setTimeout(() => {
+                        setLongPressGroup((prev) => prev === group.id ? null : group.id);
+                      }, 500);
+                    }}
+                    onPointerUp={() => clearTimeout(longPressTimerRef.current)}
+                    onPointerLeave={() => clearTimeout(longPressTimerRef.current)}
+                    onContextMenu={(e) => e.preventDefault()}
+                    className="flex flex-col items-center justify-center bg-white transition-all w-full"
+                    style={{
+                      borderRadius: '2.2rem',
+                      borderWidth: '3px',
+                      borderStyle: 'solid',
+                      borderColor: group.color,
+                      borderBottom: `6px solid ${group.color}`,
+                      padding: isPC ? '2rem 1.2rem' : 'min(4vw, 1.2rem) min(2.5vw, 0.8rem)',
+                      minHeight: isPC ? '220px' : 'min(34vw, 150px)',
+                      boxShadow: '0px 8px 0px rgba(0,0,0,0.1)',
+                    }}
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.05, type: 'spring', bounce: 0.5, duration: 0.8 }}
+                    whileHover={{ scale: 1.05, y: -4 }}
+                    whileTap={{ scale: 0.95, y: 4 }}
                   >
-                    {group.title}
-                  </span>
-                  <span
-                    className="text-[#3e366b]/70 text-center leading-tight mt-1 font-medium"
-                    style={{ fontSize: isPC ? '1.2rem' : 'min(3.5vw, 0.95rem)' }}
-                  >
-                    {group.sounds.join(', ')}
-                  </span>
-                  {group.subtitle && (
-                    <span
-                      className="text-[#3e366b]/40 mt-0.5"
-                      style={{ fontSize: isPC ? '0.9rem' : 'min(2.5vw, 0.65rem)' }}
-                    >
-                      {group.subtitle}
+                    <span style={{ fontSize: isPC ? '4rem' : 'min(11vw, 3rem)', lineHeight: 1.2 }}>
+                      {group.icon}
                     </span>
-                  )}
-                </motion.button>
+                    <span
+                      className="font-bold mt-1"
+                      style={{
+                        color: group.color,
+                        fontSize: isPC ? '1.5rem' : 'min(4.5vw, 1.15rem)',
+                      }}
+                    >
+                      {group.title}
+                    </span>
+                    <span
+                      className="text-[#3e366b]/70 text-center leading-tight mt-1 font-medium"
+                      style={{ fontSize: isPC ? '1.2rem' : 'min(3.5vw, 0.95rem)' }}
+                    >
+                      {group.sounds.join(', ')}
+                    </span>
+                    {group.subtitle && (
+                      <span
+                        className="text-[#3e366b]/40 mt-0.5"
+                        style={{ fontSize: isPC ? '0.9rem' : 'min(2.5vw, 0.65rem)' }}
+                      >
+                        {group.subtitle}
+                      </span>
+                    )}
+                  </motion.button>
+
+                  {/* Playground button — slides out from under the group button on long press */}
+                  <AnimatePresence>
+                    {longPressGroup === group.id && (
+                      <motion.button
+                        initial={{ opacity: 0, y: -20, scale: 0.6 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -16, scale: 0.6 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setLongPressGroup(null);
+                          onOpenPlayground(group);
+                        }}
+                        className="mt-2 flex items-center gap-1.5 px-4 py-2 bg-[#8B5CF6] text-white font-bold text-xs md:text-sm rounded-full shadow-lg"
+                        style={{
+                          borderBottom: '4px solid #7C3AED',
+                          boxShadow: '0px 5px 0px rgba(0,0,0,0.12), 0 0 15px rgba(139,92,246,0.4)',
+                        }}
+                        whileHover={{ scale: 1.08 }}
+                        whileTap={{ scale: 0.92, y: 3 }}
+                      >
+                        <Gamepad2 className="w-4 h-4" />
+                        Playground
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+                </div>
               ))}
             </div>
           </motion.div>

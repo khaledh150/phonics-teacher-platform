@@ -8,6 +8,9 @@ import SoundBalloons from './SoundBalloons';
 import ExerciseMatch from './ExerciseMatch';
 import BlendingFactory from './BlendingFactory';
 import SentenceScramble from './SentenceScramble';
+import PlaygroundHub from './PlaygroundHub';
+import MagicFlashlight from './games/MagicFlashlight';
+import BubbleSpell from './games/BubbleSpell';
 import Preloader from './Preloader';
 import { stopAllAudio } from '../utils/letterSounds';
 import { playVO, stopVO, delay } from '../utils/audioPlayer';
@@ -41,6 +44,8 @@ const TeachingFlow = ({ group, onExit }) => {
   const [showPreloader, setShowPreloader] = useState(true);
   const [stepReady, setStepReady] = useState(false);
   const [showGroupFinish, setShowGroupFinish] = useState(false);
+  const [showPlayground, setShowPlayground] = useState(false);
+  const [activeGame, setActiveGame] = useState(null);
 
   const currentStep = STEPS[stepIndex];
 
@@ -362,7 +367,23 @@ const TeachingFlow = ({ group, onExit }) => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.9 }}
+                className="flex flex-col items-center gap-3"
               >
+                <motion.button
+                  onClick={() => {
+                    window.speechSynthesis.cancel();
+                    stopAllAudio();
+                    stopVO();
+                    setShowGroupFinish(false);
+                    setShowPlayground(true);
+                  }}
+                  className="px-8 py-3 md:px-10 md:py-4 bg-[#8B5CF6] text-white font-bold text-base md:text-lg flex items-center gap-2"
+                  style={{ borderRadius: '1.6rem', borderBottom: '5px solid #7C3AED', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95, y: 4 }}
+                >
+                  <span>🎮</span> Bonus Playground
+                </motion.button>
                 <motion.button
                   onClick={() => {
                     window.speechSynthesis.cancel();
@@ -370,12 +391,11 @@ const TeachingFlow = ({ group, onExit }) => {
                     stopVO();
                     onExit();
                   }}
-                  className="px-8 py-3 md:px-10 md:py-4 bg-[#E60023] text-white font-bold text-base md:text-lg"
-                  style={{ borderRadius: '1.6rem', borderBottom: '5px solid #B3001B', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95, y: 4 }}
+                  className="px-6 py-2 bg-white/20 text-white/80 font-semibold text-sm hover:bg-white/30 transition-all"
+                  style={{ borderRadius: '1.2rem' }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  Finish &#10003;
+                  Finish &amp; Go Home
                 </motion.button>
               </motion.div>
             </motion.div>
@@ -428,6 +448,62 @@ const TeachingFlow = ({ group, onExit }) => {
                 </motion.button>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Playground Hub & Games — rendered as full-screen overlays */}
+      <AnimatePresence>
+        {showPlayground && !activeGame && (
+          <motion.div
+            key="playground-hub"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[90]"
+          >
+            <PlaygroundHub
+              group={group}
+              onBack={() => {
+                setShowPlayground(false);
+                onExit();
+              }}
+              onSelectGame={(gameId) => setActiveGame(gameId)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {activeGame === 'flashlight' && (
+          <motion.div
+            key="game-flashlight"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[90]"
+          >
+            <MagicFlashlight
+              group={group}
+              onBack={() => setActiveGame(null)}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {activeGame === 'bubble-spell' && (
+          <motion.div
+            key="game-bubble-spell"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[90]"
+          >
+            <BubbleSpell
+              group={group}
+              onBack={() => setActiveGame(null)}
+            />
           </motion.div>
         )}
       </AnimatePresence>

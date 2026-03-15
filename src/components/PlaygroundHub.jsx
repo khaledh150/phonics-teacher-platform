@@ -1,0 +1,256 @@
+import React, { useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Lock, Maximize } from 'lucide-react';
+import { playVO, stopVO, delay } from '../utils/audioPlayer';
+import { stopAllAudio } from '../utils/letterSounds';
+
+const GAMES = [
+  {
+    id: 'flashlight',
+    title: 'Magic Flashlight',
+    icon: '🔦',
+    color: '#FFD000',
+    borderColor: '#E0B800',
+    unlocked: true,
+    description: 'Find the hidden pictures!',
+  },
+  {
+    id: 'bubble-spell',
+    title: 'Bubble Spell',
+    icon: '🫧',
+    color: '#4ECDC4',
+    borderColor: '#38B2AC',
+    unlocked: true,
+    description: 'Pop bubbles to spell words!',
+  },
+  {
+    id: 'letter-race',
+    title: 'Letter Race',
+    icon: '🏎️',
+    color: '#FF6B9D',
+    borderColor: '#E0527E',
+    unlocked: false,
+  },
+  {
+    id: 'word-builder',
+    title: 'Word Builder',
+    icon: '🧱',
+    color: '#8B5CF6',
+    borderColor: '#7C3AED',
+    unlocked: false,
+  },
+  {
+    id: 'sound-safari',
+    title: 'Sound Safari',
+    icon: '🦁',
+    color: '#F59E0B',
+    borderColor: '#D97706',
+    unlocked: false,
+  },
+  {
+    id: 'phonics-train',
+    title: 'Phonics Train',
+    icon: '🚂',
+    color: '#EF4444',
+    borderColor: '#DC2626',
+    unlocked: false,
+  },
+  {
+    id: 'rhyme-time',
+    title: 'Rhyme Time',
+    icon: '🎵',
+    color: '#10B981',
+    borderColor: '#059669',
+    unlocked: false,
+  },
+  {
+    id: 'spell-quest',
+    title: 'Spell Quest',
+    icon: '⚔️',
+    color: '#6366F1',
+    borderColor: '#4F46E5',
+    unlocked: false,
+  },
+];
+
+const containerVariants = {
+  hidden: {},
+  show: {
+    transition: { staggerChildren: 0.08, delayChildren: 0.3 },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 40, scale: 0.8 },
+  show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 20 } },
+};
+
+const PlaygroundHub = ({ group, onBack, onSelectGame }) => {
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    let cancelled = false;
+    const run = async () => {
+      await playVO('Welcome to the Playground!');
+      if (cancelled) return;
+      await delay(300);
+      if (cancelled) return;
+      await playVO('Choose a game to play!');
+    };
+    run();
+    return () => {
+      cancelled = true;
+      mountedRef.current = false;
+      window.speechSynthesis.cancel();
+      stopAllAudio();
+      stopVO();
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
+    }
+  };
+
+  const handleBack = () => {
+    window.speechSynthesis.cancel();
+    stopAllAudio();
+    stopVO();
+    onBack();
+  };
+
+  return (
+    <div className="h-screen w-screen overflow-hidden relative flex flex-col items-center justify-center"
+      style={{ background: 'linear-gradient(135deg, #1a1147 0%, #2d1b69 30%, #4a2c8a 60%, #6B3FA0 100%)' }}
+    >
+      {/* Floating sparkle decorations */}
+      {[...Array(6)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute text-yellow-300/30 pointer-events-none"
+          style={{
+            left: `${10 + i * 15}%`,
+            top: `${15 + (i % 3) * 25}%`,
+            fontSize: `${20 + i * 4}px`,
+          }}
+          animate={{
+            y: [0, -15, 0],
+            opacity: [0.2, 0.5, 0.2],
+            rotate: [0, 180, 360],
+          }}
+          transition={{ duration: 3 + i * 0.5, repeat: Infinity, delay: i * 0.4 }}
+        >
+          ✦
+        </motion.div>
+      ))}
+
+      {/* Back + Fullscreen buttons */}
+      <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
+        <motion.button
+          onClick={handleBack}
+          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+        >
+          <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
+        <motion.button
+          onClick={toggleFullscreen}
+          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+          title="Toggle Fullscreen"
+        >
+          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
+      </div>
+
+      {/* Title */}
+      <motion.div
+        className="text-center mb-6 md:mb-8 z-10"
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+      >
+
+        <h1
+          className="text-3xl md:text-5xl lg:text-6xl font-black text-[#FFD000]"
+          style={{ textShadow: 'none', WebkitTextStroke: '0' }}
+        >
+          <span className="mr-2">🎮</span>
+          Bonus Playground
+          <span className="ml-2">🎮</span>
+        </h1>
+        <p className="text-white/80 text-sm md:text-base mt-2 font-semibold">
+          {group.icon} {group.title} Games
+        </p>
+      </motion.div>
+
+      {/* Game grid */}
+      <motion.div
+        className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5 lg:gap-6 px-4 md:px-8 max-w-4xl z-10"
+        variants={containerVariants}
+        initial="hidden"
+        animate="show"
+      >
+        {GAMES.map((game) => (
+          <motion.button
+            key={game.id}
+            variants={cardVariants}
+            onClick={() => game.unlocked && onSelectGame(game.id)}
+            disabled={!game.unlocked}
+            className={`relative flex flex-col items-center justify-center p-5 md:p-6 lg:p-8 rounded-[1.6rem] font-bold transition-all ${
+              game.unlocked ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
+            }`}
+            style={{
+              backgroundColor: game.unlocked ? game.color : '#3a3260',
+              borderBottom: `5px solid ${game.unlocked ? game.borderColor : '#2a2250'}`,
+              boxShadow: game.unlocked
+                ? `0px 6px 0px rgba(0,0,0,0.12)`
+                : '0px 6px 0px rgba(0,0,0,0.12)',
+            }}
+            whileHover={game.unlocked ? { scale: 1.08, y: -4 } : {}}
+            whileTap={game.unlocked ? { scale: 0.95, y: 4 } : {}}
+          >
+            {/* Lock overlay */}
+            {!game.unlocked && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-[1.6rem] bg-black/20 z-10">
+                <Lock className="w-8 h-8 md:w-10 md:h-10 text-white/60" />
+              </div>
+            )}
+
+            <motion.span
+              className="text-5xl md:text-6xl lg:text-7xl mb-3"
+              animate={game.unlocked ? { y: [0, -4, 0] } : {}}
+              transition={{ duration: 2, repeat: Infinity, delay: GAMES.indexOf(game) * 0.2 }}
+            >
+              {game.icon}
+            </motion.span>
+            <span
+              className="text-sm md:text-base lg:text-lg text-center leading-tight font-extrabold"
+              style={{ color: game.unlocked ? '#fff' : '#888' }}
+            >
+              {game.title}
+            </span>
+            {game.unlocked && game.description && (
+              <span className="text-xs md:text-sm text-white/70 mt-1 text-center font-medium">
+                {game.description}
+              </span>
+            )}
+            {!game.unlocked && (
+              <span className="text-xs md:text-sm text-white/40 mt-1 font-medium">
+                Coming Soon
+              </span>
+            )}
+          </motion.button>
+        ))}
+      </motion.div>
+    </div>
+  );
+};
+
+export default PlaygroundHub;
