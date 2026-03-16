@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Maximize } from 'lucide-react';
 import { playVO, stopVO, delay } from '../../utils/audioPlayer';
 import { playLetterSound, stopAllAudio } from '../../utils/letterSounds';
 import { speakAsync } from '../../utils/speech';
@@ -46,6 +46,14 @@ const getDistractors = (correctSound, groupSounds) => {
     picked.push(fallback[Math.floor(Math.random() * fallback.length)]);
   }
   return picked;
+};
+
+const toggleFullscreen = () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen?.();
+  } else {
+    document.exitFullscreen?.();
+  }
 };
 
 const MagicFlashlightGame = ({ group, onBack, onPlayAgain }) => {
@@ -210,11 +218,19 @@ const MagicFlashlightGame = ({ group, onBack, onPlayAgain }) => {
   if (gameComplete) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#1a1147] to-[#6B3FA0]">
+        <motion.button
+          onClick={toggleFullscreen}
+          className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+        >
+          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-          className="bg-white p-8 md:p-12 text-center max-w-md mx-4"
+          className="bg-[#2d1b69] p-8 md:p-12 text-center max-w-md mx-4"
           style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
         >
           <motion.span
@@ -227,7 +243,7 @@ const MagicFlashlightGame = ({ group, onBack, onPlayAgain }) => {
           <h2 className="text-2xl md:text-3xl font-bold text-[#6B3FA0] mb-2">
             Amazing Work!
           </h2>
-          <p className="text-[#3e366b]/60 text-sm md:text-base mb-6">
+          <p className="text-white/60 text-sm md:text-base mb-6">
             You found all the pictures!
           </p>
           <div className="flex flex-col gap-3">
@@ -242,7 +258,7 @@ const MagicFlashlightGame = ({ group, onBack, onPlayAgain }) => {
             </motion.button>
             <motion.button
               onClick={handleBack}
-              className="px-8 py-2.5 md:px-10 md:py-3 bg-white/20 text-[#3e366b]/70 font-bold text-sm md:text-base"
+              className="px-8 py-2.5 md:px-10 md:py-3 bg-white/20 text-white/70 font-bold text-sm md:text-base"
               style={{ borderRadius: '1.6rem', borderBottom: '4px solid rgba(0,0,0,0.05)' }}
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95, y: 4 }}
@@ -257,15 +273,26 @@ const MagicFlashlightGame = ({ group, onBack, onPlayAgain }) => {
 
   return (
     <div className="h-screen w-screen overflow-hidden relative flex flex-col bg-[#1a1147]">
-      {/* Back button */}
-      <motion.button
-        onClick={handleBack}
-        className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
-        style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-        whileTap={{ scale: 0.95, y: 3 }}
-      >
-        <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
-      </motion.button>
+      {/* Back + Fullscreen buttons */}
+      <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
+        <motion.button
+          onClick={handleBack}
+          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+        >
+          <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
+        <motion.button
+          onClick={toggleFullscreen}
+          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+          title="Toggle Fullscreen"
+        >
+          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
+      </div>
 
       {/* Progress indicator */}
       <div className="fixed top-4 right-4 z-[70] flex items-center gap-1.5">

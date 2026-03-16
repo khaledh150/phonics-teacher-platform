@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Maximize } from 'lucide-react';
 import { playVO, stopVO, delay } from '../../utils/audioPlayer';
 import { stopAllAudio } from '../../utils/letterSounds';
 import { speakAsync } from '../../utils/speech';
@@ -9,10 +9,20 @@ import { playEncouragement } from '../../utils/encouragement';
 import { getWordImage } from '../../utils/assetHelpers';
 import confetti from 'canvas-confetti';
 
+const toggleFullscreen = () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen?.();
+  } else {
+    document.exitFullscreen?.();
+  }
+};
+
 const PAIR_COUNT = 4;
+const TOTAL_ROUNDS = 3;
 
 const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
-  const [cards, setCards] = useState(() => {
+  // --- Generate cards for a round ---
+  const generateCards = useCallback(() => {
     const wordsWithImages = group.words.filter(
       (w) => getWordImage(group.id, w.image || w.word) !== null
     );
@@ -46,15 +56,39 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
       [cardPairs[i], cardPairs[j]] = [cardPairs[j], cardPairs[i]];
     }
     return cardPairs;
-  });
+  }, [group]);
 
+  const [cards, setCards] = useState(() => generateCards());
   const [flippedIds, setFlippedIds] = useState([]);
   const [matchedPairs, setMatchedPairs] = useState(0);
   const [gameComplete, setGameComplete] = useState(false);
+  const [roundNumber, setRoundNumber] = useState(1);
+  const [showingCards, setShowingCards] = useState(true);
 
   const isCheckingRef = useRef(false);
   const idleRef = useRef(null);
   const mountedRef = useRef(true);
+
+  // --- Grace period: show all cards face-up then flip them down ---
+  useEffect(() => {
+    if (!showingCards) return;
+    const timer = setTimeout(() => {
+      if (mountedRef.current) {
+        setShowingCards(false);
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [showingCards]);
+
+  // --- New round: regenerate cards when roundNumber changes (after round 1) ---
+  useEffect(() => {
+    if (roundNumber === 1) return; // Round 1 cards are set in initial state
+    setCards(generateCards());
+    setFlippedIds([]);
+    setMatchedPairs(0);
+    setShowingCards(true);
+    isCheckingRef.current = false;
+  }, [roundNumber, generateCards]);
 
   // --- Idle reminder ---
   const startIdleReminder = useCallback(() => {
@@ -65,7 +99,7 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
     }, 12000);
   }, []);
 
-  // --- Mount: intro VO + idle ---
+  // --- Mount: intro VO + idle (plays only once) ---
   useEffect(() => {
     let cancelled = false;
     mountedRef.current = true;
@@ -114,6 +148,7 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
   // --- Card click handler ---
   const handleCardClick = useCallback(
     async (cardId) => {
+      if (showingCards) return;
       if (isCheckingRef.current) return;
 
       const card = cards.find((c) => c.id === cardId);
@@ -159,11 +194,19 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
           isCheckingRef.current = false;
 
           if (newMatchCount >= PAIR_COUNT) {
-            // Game complete
-            triggerCelebration();
-            await playVO('Great job!');
-            if (!mountedRef.current) return;
-            setGameComplete(true);
+            if (roundNumber < TOTAL_ROUNDS) {
+              // Advance to next round
+              await delay(800);
+              if (!mountedRef.current) return;
+              setRoundNumber((r) => r + 1);
+              startIdleReminder();
+            } else {
+              // Game complete after final round
+              triggerCelebration();
+              await playVO('Great job!');
+              if (!mountedRef.current) return;
+              setGameComplete(true);
+            }
           } else {
             startIdleReminder();
           }
@@ -184,7 +227,7 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
         }
       }
     },
-    [cards, flippedIds, matchedPairs, startIdleReminder]
+    [cards, flippedIds, matchedPairs, startIdleReminder, showingCards, roundNumber]
   );
 
   // --- Back handler ---
@@ -200,11 +243,19 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
   if (gameComplete) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#1a1147] to-[#8B5CF6]">
+        <motion.button
+          onClick={toggleFullscreen}
+          className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+        >
+          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-          className="bg-white p-8 md:p-12 text-center max-w-md mx-4"
+          className="bg-[#2d1b69] p-8 md:p-12 text-center max-w-md mx-4"
           style={{
             borderRadius: '2.2rem',
             boxShadow: '0px 10px 0px rgba(0,0,0,0.12)',
@@ -220,7 +271,7 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
           <h2 className="text-2xl md:text-3xl font-bold text-[#8B5CF6] mb-2">
             Memory Master!
           </h2>
-          <p className="text-[#3e366b]/60 text-sm md:text-base mb-6">
+          <p className="text-white/60 text-sm md:text-base mb-6">
             You matched all the pairs!
           </p>
           <div className="flex flex-col gap-3">
@@ -239,7 +290,7 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
             </motion.button>
             <motion.button
               onClick={handleBack}
-              className="px-8 py-2.5 md:px-10 md:py-3 bg-white/20 text-[#3e366b]/70 font-bold text-sm md:text-base"
+              className="px-8 py-2.5 md:px-10 md:py-3 bg-white/20 text-white/70 font-bold text-sm md:text-base"
               style={{
                 borderRadius: '1.6rem',
                 borderBottom: '4px solid rgba(0,0,0,0.05)',
@@ -258,28 +309,36 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
   // --- Main game ---
   return (
     <div className="h-screen w-screen flex flex-col bg-gradient-to-b from-[#1a1147] to-[#6B3FA0] overflow-hidden">
-      {/* Back button */}
-      <motion.button
-        onClick={handleBack}
-        className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
-        style={{
-          borderBottom: '4px solid #E0B800',
-          boxShadow: '0px 6px 0px rgba(0,0,0,0.1)',
-        }}
-        whileTap={{ scale: 0.95, y: 3 }}
-      >
-        <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
-      </motion.button>
+      {/* Back + Fullscreen buttons */}
+      <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
+        <motion.button
+          onClick={handleBack}
+          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+        >
+          <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
+        <motion.button
+          onClick={toggleFullscreen}
+          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+          title="Toggle Fullscreen"
+        >
+          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
+      </div>
 
-      {/* Progress dots */}
+      {/* Progress dots (one per round) */}
       <div className="fixed top-4 right-4 z-[70] flex items-center gap-1.5">
-        {Array.from({ length: PAIR_COUNT }).map((_, idx) => (
+        {Array.from({ length: TOTAL_ROUNDS }).map((_, idx) => (
           <div
             key={idx}
             className={`rounded-full transition-all ${
-              idx < matchedPairs
+              idx < roundNumber - 1
                 ? 'bg-[#22c55e] w-2.5 h-2.5'
-                : idx === matchedPairs
+                : idx === roundNumber - 1
                 ? 'bg-[#8B5CF6] w-3 h-3 ring-2 ring-[#8B5CF6]/40'
                 : 'bg-white/20 w-2.5 h-2.5'
             }`}
@@ -289,7 +348,7 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
 
       {/* Card grid */}
       <div className="flex-1 flex items-center justify-center p-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 max-w-2xl w-full">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 lg:gap-4 max-w-xs md:max-w-2xl w-full">
           {cards.map((card) => (
             <div
               key={card.id}
@@ -298,14 +357,21 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
             >
               <motion.div
                 animate={{
-                  rotateY: card.isFlipped || card.isMatched ? 180 : 0,
+                  rotateY: card.isFlipped || showingCards || card.isMatched ? 180 : 0,
                   y: card.isFlipped && !card.isMatched ? -20 : 0,
+                  opacity: card.isMatched ? 0 : 1,
+                  scale: card.isMatched ? 0.5 : 1,
                 }}
                 transition={{
                   rotateY: { type: 'spring', stiffness: 300, damping: 20 },
                   y: { type: 'spring', stiffness: 400, damping: 15 },
+                  opacity: { duration: 0.4 },
+                  scale: { duration: 0.4 },
                 }}
-                style={{ transformStyle: 'preserve-3d' }}
+                style={{
+                  transformStyle: 'preserve-3d',
+                  pointerEvents: card.isMatched ? 'none' : 'auto',
+                }}
                 className="relative w-full h-full cursor-pointer"
                 onClick={() => handleCardClick(card.id)}
               >
@@ -322,21 +388,15 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
 
                 {/* Back (face up - content) */}
                 <div
-                  className={`absolute inset-0 rounded-2xl bg-white flex items-center justify-center p-2 ${
-                    card.isMatched
-                      ? 'ring-4 ring-[#22c55e] shadow-[0_0_16px_rgba(34,197,94,0.4)]'
-                      : ''
-                  }`}
+                  className="absolute inset-0 rounded-2xl bg-white flex items-center justify-center p-2"
                   style={{
                     backfaceVisibility: 'hidden',
                     transform: 'rotateY(180deg)',
-                    boxShadow: card.isMatched
-                      ? '0 4px 0 rgba(34,197,94,0.3)'
-                      : '0 4px 0 rgba(0,0,0,0.15)',
+                    boxShadow: '0 4px 0 rgba(0,0,0,0.15)',
                   }}
                 >
                   {card.type === 'word' ? (
-                    <span className="text-xl md:text-2xl font-black text-[#3e366b] uppercase">
+                    <span className="text-2xl md:text-3xl lg:text-4xl font-black text-[#3e366b] uppercase">
                       {card.word}
                     </span>
                   ) : (

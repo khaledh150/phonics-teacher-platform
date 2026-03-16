@@ -66,6 +66,7 @@ export const playLetterSound = (sound) => {
       return;
     }
     const audio = new Audio(url);
+    audio.volume = 1.0;
     activeAudios.add(audio);
     audio.onended = () => { activeAudios.delete(audio); resolve(); };
     audio.onerror = () => { activeAudios.delete(audio); reject(); };

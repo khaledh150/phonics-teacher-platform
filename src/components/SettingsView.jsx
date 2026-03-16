@@ -149,7 +149,7 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 landscape:p-3 md:p-6 overflow-auto relative"
-      style={{ background: 'linear-gradient(135deg, #d8e9fa 0%, #e8f4ff 50%, #f0e6ff 100%)' }}
+      style={{ background: 'linear-gradient(135deg, #1a1147 0%, #2d1b69 50%, #1a1147 100%)' }}
     >
       {/* Animated background particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -173,10 +173,10 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
       {/* Fullscreen Button */}
       <button
         onClick={toggleFullscreen}
-        className="fixed top-3 right-3 md:top-4 md:right-4 z-50 p-2 md:p-3 rounded-full bg-[#b4d7ff] hover:bg-[#9fc9ff] transition-all shadow-lg"
+        className="fixed top-3 right-3 md:top-4 md:right-4 z-50 p-2 md:p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all shadow-lg"
         title="Toggle Fullscreen"
       >
-        <Maximize className="w-5 h-5 md:w-6 md:h-6 text-[#3e366b]" />
+        <Maximize className="w-5 h-5 md:w-6 md:h-6 text-white" />
       </button>
 
       {/* Logo - Responsive sizing, bigger than tiles */}
@@ -198,7 +198,7 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
         {/* Tile 1: Learn */}
         <button
           onClick={() => setActivePopup('learn')}
-          className="flex flex-col items-center justify-center rounded-2xl md:rounded-3xl bg-white border-4 border-[#ae90fd] shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+          className="flex flex-col items-center justify-center rounded-2xl md:rounded-3xl bg-white/10 border-4 border-[#ae90fd] shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
           style={{ ...tileStyle, borderWidth: isPC ? '5px' : '4px', borderRadius: isPC ? '2rem' : '1rem' }}
         >
           <span className="font-black text-[#ae90fd] leading-none" style={numberStyle}>1</span>
@@ -206,7 +206,7 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
             className="text-[#ae90fd] my-2"
             style={iconSizeStyle}
           />
-          <span className="font-semibold text-[#3e366b]" style={labelStyle}>Learn</span>
+          <span className="font-semibold text-white" style={labelStyle}>Learn</span>
         </button>
 
         {/* Arrow 1 */}
@@ -223,7 +223,7 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
         {/* Tile 2: Practice */}
         <button
           onClick={() => setActivePopup('practice')}
-          className="flex flex-col items-center justify-center rounded-2xl md:rounded-3xl bg-white border-4 border-[#4d79ff] shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+          className="flex flex-col items-center justify-center rounded-2xl md:rounded-3xl bg-white/10 border-4 border-[#4d79ff] shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
           style={{ ...tileStyle, borderWidth: isPC ? '5px' : '4px', borderRadius: isPC ? '2rem' : '1rem' }}
         >
           <span className="font-black text-[#4d79ff] leading-none" style={numberStyle}>2</span>
@@ -231,7 +231,7 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
             className="text-[#4d79ff] my-2"
             style={iconSizeStyle}
           />
-          <span className="font-semibold text-[#3e366b]" style={labelStyle}>Practice</span>
+          <span className="font-semibold text-white" style={labelStyle}>Practice</span>
         </button>
 
         {/* Arrow 2 */}
@@ -248,7 +248,7 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
         {/* Tile 3: Competition */}
         <button
           onClick={() => setActivePopup('competition')}
-          className="flex flex-col items-center justify-center rounded-2xl md:rounded-3xl bg-white border-4 border-[#ffd700] shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
+          className="flex flex-col items-center justify-center rounded-2xl md:rounded-3xl bg-white/10 border-4 border-[#ffd700] shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
           style={{ ...tileStyle, borderWidth: isPC ? '5px' : '4px', borderRadius: isPC ? '2rem' : '1rem' }}
         >
           <span className="font-black text-[#ffd700] leading-none" style={numberStyle}>3</span>
@@ -256,7 +256,7 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
             className="text-[#ffd700] my-2"
             style={iconSizeStyle}
           />
-          <span className="font-semibold text-[#3e366b]" style={labelStyle}>Competition</span>
+          <span className="font-semibold text-white" style={labelStyle}>Competition</span>
         </button>
       </div>
 
@@ -268,16 +268,16 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
           onClick={handleBackdropClick}
         >
-          <div className="bg-white rounded-3xl p-8 md:p-12 shadow-2xl max-w-md w-full text-center relative">
+          <div className="bg-[#2d1b69] rounded-3xl p-8 md:p-12 shadow-2xl max-w-md w-full text-center relative">
             <button
               onClick={() => setActivePopup(null)}
-              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-all"
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 transition-all"
             >
-              <X className="w-6 h-6 text-gray-400" />
+              <X className="w-6 h-6 text-white/40" />
             </button>
 
             <BookOpen className="w-20 h-20 md:w-24 md:h-24 text-[#ae90fd] mx-auto mb-4" />
-            <h2 className="text-2xl md:text-3xl font-bold text-[#3e366b] mb-8">Learn Mode</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8">Learn Mode</h2>
 
             <button
               onClick={handleStartLearn}
@@ -296,20 +296,20 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
           onClick={handleBackdropClick}
         >
-          <div className="bg-white rounded-3xl p-8 md:p-12 shadow-2xl max-w-md w-full text-center relative">
+          <div className="bg-[#2d1b69] rounded-3xl p-8 md:p-12 shadow-2xl max-w-md w-full text-center relative">
             <button
               onClick={() => setActivePopup(null)}
-              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-all"
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 transition-all"
             >
-              <X className="w-6 h-6 text-gray-400" />
+              <X className="w-6 h-6 text-white/40" />
             </button>
 
             <Gamepad2 className="w-20 h-20 md:w-24 md:h-24 text-[#4d79ff] mx-auto mb-4" />
-            <h2 className="text-2xl md:text-3xl font-bold text-[#3e366b] mb-8">Practice Mode</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8">Practice Mode</h2>
 
             {showPracticeSettings && (
-              <div className="mb-6 p-4 bg-gray-50 rounded-xl text-left">
-                <label className="block text-[#3e366b] font-semibold mb-2 text-sm">
+              <div className="mb-6 p-4 bg-white/10 rounded-xl text-left">
+                <label className="block text-white font-semibold mb-2 text-sm">
                   Questions
                 </label>
                 <div className="grid grid-cols-4 gap-2 mb-4">
@@ -320,7 +320,7 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
                       className={`p-2 rounded-lg font-bold text-sm transition-all ${
                         questionCount === count
                           ? 'bg-[#4d79ff] text-white'
-                          : 'bg-white border-2 border-gray-200 text-gray-600 hover:border-[#4d79ff]'
+                          : 'bg-white/10 border-2 border-white/20 text-white/60 hover:border-[#4d79ff]'
                       }`}
                     >
                       {count}
@@ -328,7 +328,7 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
                   ))}
                 </div>
 
-                <label className="block text-[#3e366b] font-semibold mb-2 text-sm">
+                <label className="block text-white font-semibold mb-2 text-sm">
                   Speed: {speed.toFixed(2)}x
                 </label>
                 <input
@@ -353,7 +353,7 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
 
             <button
               onClick={() => setShowPracticeSettings(!showPracticeSettings)}
-              className="mt-4 text-gray-400 text-sm underline hover:text-gray-600 transition-all flex items-center justify-center gap-1 mx-auto"
+              className="mt-4 text-white/40 text-sm underline hover:text-white/60 transition-all flex items-center justify-center gap-1 mx-auto"
             >
               <Settings className="w-4 h-4" />
               {showPracticeSettings ? 'Hide settings' : 'Change settings'}
@@ -368,19 +368,19 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
           onClick={handleBackdropClick}
         >
-          <div className="bg-white rounded-3xl p-8 md:p-12 shadow-2xl max-w-md w-full text-center relative">
+          <div className="bg-[#2d1b69] rounded-3xl p-8 md:p-12 shadow-2xl max-w-md w-full text-center relative">
             <button
               onClick={() => setActivePopup(null)}
-              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-all"
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 transition-all"
             >
-              <X className="w-6 h-6 text-gray-400" />
+              <X className="w-6 h-6 text-white/40" />
             </button>
 
             <Trophy className="w-20 h-20 md:w-24 md:h-24 text-[#ffd700] mx-auto mb-4" />
-            <h2 className="text-2xl md:text-3xl font-bold text-[#3e366b] mb-6">Competition Mode</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-6">Competition Mode</h2>
 
             <div className="mb-6">
-              <label className="block text-[#3e366b] font-semibold mb-3 text-lg">
+              <label className="block text-white font-semibold mb-3 text-lg">
                 Select Set
               </label>
               <div className="grid grid-cols-5 gap-2">
@@ -391,7 +391,7 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
                     className={`p-3 md:p-4 rounded-xl font-bold text-xl md:text-2xl transition-all ${
                       selectedSet === letter
                         ? 'bg-[#ffd700] text-[#3e366b] shadow-lg scale-110'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        : 'bg-white/10 text-white/60 hover:bg-white/20'
                     }`}
                   >
                     {letter}
@@ -406,7 +406,7 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
               className={`w-full py-6 md:py-8 rounded-2xl font-bold text-2xl md:text-3xl flex items-center justify-center gap-4 shadow-xl transition-all ${
                 selectedSet
                   ? 'bg-[#22c55e] hover:bg-[#16a34a] text-white hover:shadow-2xl'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  : 'bg-white/20 text-white/40 cursor-not-allowed'
               }`}
             >
               <Play className="w-10 h-10 md:w-12 md:h-12" fill={selectedSet ? 'white' : '#9ca3af'} />
@@ -417,7 +417,7 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
             {selectedSet && (
               <button
                 onClick={handlePrint}
-                className="mt-4 text-gray-400 text-sm underline hover:text-gray-600 transition-all flex items-center justify-center gap-1 mx-auto"
+                className="mt-4 text-white/40 text-sm underline hover:text-white/60 transition-all flex items-center justify-center gap-1 mx-auto"
               >
                 <Printer className="w-4 h-4" />
                 Print answer sheet

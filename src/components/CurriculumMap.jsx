@@ -49,10 +49,20 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
   useEffect(() => {
     if (!hasInteracted) return;
     if (!selectedLevel) return;
-    // Don't interrupt welcome VO
-    if (welcomePlayingRef.current) return;
-    playVO('Choose a group to start!');
-    return () => stopVO();
+    let cancelled = false;
+    const run = async () => {
+      // Wait briefly for welcome VO to finish if it's playing
+      if (welcomePlayingRef.current) {
+        await delay(200);
+        if (cancelled) return;
+      }
+      stopVO();
+      await delay(50);
+      if (cancelled) return;
+      playVO('Choose a group to start!');
+    };
+    run();
+    return () => { cancelled = true; stopVO(); };
   }, [selectedLevel, hasInteracted]);
 
   const handleTapToStart = async () => {
@@ -71,7 +81,7 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
   return (
     <div
       className="min-h-screen flex flex-col items-center overflow-auto relative"
-      style={{ background: '#E8F4FF' }}
+      style={{ background: 'linear-gradient(180deg, #1a1147 0%, #2d1b69 100%)' }}
     >
       {/* Background particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -84,7 +94,7 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
               height: Math.random() * 100 + 50,
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
-              background: ['#ae90fd15', '#4d79ff15', '#ffd70015', '#f093fb15'][i % 4],
+              background: ['#ae90fd20', '#4d79ff20', '#ffd70020', '#f093fb20'][i % 4],
               animationDelay: `${i * 0.5}s`,
               animationDuration: `${3 + Math.random() * 2}s`,
             }}
@@ -101,7 +111,7 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
             exit={{ opacity: 0 }}
             transition={{ duration: 0.6 }}
             className="fixed inset-0 z-[200] flex flex-col items-center justify-center cursor-pointer"
-            style={{ background: 'radial-gradient(ellipse at center, #E8F4FF 0%, #c8dcf8 100%)' }}
+            style={{ background: 'radial-gradient(ellipse at center, #2d1b69 0%, #1a1147 100%)' }}
             onClick={handleTapToStart}
           >
             <motion.img
@@ -120,7 +130,7 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
             >
               Tap to Start!
             </motion.div>
-            <span className="fixed bottom-4 left-1/2 -translate-x-1/2 text-[#3e366b]/30 text-xs md:text-sm font-medium whitespace-nowrap">
+            <span className="fixed bottom-4 left-1/2 -translate-x-1/2 text-white/30 text-xs md:text-sm font-medium whitespace-nowrap">
               &copy; 2026 Wonder Kids Co. All rights reserved.
             </span>
           </motion.div>
@@ -173,7 +183,7 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
               style={{ height: isPC ? '380px' : 'min(50vw, 260px)', minHeight: isPC ? '320px' : 'min(45vw, 220px)' }}
             />
 
-            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-[#6B3FA0] mb-8 md:mb-12">
+            <h2 className="text-2xl md:text-4xl lg:text-5xl font-bold text-white mb-8 md:mb-12">
               Choose Your Level
             </h2>
 
@@ -185,15 +195,15 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
                   onClick={() => handleLevelClick(level)}
                   className={`relative flex flex-col items-center justify-center transition-all ${
                     level.locked
-                      ? 'bg-gray-200 cursor-not-allowed opacity-60'
+                      ? 'bg-white/20 cursor-not-allowed opacity-60'
                       : 'bg-white cursor-pointer'
                   }`}
                   style={{
                     borderRadius: '2.2rem',
                     borderWidth: '4px',
                     borderStyle: 'solid',
-                    borderBottom: level.locked ? '4px solid #d1d5db' : `6px solid ${level.color}`,
-                    borderColor: level.locked ? '#d1d5db' : level.color,
+                    borderBottom: level.locked ? '4px solid rgba(174,144,253,0.3)' : `6px solid ${level.color}`,
+                    borderColor: level.locked ? 'rgba(174,144,253,0.3)' : level.color,
                     padding: isPC ? '2.5rem 1.5rem' : 'min(5vw, 1.5rem) min(3vw, 1rem)',
                     minHeight: isPC ? '240px' : 'min(35vw, 160px)',
                     boxShadow: '0px 8px 0px rgba(0,0,0,0.1)',
@@ -206,7 +216,7 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
                 >
                   {level.locked ? (
                     <Lock
-                      className="text-gray-400"
+                      className="text-white/40"
                       style={{ width: isPC ? 72 : 'min(10vw, 40px)', height: isPC ? 72 : 'min(10vw, 40px)' }}
                     />
                   ) : (
@@ -221,14 +231,14 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
                   <span
                     className="font-bold mt-2"
                     style={{
-                      color: level.locked ? '#9ca3af' : level.color,
+                      color: level.locked ? 'rgba(255,255,255,0.4)' : level.color,
                       fontSize: isPC ? '1.8rem' : 'min(4vw, 1.1rem)',
                     }}
                   >
                     {level.title}
                   </span>
                   {level.locked && (
-                    <span className="text-xs lg:text-sm text-gray-400 mt-1">Coming Soon</span>
+                    <span className="text-xs lg:text-sm text-white/40 mt-1">Coming Soon</span>
                   )}
                 </motion.button>
               ))}
@@ -247,7 +257,7 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
             {/* Spacer for top buttons */}
             <div className="h-10 md:h-12" />
 
-            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold text-[#6B3FA0] mb-5 md:mb-8">
+            <h2 className="text-xl md:text-3xl lg:text-4xl font-bold text-white mb-5 md:mb-8">
               Level 1 - Sound Groups
             </h2>
 

@@ -82,7 +82,7 @@ function App() {
 
   return (
     <InAppBrowserGuard>
-      <div className="min-h-screen bg-[#d8e9fa]">
+      <div className="min-h-screen bg-[#1a1147]">
         {screen === 'curriculum' && (
           <CurriculumMap
             onSelectGroup={handleSelectGroup}

@@ -25,7 +25,7 @@ const Preloader = ({ isVisible, onExitComplete, messages: customMessages }) => {
     <AnimatePresence onExitComplete={onExitComplete}>
       {isVisible && (
         <motion.div
-          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-[#d8e9fa] via-[#c4b5fd] to-[#b4d7ff]"
+          className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-[#1a1147] via-[#2d1b69] to-[#1a1147]"
           initial={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 1.1 }}
           transition={{ duration: 0.5, ease: 'easeInOut' }}
@@ -39,14 +39,14 @@ const Preloader = ({ isVisible, onExitComplete, messages: customMessages }) => {
               ease: 'easeInOut',
             }}
           >
-            <BookOpen className="w-24 h-24 md:w-32 md:h-32 text-[#3e366b]" strokeWidth={1.5} />
+            <BookOpen className="w-24 h-24 md:w-32 md:h-32 text-white" strokeWidth={1.5} />
           </motion.div>
 
           {/* Changing text */}
           <AnimatePresence mode="wait">
             <motion.p
               key={messageIndex}
-              className="mt-8 text-2xl md:text-3xl font-semibold text-[#3e366b]"
+              className="mt-8 text-2xl md:text-3xl font-semibold text-white"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -61,7 +61,7 @@ const Preloader = ({ isVisible, onExitComplete, messages: customMessages }) => {
             {[0, 1, 2].map((i) => (
               <motion.div
                 key={i}
-                className="w-4 h-4 rounded-full bg-[#3e366b]/40"
+                className="w-4 h-4 rounded-full bg-white/40"
                 animate={{ opacity: [0.3, 1, 0.3] }}
                 transition={{
                   duration: 1,

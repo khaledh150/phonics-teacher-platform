@@ -322,12 +322,12 @@ const SentenceScramble = ({ group, onComplete }) => {
   if (allDone) {
     return (
       <div className="h-full w-full flex items-center justify-center relative overflow-hidden"
-        style={{ background: '#E8F4FF' }}>
+        style={{ background: 'transparent' }}>
         <motion.div
           initial={{ scale: 0, rotate: -10 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-          className="bg-white p-6 md:p-10 text-center max-w-sm md:max-w-md mx-4"
+          className="bg-[#2d1b69] p-6 md:p-10 text-center max-w-sm md:max-w-md mx-4"
           style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
         >
           <motion.span className="text-6xl md:text-8xl block mb-3"
@@ -352,12 +352,12 @@ const SentenceScramble = ({ group, onComplete }) => {
 
   return (
     <div className="h-full w-full relative overflow-hidden flex flex-col"
-      style={{ background: '#E8F4FF' }}>
+      style={{ background: 'transparent' }}>
 
       {/* Progress - top center */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 md:top-4 z-30">
-        <div className="bg-white/70 backdrop-blur-sm rounded-full px-3 py-1 md:px-4 md:py-1.5 flex items-center gap-2">
-          <span className="text-[#3e366b]/60 font-semibold text-xs md:text-sm lg:text-base">
+        <div className="bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 md:px-4 md:py-1.5 flex items-center gap-2">
+          <span className="text-white/60 font-semibold text-xs md:text-sm lg:text-base">
             {sentenceIdx + 1} / {sentences.length}
           </span>
           {!isLocked && (
@@ -366,7 +366,7 @@ const SentenceScramble = ({ group, onComplete }) => {
               className="p-1.5 rounded-full bg-[#3e366b]/10 hover:bg-[#3e366b]/20 transition-colors"
               whileTap={{ scale: 0.9, rotate: -180 }}
             >
-              <RotateCcw className="w-3.5 h-3.5 md:w-4 md:h-4 text-[#3e366b]/50" />
+              <RotateCcw className="w-3.5 h-3.5 md:w-4 md:h-4 text-white/50" />
             </motion.button>
           )}
         </div>
@@ -375,7 +375,7 @@ const SentenceScramble = ({ group, onComplete }) => {
       {/* Title */}
       <div className="pt-14 md:pt-16 px-4 text-center">
         <motion.span
-          className="text-lg md:text-2xl lg:text-3xl font-bold text-[#3e366b]/70"
+          className="text-lg md:text-2xl lg:text-3xl font-bold text-white/70"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -409,14 +409,14 @@ const SentenceScramble = ({ group, onComplete }) => {
               borderWidth: showBorders ? 3 : 0,
               borderColor: isCorrect ? '#22c55e' : checkWrong ? '#E60023' : '#3e366b30',
               borderStyle: isCorrect ? 'solid' : 'dashed',
-              backgroundColor: isCorrect ? '#22c55e15' : checkWrong ? '#E6002310' : 'white',
+              backgroundColor: isCorrect ? '#22c55e15' : checkWrong ? '#E6002310' : 'rgba(255,255,255,0.1)',
               boxShadow: isCorrect ? '0 0 30px rgba(34,197,94,0.3), inset 0 0 20px rgba(34,197,94,0.1)' : 'none',
             }}
             animate={checkWrong ? { x: [0, -6, 6, -6, 6, 0] } : shelfWords.length === 0 && !isCorrect ? { scale: [1, 1.01, 1] } : {}}
             transition={checkWrong ? { duration: 0.4 } : shelfWords.length === 0 && !isCorrect ? { scale: { duration: 2.5, repeat: Infinity, ease: 'easeInOut' } } : {}}
           >
             {shelfWords.length === 0 && (
-              <span className="text-[#3e366b]/25 text-sm md:text-base lg:text-lg font-medium">
+              <span className="text-white/25 text-sm md:text-base lg:text-lg font-medium">
                 Tap words below to build the sentence...
               </span>
             )}

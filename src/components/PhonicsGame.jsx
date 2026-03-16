@@ -216,18 +216,18 @@ const ExitModal = ({ onConfirm, onCancel }) => {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
       <div
         className="rounded-[2rem] shadow-2xl p-8 max-w-md mx-4 text-center"
-        style={{ background: 'linear-gradient(150deg, #f0f7ff 65%, #e6f0ff 100%)' }}
+        style={{ background: 'linear-gradient(150deg, #2d1b69 65%, #1a1147 100%)' }}
       >
-        <h2 className="text-2xl font-bold text-[#3e366b] mb-4">
+        <h2 className="text-2xl font-bold text-white mb-4">
           Exit Competition?
         </h2>
-        <p className="text-gray-600 mb-8">
+        <p className="text-white/60 mb-8">
           Are you sure you want to exit the competition? Your progress will be lost.
         </p>
         <div className="flex justify-center gap-4">
           <button
             onClick={onCancel}
-            className="px-8 py-3 bg-gray-200 text-gray-700 rounded-full font-bold hover:bg-gray-300 transition-all"
+            className="px-8 py-3 bg-white/20 text-white rounded-full font-bold hover:bg-white/30 transition-all"
           >
             Cancel
           </button>
@@ -748,7 +748,7 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
   // ============================================
   if (phase === 'loading') {
     return (
-      <div className="min-h-screen bg-[#d8e9fa]">
+      <div className="min-h-screen bg-[#1a1147]">
         <Preloader
           isVisible={isLoading}
           messages={isCompetition ? competitionMessages : practiceMessages}
@@ -762,26 +762,26 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
   // ============================================
   if (phase === 'countdown') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#d8e9fa]">
+      <div className="min-h-screen flex items-center justify-center bg-[#1a1147]">
         <div className="fixed top-4 right-4 z-50 flex gap-2">
           <button
             onClick={toggleFullscreen}
-            className="p-3 rounded-full bg-[#b4d7ff] hover:bg-[#9fc9ff] transition-all shadow-lg"
+            className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all shadow-lg"
             title="Toggle Fullscreen"
           >
-            <Maximize size={24} className="text-[#3e366b]" />
+            <Maximize size={24} className="text-white" />
           </button>
           <button
             onClick={handleExitClick}
-            className="p-3 rounded-full bg-[#b4d7ff] hover:bg-[#9fc9ff] transition-all shadow-lg"
+            className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all shadow-lg"
             title="Exit"
           >
-            <X size={24} className="text-[#3e366b]" />
+            <X size={24} className="text-white" />
           </button>
         </div>
 
         <div className="text-center">
-          <p className="text-3xl text-gray-500 mb-8 fade-in">
+          <p className="text-3xl text-white/60 mb-8 fade-in">
             {isCompetition ? `Get Ready! Set ${settings.setLetter}` : 'Get Ready!'}
           </p>
           <div
@@ -801,32 +801,32 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
   // ============================================
   if (phase === 'competitionFinished') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#d8e9fa] p-2">
+      <div className="min-h-screen flex items-center justify-center bg-[#1a1147] p-2">
         <div className="fixed top-2 right-2 landscape:top-1 landscape:right-1 md:top-3 md:right-3 lg:top-4 lg:right-4 z-50 flex gap-2">
           <button
             onClick={toggleFullscreen}
-            className="p-2 md:p-3 lg:p-3 rounded-full bg-[#b4d7ff] hover:bg-[#9fc9ff] transition-all shadow-lg"
+            className="p-2 md:p-3 lg:p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all shadow-lg"
             title="Toggle Fullscreen"
           >
-            <Maximize className="w-5 h-5 md:w-6 md:h-6 lg:w-6 lg:h-6 text-[#3e366b]" />
+            <Maximize className="w-5 h-5 md:w-6 md:h-6 lg:w-6 lg:h-6 text-white" />
           </button>
         </div>
 
         <div
           className="text-center p-6 landscape:p-4 landscape:py-3 md:p-10 md:landscape:p-6 lg:p-12 rounded-2xl landscape:rounded-xl md:rounded-3xl lg:rounded-[2.7rem] shadow-xl max-w-2xl mx-2 md:mx-4 lg:mx-4"
-          style={{ background: 'linear-gradient(150deg, #f0f7ff 65%, #e6f0ff 100%)' }}
+          style={{ background: 'linear-gradient(150deg, #2d1b69 65%, #1a1147 100%)' }}
         >
           <div className="text-5xl landscape:text-3xl md:text-7xl md:landscape:text-5xl lg:text-8xl mb-3 landscape:mb-1 md:mb-5 lg:mb-6">🏆</div>
-          <h1 className="text-3xl landscape:text-2xl md:text-5xl md:landscape:text-3xl lg:text-6xl font-bold text-[#3e366b] mb-2 landscape:mb-1 md:mb-3 lg:mb-4">
+          <h1 className="text-3xl landscape:text-2xl md:text-5xl md:landscape:text-3xl lg:text-6xl font-bold text-white mb-2 landscape:mb-1 md:mb-3 lg:mb-4">
             Time's Up!
           </h1>
-          <p className="text-lg landscape:text-base md:text-2xl md:landscape:text-xl lg:text-2xl text-gray-500 mb-2 landscape:mb-1 md:mb-3 lg:mb-4">
+          <p className="text-lg landscape:text-base md:text-2xl md:landscape:text-xl lg:text-2xl text-white/60 mb-2 landscape:mb-1 md:mb-3 lg:mb-4">
             Set {settings.setLetter} Complete
           </p>
           <p className="text-base landscape:text-sm md:text-xl md:landscape:text-lg lg:text-xl text-[#4d79ff] font-bold mb-4 landscape:mb-2 md:mb-6 lg:mb-8">
             {resultsRef.current.length} questions played
           </p>
-          <p className="text-sm landscape:text-xs md:text-lg md:landscape:text-base lg:text-lg text-gray-400 mb-4 landscape:mb-2 md:mb-8 lg:mb-10">
+          <p className="text-sm landscape:text-xs md:text-lg md:landscape:text-base lg:text-lg text-white/40 mb-4 landscape:mb-2 md:mb-8 lg:mb-10">
             Students can now check their answer sheets
           </p>
 
@@ -846,7 +846,7 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
   // ============================================
   if (phase === 'playing' && currentQuestion) {
     return (
-      <div className="h-screen flex flex-col bg-[#d8e9fa] overflow-hidden">
+      <div className="h-screen flex flex-col bg-[#1a1147] overflow-hidden">
         {/* Exit Modal */}
         {showExitModal && (
           <ExitModal
@@ -859,17 +859,17 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
         <div className="fixed top-4 right-4 z-50 flex gap-2">
           <button
             onClick={toggleFullscreen}
-            className="p-3 rounded-full bg-[#b4d7ff] hover:bg-[#9fc9ff] transition-all shadow-lg"
+            className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all shadow-lg"
             title="Toggle Fullscreen"
           >
-            <Maximize size={24} className="text-[#3e366b]" />
+            <Maximize size={24} className="text-white" />
           </button>
           <button
             onClick={handleExitClick}
-            className="p-3 rounded-full bg-[#b4d7ff] hover:bg-[#9fc9ff] transition-all shadow-lg"
+            className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all shadow-lg"
             title="Exit"
           >
-            <X size={24} className="text-[#3e366b]" />
+            <X size={24} className="text-white" />
           </button>
         </div>
 
@@ -878,16 +878,16 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
           <div className="flex flex-col max-w-[50%] landscape:max-w-[45%] md:max-w-[50%] lg:max-w-lg">
             {/* Question Counter & Mode */}
             <div className="flex items-center gap-3 landscape:gap-2 md:gap-4 lg:gap-4 mb-1 landscape:mb-0.5 md:mb-2 lg:mb-2">
-              <span className="text-2xl landscape:text-xl md:text-3xl md:landscape:text-2xl lg:text-3xl font-bold text-[#3e366b]">
+              <span className="text-2xl landscape:text-xl md:text-3xl md:landscape:text-2xl lg:text-3xl font-bold text-white">
                 Q{currentIndex + 1} / {gameQuestions.length}
               </span>
-              <span className="text-base landscape:text-base md:text-xl md:landscape:text-lg lg:text-xl text-gray-500">
+              <span className="text-base landscape:text-base md:text-xl md:landscape:text-lg lg:text-xl text-white/60">
                 {isCompetition ? `Set ${settings.setLetter}` : 'Practice'}
               </span>
             </div>
 
             {/* Progress Bar */}
-            <div className="h-2 landscape:h-1.5 md:h-3 md:landscape:h-2 lg:h-3 bg-gray-200 rounded-full overflow-hidden mb-1 landscape:mb-0 md:mb-2 md:landscape:mb-1 lg:mb-2">
+            <div className="h-2 landscape:h-1.5 md:h-3 md:landscape:h-2 lg:h-3 bg-white/20 rounded-full overflow-hidden mb-1 landscape:mb-0 md:mb-2 md:landscape:mb-1 lg:mb-2">
               <div
                 className="h-full rounded-full transition-all duration-100"
                 style={{
@@ -930,7 +930,7 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
             >
               {isCompetition ? (
                 <div
-                  className={`rounded-full bg-white/50 ${isSpeaking ? 'speaker-pulse' : ''}`}
+                  className={`rounded-full bg-white/10 ${isSpeaking ? 'speaker-pulse' : ''}`}
                   style={{ padding: isPC ? '1rem' : 'min(2.5vw, 12px)' }}
                 >
                   <Volume2
@@ -946,7 +946,7 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
                 <button
                   onClick={handleReplay}
                   disabled={isSpeaking}
-                  className={`rounded-full bg-white/50 hover:bg-white/80 transition-all ${
+                  className={`rounded-full bg-white/10 hover:bg-white/80 transition-all ${
                     isSpeaking ? 'speaker-pulse' : ''
                   }`}
                   style={{ padding: isPC ? '1rem' : 'min(2.5vw, 12px)' }}
@@ -966,7 +966,7 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
             {/* Instruction Text */}
             {!isCompetition && (
               <div
-                className="flex items-center justify-center shrink-0 text-gray-500"
+                className="flex items-center justify-center shrink-0 text-white/60"
                 style={{
                   marginBottom: isPC ? '1.5rem' : 'min(4vw, 20px)',
                   fontSize: isPC ? '1.25rem' : 'min(4vw, 18px)'
@@ -1007,13 +1007,13 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
                     disabled={isCompetition || !canAnswer || feedback}
                     className={`${cardClass} flex items-center justify-center`}
                     style={{
-                      background: 'linear-gradient(150deg, #f0f7ff 65%, #e6f0ff 100%)',
+                      background: 'linear-gradient(150deg, #2d1b69 65%, #1a1147 100%)',
                       padding: isPC ? '1.5rem' : 'min(3vw, 14px)',
                       borderRadius: isPC ? '2rem' : 'min(4vw, 18px)'
                     }}
                   >
                     <span
-                      className="font-bold text-gray-700 text-center leading-none"
+                      className="font-bold text-white text-center leading-none"
                       style={{ fontSize: isPC ? '9vh' : 'min(9vw, 52px)' }}
                     >
                       {choice}
@@ -1030,8 +1030,8 @@ const PhonicsGame = ({ settings, onFinish, onExit }) => {
 
   // Loading state
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#d8e9fa]">
-      <div className="text-2xl text-gray-500">Loading...</div>
+    <div className="min-h-screen flex items-center justify-center bg-[#1a1147]">
+      <div className="text-2xl text-white/50">Loading...</div>
     </div>
   );
 };

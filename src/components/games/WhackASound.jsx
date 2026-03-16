@@ -1,11 +1,19 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Maximize } from 'lucide-react';
 import { playVO, stopVO, delay } from '../../utils/audioPlayer';
 import { playLetterSound, stopAllAudio } from '../../utils/letterSounds';
 import { triggerSmallBurst, triggerCelebration } from '../../utils/confetti';
 import { playEncouragement } from '../../utils/encouragement';
 import confetti from 'canvas-confetti';
+
+const toggleFullscreen = () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen?.();
+  } else {
+    document.exitFullscreen?.();
+  }
+};
 
 const TOTAL_ROUNDS = 8;
 const NUM_HOLES = 6;
@@ -179,8 +187,10 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
       if (!mountedRef.current || isProcessingRef.current) return;
       cycleCountRef.current += 1;
 
-      // Guarantee the correct letter appears every 2-3 cycles
-      const shouldShowCorrect = !correctShownRef.current || cycleCountRef.current % 3 === 0;
+      // Don't allow correct letter in first 2 cycles — show distractors first
+      const pastEarlyCycles = cycleCountRef.current > 2;
+      // Guarantee the correct letter appears every 2-3 cycles (after early cycles)
+      const shouldShowCorrect = pastEarlyCycles && (!correctShownRef.current || cycleCountRef.current % 3 === 0);
 
       if (shouldShowCorrect && Math.random() < 0.6) {
         showLetterInHole(target);
@@ -204,8 +214,8 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
         holeTimersRef.current.push(timer);
       }
 
-      // Force correct letter if it hasn't appeared in 4 cycles
-      if (cycleCountRef.current >= 4 && !correctShownRef.current) {
+      // Force correct letter if it hasn't appeared in 4 cycles (but not in first 2)
+      if (cycleCountRef.current >= 4 && pastEarlyCycles && !correctShownRef.current) {
         const forceTimer = setTimeout(() => {
           if (!mountedRef.current || isProcessingRef.current) return;
           showLetterInHole(target);
@@ -393,11 +403,19 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
   if (gameComplete) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#1a1147] to-[#F59E0B]">
+        <motion.button
+          onClick={toggleFullscreen}
+          className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+        >
+          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-          className="bg-white p-8 md:p-12 text-center max-w-md mx-4"
+          className="bg-[#2d1b69] p-8 md:p-12 text-center max-w-md mx-4"
           style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
         >
           <motion.span
@@ -410,7 +428,7 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
           <h2 className="text-2xl md:text-3xl font-bold text-[#F59E0B] mb-2">
             Whack Master!
           </h2>
-          <p className="text-[#3e366b]/60 text-sm md:text-base mb-6">
+          <p className="text-white/60 text-sm md:text-base mb-6">
             You found all the sounds!
           </p>
           <div className="flex flex-col gap-3">
@@ -425,7 +443,7 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
             </motion.button>
             <motion.button
               onClick={handleBack}
-              className="px-8 py-2.5 md:px-10 md:py-3 bg-white/20 text-[#3e366b]/70 font-bold text-sm md:text-base"
+              className="px-8 py-2.5 md:px-10 md:py-3 bg-white/20 text-white/70 font-bold text-sm md:text-base"
               style={{ borderRadius: '1.6rem', borderBottom: '4px solid rgba(0,0,0,0.05)' }}
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95, y: 4 }}
@@ -441,15 +459,26 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
   // --- GAME SCREEN ---
   return (
     <div className="h-screen w-screen overflow-hidden relative flex flex-col bg-gradient-to-b from-[#1a1147] to-[#6B3FA0]">
-      {/* Back button */}
-      <motion.button
-        onClick={handleBack}
-        className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
-        style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-        whileTap={{ scale: 0.95, y: 3 }}
-      >
-        <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
-      </motion.button>
+      {/* Back + Fullscreen buttons */}
+      <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
+        <motion.button
+          onClick={handleBack}
+          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+        >
+          <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
+        <motion.button
+          onClick={toggleFullscreen}
+          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+          title="Toggle Fullscreen"
+        >
+          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
+      </div>
 
       {/* Progress dots */}
       <div className="fixed top-4 right-4 z-[70] flex items-center gap-1.5">
@@ -483,11 +512,12 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
       </div>
 
       {/* Game area */}
-      <div className="flex-1 flex flex-col items-center justify-center pt-20 pb-4">
+      {/* Game area */}
+      <div className="flex-1 flex flex-col items-center justify-center pt-20">
         {/* Holes grid: 3x2 */}
-        <div className="grid grid-cols-3 gap-x-6 gap-y-4 md:gap-x-10 md:gap-y-6 lg:gap-x-14 lg:gap-y-8">
+        <div className="grid grid-cols-3 gap-x-4 gap-y-3 md:gap-x-8 md:gap-y-5 lg:gap-x-12 lg:gap-y-7">
           {holes.map((hole, holeIndex) => (
-            <div key={holeIndex} className="relative w-24 h-20 md:w-28 md:h-24 lg:w-32 lg:h-28">
+            <div key={holeIndex} className="relative w-28 h-24 md:w-36 md:h-32 lg:w-44 lg:h-36">
               {/* The popping letter */}
               <AnimatePresence>
                 {hole.visible && !hole.whacked && (
@@ -505,7 +535,7 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
                         : { type: 'spring', stiffness: 400, damping: 15 }
                     }
                     onClick={() => handleWhack(holeIndex)}
-                    className="absolute bottom-6 left-1/2 -translate-x-1/2 w-14 h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 rounded-full bg-white flex items-center justify-center font-black text-2xl md:text-3xl text-[#3e366b] z-10 uppercase cursor-pointer select-none active:scale-95"
+                    className="absolute bottom-6 left-1/2 -translate-x-1/2 w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full bg-white flex items-center justify-center font-black text-3xl md:text-4xl lg:text-5xl text-[#3e366b] z-10 uppercase cursor-pointer select-none active:scale-95"
                     style={{ boxShadow: '0 4px 0 rgba(0,0,0,0.15)' }}
                   >
                     {hole.letter}
@@ -516,7 +546,7 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
                     initial={{ scaleY: 1, scaleX: 1 }}
                     animate={{ scaleY: 0.5, scaleX: 1.3, opacity: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="absolute bottom-6 left-1/2 -translate-x-1/2 w-14 h-14 md:w-16 md:h-16 lg:w-18 lg:h-18 rounded-full bg-[#22C55E] flex items-center justify-center font-black text-2xl md:text-3xl text-white z-10 uppercase"
+                    className="absolute bottom-6 left-1/2 -translate-x-1/2 w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full bg-[#22C55E] flex items-center justify-center font-black text-3xl md:text-4xl lg:text-5xl text-white z-10 uppercase"
                     style={{ boxShadow: '0 4px 0 rgba(0,0,0,0.15)' }}
                   >
                     {hole.letter}
@@ -524,16 +554,16 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
                 )}
               </AnimatePresence>
               {/* The hole */}
-              <div className="absolute bottom-0 w-full h-8 md:h-10 bg-[#2a1a5e] rounded-[50%]" />
+              <div className="absolute bottom-0 w-full h-10 md:h-12 lg:h-14 bg-[#2a1a5e] rounded-[50%]" />
             </div>
           ))}
         </div>
+      </div>
 
-        {/* Green grass strip */}
-        <div className="w-full mt-2">
-          <div className="h-16 md:h-20 bg-gradient-to-b from-[#22C55E] to-[#16A34A] rounded-t-[2rem]" />
-          <div className="h-12 md:h-16 bg-[#16A34A]" />
-        </div>
+      {/* Green grass at very bottom */}
+      <div className="fixed bottom-0 left-0 right-0 z-0">
+        <div className="h-12 md:h-16 bg-gradient-to-b from-[#22C55E] to-[#16A34A] rounded-t-[2rem]" />
+        <div className="h-8 md:h-10 bg-[#16A34A]" />
       </div>
     </div>
   );

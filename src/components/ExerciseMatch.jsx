@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { RotateCcw, Volume2 } from 'lucide-react';
+import { Volume2 } from 'lucide-react';
 import { getWordImage } from '../utils/assetHelpers';
 import { speakWithVoice } from '../utils/speech';
 import { playVO, stopVO, delay } from '../utils/audioPlayer';
@@ -314,6 +314,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
   // VO + confetti on all rounds complete
   useEffect(() => {
     if (!allComplete) return;
+    clearIdleReminder();
     triggerCelebration();
     let cancelled = false;
     const run = async () => {
@@ -321,8 +322,8 @@ const ExerciseMatch = ({ group, onComplete }) => {
       if (!cancelled) await playVO('You did it!');
     };
     run();
-    return () => { cancelled = true; };
-  }, [allComplete]);
+    return () => { cancelled = true; clearIdleReminder(); };
+  }, [allComplete, clearIdleReminder]);
 
   const handleNextRound = useCallback(() => {
     const nextRound = round + 1;
@@ -430,17 +431,17 @@ const ExerciseMatch = ({ group, onComplete }) => {
 
       {/* Title - center top */}
       <div className="w-full text-center pt-3 md:pt-4 lg:pt-6 z-30">
-        <h2 className="text-lg md:text-2xl lg:text-3xl font-bold text-[#3e366b]">Match the Pair</h2>
+        <h2 className="text-lg md:text-2xl lg:text-3xl font-bold text-white">Match the Pair</h2>
       </div>
 
       {/* Progress & reset - top right */}
       <div className="absolute top-3 right-3 md:top-4 md:right-4 lg:top-6 lg:right-6 z-30 flex flex-col items-end gap-1.5">
         <div className="flex items-center gap-2">
-          <div className="bg-white/60 backdrop-blur-sm rounded-full px-3 py-1 lg:px-4 lg:py-1.5 flex items-center gap-2">
-            <span className="text-xs lg:text-sm text-[#3e366b]/50 font-medium">
+          <div className="bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 lg:px-4 lg:py-1.5 flex items-center gap-2">
+            <span className="text-xs lg:text-sm text-white/50 font-medium">
               {matchedPairs.size}/{currentRoundWords.length}
             </span>
-            <div className="w-12 md:w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+            <div className="w-12 md:w-20 h-1.5 bg-white/20 rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-[#22c55e] rounded-full"
                 animate={{ width: `${currentRoundWords.length > 0 ? (matchedPairs.size / currentRoundWords.length) * 100 : 0}%` }}
@@ -448,12 +449,6 @@ const ExerciseMatch = ({ group, onComplete }) => {
               />
             </div>
           </div>
-          <button
-            onClick={handleResetRound}
-            className="p-1.5 lg:p-2 rounded-full bg-white/50 hover:bg-white/80 transition-all"
-          >
-            <RotateCcw size={14} className="text-[#3e366b]/40" />
-          </button>
         </div>
         {/* Round dots - below progress bar */}
         <div className="flex items-center gap-1.5 pr-1">
@@ -540,7 +535,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
         {/* Separator line */}
         <div className="w-full max-w-md lg:max-w-2xl flex items-center gap-3 my-0">
           <div className="flex-1 h-px bg-[#3e366b]/10" />
-          <span className="text-[#3e366b]/30 text-xs font-medium">match</span>
+          <span className="text-white/30 text-xs font-medium">match</span>
           <div className="flex-1 h-px bg-[#3e366b]/10" />
         </div>
 
@@ -578,7 +573,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
                     ? 'bg-[#4d79ff] text-white border-3 border-[#4d79ff] ring-4 ring-[#4d79ff]/20'
                     : isShaking
                     ? 'bg-red-50 text-red-500 border-3 border-red-400'
-                    : 'bg-white text-[#3e366b] border-3 border-[#ae90fd]/60 hover:border-[#4d79ff] hover:shadow-xl'
+                    : 'bg-white/10 text-white border-3 border-[#ae90fd]/60 hover:border-[#4d79ff] hover:shadow-xl'
                 }`}
                 style={{
                   maxWidth: 'clamp(140px, 22vw, 180px)',
@@ -614,7 +609,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
               initial={{ scale: 0, rotate: -10 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
-              className="bg-white p-8 md:p-12 text-center max-w-md mx-4 relative z-10"
+              className="bg-[#2d1b69] p-8 md:p-12 text-center max-w-md mx-4 relative z-10"
               style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
             >
               {/* Trophy with glow */}
@@ -651,7 +646,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
               </motion.p>
 
               <motion.p
-                className="text-[#3e366b]/50 text-sm mb-8"
+                className="text-white/50 text-sm mb-8"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.7 }}

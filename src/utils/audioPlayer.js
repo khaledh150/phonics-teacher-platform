@@ -24,6 +24,7 @@ export const playVO = (fileName) => {
 
     currentResolve = resolve;
     const audio = new Audio(`/sounds/vo/${fileName}.mp3`);
+    audio.volume = 1.0;
     currentVO = audio;
 
     audio.addEventListener('ended', () => {
@@ -62,6 +63,7 @@ export const playLetterVO = (letter) => {
     stopVO();
     currentResolve = resolve;
     const audio = new Audio(`/sounds/vo-letters/${letter.toUpperCase()}.mp3`);
+    audio.volume = 1.0;
     currentVO = audio;
     audio.addEventListener('ended', () => {
       if (currentVO === audio) { currentVO = null; currentResolve = null; }

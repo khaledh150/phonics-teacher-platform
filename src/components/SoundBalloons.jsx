@@ -596,7 +596,7 @@ const SoundBalloons = ({ group, onComplete }) => {
     <div ref={containerRef} className="h-full w-full relative overflow-hidden select-none">
       {/* Sky background */}
       <div className="absolute inset-0" style={{
-        background: 'linear-gradient(180deg, #87CEEB 0%, #B8E4F0 40%, #E8F8E0 100%)',
+        background: 'linear-gradient(180deg, #1a1147 0%, #2d1b69 40%, #1a1147 100%)',
       }} />
 
       {/* Soft floating circles */}
@@ -625,11 +625,11 @@ const SoundBalloons = ({ group, onComplete }) => {
       {/* Header HUD — z-50 to be above canvas */}
       <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-end px-4 pt-3 md:pt-4 lg:pt-6">
         <div className="flex items-center gap-2">
-          <div className="bg-white/70 backdrop-blur-sm rounded-full px-3 py-1 lg:px-4 lg:py-1.5 flex items-center gap-2">
-            <span className="text-xs lg:text-sm text-[#3e366b]/50 font-medium">
+          <div className="bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 lg:px-4 lg:py-1.5 flex items-center gap-2">
+            <span className="text-xs lg:text-sm text-white/50 font-medium">
               {displayTargetIdx + 1}/{sounds.length}
             </span>
-            <div className="w-16 md:w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+            <div className="w-16 md:w-24 h-2 bg-white/20 rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-[#22c55e] rounded-full"
                 animate={{ width: `${progress * 100}%` }}
@@ -637,7 +637,7 @@ const SoundBalloons = ({ group, onComplete }) => {
               />
             </div>
           </div>
-          <div className={`bg-white/70 backdrop-blur-sm rounded-full px-3 py-1 font-bold text-sm ${displayTimeLeft <= 3 ? 'text-red-500' : 'text-[#3e366b]/70'}`}>
+          <div className={`bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 font-bold text-sm ${displayTimeLeft <= 3 ? 'text-red-500' : 'text-white/70'}`}>
             {displayTimeLeft}s
           </div>
           <motion.button
@@ -672,7 +672,7 @@ const SoundBalloons = ({ group, onComplete }) => {
               className="font-black"
               style={{
                 fontSize: 'clamp(8rem, 30vw, 16rem)',
-                color: countdown === 0 ? '#22c55e' : '#3e366b',
+                color: countdown === 0 ? '#22c55e' : '#ffffff',
                 textShadow: '0 4px 30px rgba(0,0,0,0.15)',
               }}
             >
@@ -690,7 +690,6 @@ const SoundBalloons = ({ group, onComplete }) => {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-[60] flex items-center justify-center overflow-hidden"
-            style={{ background: 'radial-gradient(ellipse at center, rgba(62,54,107,0.85) 0%, rgba(0,0,0,0.9) 100%)' }}
           >
             {/* Continuous confetti rain */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -740,7 +739,7 @@ const SoundBalloons = ({ group, onComplete }) => {
               initial={{ scale: 0, rotate: -10 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
-              className="bg-white p-6 md:p-10 text-center max-w-sm md:max-w-md mx-4 relative z-10"
+              className="bg-[#2d1b69] p-6 md:p-10 text-center max-w-sm md:max-w-md mx-4 relative z-10"
               style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
             >
               <motion.div
@@ -751,7 +750,7 @@ const SoundBalloons = ({ group, onComplete }) => {
                 <span className="text-6xl md:text-8xl block">&#127880;</span>
               </motion.div>
               <motion.h2
-                className="text-2xl md:text-3xl font-bold text-[#3e366b] mb-1"
+                className="text-2xl md:text-3xl font-bold text-white mb-1"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}

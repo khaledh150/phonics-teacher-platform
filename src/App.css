@@ -1,7 +1,7 @@
 /* Wonder Phonics - Juicy & Tactile Theme */
 :root {
-  --bg-main: #d8e9fa;
-  --panel-gradient: linear-gradient(150deg, #f0f7ff 65%, #e6f0ff 100%);
+  --bg-main: #1a1147;
+  --panel-gradient: linear-gradient(150deg, #2d1b69 65%, #1a1147 100%);
   --accent-blue: #4d79ff;
   --accent-blue-light: #b4d7ff;
   --accent-blue-hover: #9fc9ff;
@@ -12,6 +12,7 @@
   --accent-pink: #E60023;
   --accent-gold: #ffd700;
   --text-dark: #3e366b;
+  --text-light: #f0e6ff;
   --radius-card: 2.2rem;
   --radius-button: 1.6rem;
   --shadow-hard: 0px 6px 0px rgba(0,0,0,0.1);
@@ -30,9 +31,9 @@ body {
    JUICY HEADING STYLE - Logo text effect
    ============================================ */
 h1, h2, h3 {
-  -webkit-text-stroke: 3px white;
+  -webkit-text-stroke: 3px rgba(26, 17, 71, 0.6);
   paint-order: stroke fill;
-  text-shadow: 3px 4px 0px rgba(62, 54, 107, 0.2);
+  text-shadow: 3px 4px 0px rgba(0, 0, 0, 0.3);
 }
 
 /* ============================================

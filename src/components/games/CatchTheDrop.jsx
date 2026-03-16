@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Maximize } from 'lucide-react';
 import { Application, Graphics, Text, TextStyle, Container } from 'pixi.js';
 import { playLetterSound, stopAllAudio } from '../../utils/letterSounds';
 import { playVO, stopVO, delay } from '../../utils/audioPlayer';
@@ -8,9 +8,17 @@ import { triggerCelebration, triggerSmallBurst } from '../../utils/confetti';
 import { playEncouragement } from '../../utils/encouragement';
 import confetti from 'canvas-confetti';
 
+const toggleFullscreen = () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen?.();
+  } else {
+    document.exitFullscreen?.();
+  }
+};
+
 const TOTAL_ROUNDS = 8;
-const CATCHES_PER_ROUND = 3;
-const SPAWN_INTERVAL_MS = 1500;
+const CATCHES_PER_ROUND = 6;
+const SPAWN_INTERVAL_MS = 900;
 const CORRECT_CHANCE = 0.4;
 
 const ITEM_COLORS = [
@@ -132,6 +140,8 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
   const targetSoundRef = useRef('');
   const pausedRef = useRef(false);
   const wagonShakeRef = useRef(null);
+  const wagonRedRef = useRef(false);
+  const wagonBodyRef = useRef(null);
   const speedMultRef = useRef(1);
 
   // Build round sounds from group
@@ -274,10 +284,21 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
       playWrongCatchSfx();
       item.graphics.destroy({ children: true });
 
-      // Shake the wagon
+      // Shake the wagon + red tint
       if (wagonRef.current) {
         wagonShakeRef.current = performance.now();
+        wagonRedRef.current = true;
+        if (wagonBodyRef.current) wagonBodyRef.current.tint = 0xFF4444;
       }
+
+      // Deduct progress
+      const newCount = Math.max(0, caughtCountRef.current - 1);
+      caughtCountRef.current = newCount;
+      setCaughtCount(newCount);
+
+      // Play "Oops, try again!" VO (async, don't block)
+      playVO('Oops, try again!').catch(() => {});
+
       startIdleReminder();
     }
   };
@@ -309,8 +330,8 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
         word = correctWords[Math.floor(Math.random() * correctWords.length)];
       }
 
-      const itemW = Math.max(70, Math.min(120, w * 0.15));
-      const itemH = 40;
+      const itemW = Math.max(100, Math.min(160, w * 0.2));
+      const itemH = 55;
 
       const itemContainer = new Container();
 
@@ -321,7 +342,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
       bg.stroke({ color: 0xcccccc, width: 1.5, alpha: 0.5 });
       itemContainer.addChild(bg);
 
-      const fontSize = Math.max(14, Math.min(22, w * 0.03));
+      const fontSize = Math.max(20, Math.min(32, w * 0.045));
       const text = new Text({
         text: word,
         style: new TextStyle({
@@ -392,10 +413,10 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
         const screenH = app.screen.height;
 
         // Wagon dimensions
-        const wagonWidth = Math.max(80, Math.min(140, screenW * 0.15));
-        const wagonHeight = 50;
-        const wheelRadius = 10;
-        const wagonY = screenH - wagonHeight - 30;
+        const wagonWidth = Math.max(120, Math.min(200, screenW * 0.22));
+        const wagonHeight = 65;
+        const wheelRadius = 14;
+        const wagonY = screenH - wagonHeight - 80;
 
         // Create wagon container
         const wagonContainer = new Container();
@@ -406,6 +427,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
         body.fill('#FFD000');
         body.stroke({ color: 0xE0B800, width: 3 });
         wagonContainer.addChild(body);
+        wagonBodyRef.current = body;
 
         // Wagon interior accent
         const accent = new Graphics();
@@ -466,6 +488,10 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
               shakeOffsetY = Math.sin(elapsed * 0.06) * 4 * (1 - elapsed / 400);
             } else {
               wagonShakeRef.current = null;
+              if (wagonRedRef.current) {
+                wagonRedRef.current = false;
+                if (wagonBodyRef.current) wagonBodyRef.current.tint = 0xFFFFFF;
+              }
             }
           }
           wagon.y = wagonY + shakeOffsetY;
@@ -594,11 +620,19 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
   if (gameComplete) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#1a1147] to-[#22C55E]">
+        <motion.button
+          onClick={toggleFullscreen}
+          className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+        >
+          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-          className="bg-white p-8 md:p-12 text-center max-w-md mx-4"
+          className="bg-[#2d1b69] p-8 md:p-12 text-center max-w-md mx-4"
           style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
         >
           <motion.span
@@ -611,7 +645,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
           <h2 className="text-2xl md:text-3xl font-bold text-[#22C55E] mb-2">
             Super Catcher!
           </h2>
-          <p className="text-[#3e366b]/60 text-sm md:text-base mb-6">
+          <p className="text-white/60 text-sm md:text-base mb-6">
             You caught all the right sounds!
           </p>
           <div className="flex flex-col gap-3">
@@ -626,7 +660,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
             </motion.button>
             <motion.button
               onClick={handleBack}
-              className="px-8 py-2.5 md:px-10 md:py-3 bg-white/20 text-[#3e366b]/70 font-bold text-sm md:text-base"
+              className="px-8 py-2.5 md:px-10 md:py-3 bg-white/20 text-white/70 font-bold text-sm md:text-base"
               style={{ borderRadius: '1.6rem', borderBottom: '4px solid rgba(0,0,0,0.05)' }}
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95, y: 4 }}
@@ -641,15 +675,26 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
 
   return (
     <div className="h-screen w-screen overflow-hidden relative flex flex-col bg-[#1a1147]">
-      {/* Back button */}
-      <motion.button
-        onClick={handleBack}
-        className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
-        style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-        whileTap={{ scale: 0.95, y: 3 }}
-      >
-        <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
-      </motion.button>
+      {/* Back + Fullscreen buttons */}
+      <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
+        <motion.button
+          onClick={handleBack}
+          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+        >
+          <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
+        <motion.button
+          onClick={toggleFullscreen}
+          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+          title="Toggle Fullscreen"
+        >
+          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
+      </div>
 
       {/* Progress dots */}
       <div className="fixed top-4 right-4 z-[70] flex items-center gap-1.5">

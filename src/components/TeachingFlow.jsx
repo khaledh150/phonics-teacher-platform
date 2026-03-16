@@ -100,7 +100,10 @@ const TeachingFlow = ({ group, onExit }) => {
     window.speechSynthesis.cancel();
     stopAllAudio();
     stopVO();
-    if (stepIndex < STEPS.length - 1) {
+    if (currentStep === 'sentences') {
+      // Skip on last step (sentences) → go to playground
+      setShowPlayground(true);
+    } else if (stepIndex < STEPS.length - 1) {
       setStepComplete(false);
       setStepReady(false);
       setShowPreloader(true);
@@ -108,7 +111,7 @@ const TeachingFlow = ({ group, onExit }) => {
     } else {
       onExit();
     }
-  }, [stepIndex, onExit]);
+  }, [stepIndex, currentStep, onExit]);
 
   const handleHomeClick = () => {
     setShowExitConfirm(true);
@@ -171,7 +174,7 @@ const TeachingFlow = ({ group, onExit }) => {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden relative bg-[#d8e9fa]">
+    <div className="h-screen w-screen overflow-hidden relative bg-gradient-to-b from-[#1a1147] to-[#2d1b69]">
       {/* Step Content - full screen */}
       <AnimatePresence mode="wait">
         {stepReady && (
@@ -195,7 +198,7 @@ const TeachingFlow = ({ group, onExit }) => {
         messages={STEP_MESSAGES[currentStep]}
       />
 
-      {/* Top left buttons: Home + Fullscreen + Group Label — z-[70] above results */}
+      {/* Top left buttons: Home + Fullscreen — z-[70] above results */}
       <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
         <motion.button
           onClick={handleHomeClick}
@@ -214,7 +217,9 @@ const TeachingFlow = ({ group, onExit }) => {
         >
           <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
         </motion.button>
-        {/* Group label - always visible */}
+      </div>
+      {/* Group label - below nav buttons */}
+      <div className="fixed top-14 md:top-16 left-3 z-[70]">
         <div
           className="rounded-full px-3 py-1 md:px-4 md:py-1.5 text-white font-semibold text-xs md:text-sm lg:text-base"
           style={{ backgroundColor: group.color, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}
@@ -226,7 +231,7 @@ const TeachingFlow = ({ group, onExit }) => {
       {/* Skip Step button — z-[70] to stay above results panels (z-[60]) */}
       <button
         onClick={handleSkipStep}
-        className="fixed bottom-3 right-3 z-[70] flex items-center gap-1 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-white/40 hover:bg-white/70 text-[#3e366b]/50 hover:text-[#3e366b]/80 text-xs lg:text-sm font-medium transition-all backdrop-blur-sm"
+        className="fixed bottom-3 right-3 z-[70] flex items-center gap-1 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-white/10 hover:bg-white/20 text-white/50 hover:text-white/80 text-xs lg:text-sm font-medium transition-all backdrop-blur-sm"
       >
         Skip
         <SkipForward className="w-3 h-3 lg:w-4 lg:h-4" />
@@ -236,7 +241,7 @@ const TeachingFlow = ({ group, onExit }) => {
       {stepIndex > 0 && (
         <button
           onClick={handlePrevStep}
-          className="fixed bottom-3 left-3 z-[70] flex items-center gap-1 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-white/40 hover:bg-white/70 text-[#3e366b]/50 hover:text-[#3e366b]/80 text-xs lg:text-sm font-medium transition-all backdrop-blur-sm"
+          className="fixed bottom-3 left-3 z-[70] flex items-center gap-1 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-white/10 hover:bg-white/20 text-white/50 hover:text-white/80 text-xs lg:text-sm font-medium transition-all backdrop-blur-sm"
         >
           <ChevronLeft className="w-3 h-3 lg:w-4 lg:h-4" />
           Back
@@ -254,7 +259,7 @@ const TeachingFlow = ({ group, onExit }) => {
                     ? 'bg-[#22c55e]'
                     : idx === stepIndex
                     ? 'bg-[#4d79ff] ring-2 ring-[#4d79ff]/30'
-                    : 'bg-[#3e366b]/20'
+                    : 'bg-white/30'
                 }`}
                 style={{
                   width: idx === stepIndex ? 10 : 7,
@@ -263,7 +268,7 @@ const TeachingFlow = ({ group, onExit }) => {
               />
               {idx < STEPS.length - 1 && (
                 <div
-                  className={`h-px mx-0.5 ${idx < stepIndex ? 'bg-[#22c55e]/50' : 'bg-[#3e366b]/10'}`}
+                  className={`h-px mx-0.5 ${idx < stepIndex ? 'bg-[#22c55e]/50' : 'bg-white/20'}`}
                   style={{ width: 12 }}
                 />
               )}
@@ -328,7 +333,7 @@ const TeachingFlow = ({ group, onExit }) => {
               initial={{ scale: 0, rotate: -10 }}
               animate={{ scale: 1, rotate: 0 }}
               transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
-              className="bg-white p-8 md:p-12 text-center max-w-md mx-4 relative z-10"
+              className="bg-[#2d1b69] p-8 md:p-12 text-center max-w-md mx-4 relative z-10"
               style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
             >
               {/* Trophy with glow */}
@@ -418,7 +423,7 @@ const TeachingFlow = ({ group, onExit }) => {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-              className="bg-white p-6 md:p-10 text-center max-w-sm mx-4"
+              className="bg-[#2d1b69] p-6 md:p-10 text-center max-w-sm mx-4"
               style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -426,14 +431,14 @@ const TeachingFlow = ({ group, onExit }) => {
               <h3 className="text-xl md:text-2xl font-bold text-[#6B3FA0] mb-2">
                 Go Home?
               </h3>
-              <p className="text-[#3e366b]/60 text-sm md:text-base mb-6">
+              <p className="text-white/60 text-sm md:text-base mb-6">
                 Your progress in this group will be lost.
               </p>
               <div className="flex gap-3 justify-center">
                 <motion.button
                   onClick={() => setShowExitConfirm(false)}
-                  className="px-6 py-3 bg-gray-100 text-[#3e366b] font-semibold transition-all"
-                  style={{ borderRadius: '1.6rem', borderBottom: '4px solid #d1d5db', boxShadow: '0px 4px 0px rgba(0,0,0,0.08)' }}
+                  className="px-6 py-3 bg-white/10 text-white font-semibold transition-all"
+                  style={{ borderRadius: '1.6rem', borderBottom: '4px solid rgba(255,255,255,0.1)', boxShadow: '0px 4px 0px rgba(0,0,0,0.08)' }}
                   whileTap={{ scale: 0.95, y: 3 }}
                 >
                   Stay

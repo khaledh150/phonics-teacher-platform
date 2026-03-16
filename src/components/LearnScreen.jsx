@@ -360,7 +360,7 @@ const LearnScreen = ({ words, onExit }) => {
   }, [currentWord]);
 
   return (
-    <div className="h-screen w-screen overflow-hidden relative bg-[#d8e9fa]">
+    <div className="h-screen w-screen overflow-hidden relative bg-[#1a1147]">
       {/* Preloader overlay - masks initial image loading */}
       <Preloader
         isVisible={isInitialLoad}
@@ -405,17 +405,17 @@ const LearnScreen = ({ words, onExit }) => {
       <div className="fixed top-4 right-4 z-50 flex gap-2">
         <button
           onClick={toggleFullscreen}
-          className="p-3 rounded-full bg-[#b4d7ff] hover:bg-[#9fc9ff] transition-all shadow-lg"
+          className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all shadow-lg"
           title="Toggle Fullscreen"
         >
-          <Maximize size={24} className="text-[#3e366b]" />
+          <Maximize size={24} className="text-white" />
         </button>
         <button
           onClick={handleExit}
-          className="p-3 rounded-full bg-[#b4d7ff] hover:bg-[#9fc9ff] transition-all shadow-lg"
+          className="p-3 rounded-full bg-white/10 hover:bg-white/20 transition-all shadow-lg"
           title="Exit to Home"
         >
-          <Home size={24} className="text-[#3e366b]" />
+          <Home size={24} className="text-white" />
         </button>
       </div>
 
@@ -500,7 +500,7 @@ const LearnScreen = ({ words, onExit }) => {
               className="text-center"
             >
               <motion.h1
-                className="text-6xl landscape:text-6xl md:text-9xl md:landscape:text-8xl lg:text-[11rem] font-bold text-[#3e366b] tracking-wide"
+                className="text-6xl landscape:text-6xl md:text-9xl md:landscape:text-8xl lg:text-[11rem] font-bold text-white tracking-wide"
                 style={{
                   textShadow: '0 4px 12px rgba(62, 54, 107, 0.2)',
                   fontFamily: 'system-ui, -apple-system, sans-serif',
@@ -540,7 +540,7 @@ const LearnScreen = ({ words, onExit }) => {
           className={`flex items-center gap-2 px-5 py-2.5 landscape:px-4 landscape:py-2 md:px-6 md:py-3 lg:px-8 lg:py-4 rounded-full font-bold transition-all shadow-lg ${
             isAutoPlay
               ? 'bg-[#ae90fd] text-white'
-              : 'bg-white text-[#3e366b] hover:bg-gray-100 border-2 border-[#ae90fd]'
+              : 'bg-white/10 text-white hover:bg-white/20 border-2 border-[#ae90fd]'
           }`}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
@@ -564,7 +564,7 @@ const LearnScreen = ({ words, onExit }) => {
             playWhoosh();
             setCurrentIndex([0, -1]);
           }}
-          className="flex items-center gap-2 px-5 py-2.5 landscape:px-4 landscape:py-2 md:px-6 md:py-3 lg:px-8 lg:py-4 rounded-full bg-white text-[#3e366b] hover:bg-gray-100 border-2 border-[#f093fb] font-bold transition-all shadow-lg"
+          className="flex items-center gap-2 px-5 py-2.5 landscape:px-4 landscape:py-2 md:px-6 md:py-3 lg:px-8 lg:py-4 rounded-full bg-white/10 text-white hover:bg-white/20 border-2 border-[#f093fb] font-bold transition-all shadow-lg"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
@@ -575,13 +575,13 @@ const LearnScreen = ({ words, onExit }) => {
 
       {/* Keyboard shortcuts hint - PC only, fixed right corner */}
       <div className="fixed bottom-8 right-8 z-30 hidden lg:block">
-        <div className="text-[#3e366b]/50 text-sm">
-          <span className="bg-[#b4d7ff] rounded px-2 py-1 mr-2">←</span>
-          <span className="bg-[#b4d7ff] rounded px-2 py-1 mr-2">→</span>
-          <span className="text-[#3e366b]/40">Navigate</span>
+        <div className="text-white/50 text-sm">
+          <span className="bg-white/10 rounded px-2 py-1 mr-2">←</span>
+          <span className="bg-white/10 rounded px-2 py-1 mr-2">→</span>
+          <span className="text-white/40">Navigate</span>
           <span className="mx-3">|</span>
-          <span className="bg-[#b4d7ff] rounded px-2 py-1 mr-2">R</span>
-          <span className="text-[#3e366b]/40">Repeat</span>
+          <span className="bg-white/10 rounded px-2 py-1 mr-2">R</span>
+          <span className="text-white/40">Repeat</span>
         </div>
       </div>
 

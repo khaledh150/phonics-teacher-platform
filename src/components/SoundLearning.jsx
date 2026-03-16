@@ -193,8 +193,8 @@ const SoundLearning = ({ group, onComplete }) => {
     <div className="h-full w-full relative overflow-hidden">
       {/* Sound counter - top center */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 md:top-4 z-30">
-        <div className="bg-white/60 backdrop-blur-sm rounded-full px-3 py-1 md:px-4 md:py-1.5 lg:px-5 lg:py-2">
-          <span className="text-[#3e366b]/60 font-semibold text-xs md:text-sm lg:text-base">
+        <div className="bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 md:px-4 md:py-1.5 lg:px-5 lg:py-2">
+          <span className="text-white/60 font-semibold text-xs md:text-sm lg:text-base">
             {soundIndex + 1} / {sounds.length}
           </span>
         </div>
@@ -214,7 +214,7 @@ const SoundLearning = ({ group, onComplete }) => {
           >
             {/* Video Player */}
             <div
-              className="w-full rounded-2xl overflow-hidden shadow-xl bg-white border-3 border-[#ae90fd]"
+              className="w-full rounded-2xl overflow-hidden shadow-xl bg-white/10 border-3 border-[#ae90fd]"
               style={{
                 maxWidth: 'clamp(320px, 85vw, 580px)',
                 aspectRatio: '16/9',
@@ -243,7 +243,7 @@ const SoundLearning = ({ group, onComplete }) => {
               ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#ae90fd]/10 to-[#4d79ff]/10">
                   <Film className="w-10 h-10 md:w-12 md:h-12 lg:w-16 lg:h-16 text-[#ae90fd]/40 mb-1" />
-                  <span className="text-[#3e366b]/40 text-sm md:text-sm lg:text-base font-medium">Video Coming Soon</span>
+                  <span className="text-white/40 text-sm md:text-sm lg:text-base font-medium">Video Coming Soon</span>
                 </div>
               )}
             </div>
@@ -259,8 +259,8 @@ const SoundLearning = ({ group, onComplete }) => {
                   whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.95, y: 3 }}
                 >
-                  <Music className="w-5 h-5 md:w-5 md:h-5 lg:w-6 lg:h-6 text-[#3e366b]" />
-                  <span className="text-sm md:text-sm lg:text-base font-semibold text-[#3e366b]">Play Song</span>
+                  <Music className="w-5 h-5 md:w-5 md:h-5 lg:w-6 lg:h-6 text-white" />
+                  <span className="text-sm md:text-sm lg:text-base font-semibold text-white">Play Song</span>
                 </motion.button>
               </div>
             ) : null}
@@ -282,11 +282,11 @@ const SoundLearning = ({ group, onComplete }) => {
             <motion.span
               className="font-bold leading-none text-center"
               style={{
-                fontSize: 'clamp(10rem, 28vw, 18rem)',
-                color: isSpeaking ? '#E60023' : '#3e366b',
+                fontSize: 'clamp(14rem, 40vw, 18rem)',
+                color: isSpeaking ? '#E60023' : '#ffffff',
                 textShadow: isSpeaking
-                  ? '0 0 30px rgba(230, 0, 35, 0.5), 0 4px 20px rgba(62, 54, 107, 0.15)'
-                  : '0 4px 20px rgba(62, 54, 107, 0.15)',
+                  ? '0 0 30px rgba(230, 0, 35, 0.5), 0 4px 20px rgba(0, 0, 0, 0.3)'
+                  : '0 4px 20px rgba(0, 0, 0, 0.3)',
                 transition: 'color 0.3s ease, text-shadow 0.3s ease',
               }}
               animate={isSpeaking

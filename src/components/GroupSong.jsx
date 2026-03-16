@@ -98,15 +98,15 @@ const GroupSong = ({ group, onComplete }) => {
       <div className="absolute inset-x-0 top-0 flex flex-col items-center justify-center px-4 md:px-16 lg:px-24"
         style={{ height: '50%', paddingTop: 'clamp(28px, 4vh, 56px)' }}>
         {/* Title */}
-        <h2 className="text-xl md:text-3xl lg:text-4xl font-bold text-[#3e366b] mb-1 md:mb-2">
+        <h2 className="text-xl md:text-3xl lg:text-4xl font-bold text-white mb-1 md:mb-2">
           Sing Along!
         </h2>
-        <p className="text-[#3e366b]/50 text-xs md:text-sm lg:text-base mb-2 md:mb-4">
+        <p className="text-white/50 text-xs md:text-sm lg:text-base mb-2 md:mb-4">
           Tap a sound to hear it, or Sing All
         </p>
 
         {/* Video/Visual area */}
-        <div className="w-full rounded-2xl overflow-hidden shadow-xl bg-white border-4 border-[#ffd700]"
+        <div className="w-full rounded-2xl overflow-hidden shadow-xl bg-white/10 border-4 border-[#ffd700]"
           style={{ maxWidth: 'clamp(300px, 80vw, 640px)', aspectRatio: '16/9' }}>
           {playMode === 'playing-all' && videoSrc ? (
             <video
@@ -122,7 +122,7 @@ const GroupSong = ({ group, onComplete }) => {
               {playMode === 'done' ? (
                 <>
                   <span className="text-5xl md:text-7xl lg:text-8xl mb-2">&#127881;</span>
-                  <span className="text-lg md:text-2xl lg:text-3xl font-bold text-[#3e366b]">
+                  <span className="text-lg md:text-2xl lg:text-3xl font-bold text-white">
                     Great Singing!
                   </span>
                 </>
@@ -134,17 +134,17 @@ const GroupSong = ({ group, onComplete }) => {
                   >
                     <Volume2 className="w-12 h-12 md:w-16 md:h-16 lg:w-20 lg:h-20 text-[#4d79ff]" />
                   </motion.div>
-                  <span className="text-4xl md:text-6xl lg:text-7xl font-bold text-[#3e366b] mt-3">
+                  <span className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mt-3">
                     {currentSound}
                   </span>
-                  <span className="text-xs text-[#3e366b]/40 mt-1">
+                  <span className="text-xs text-white/40 mt-1">
                     {currentSoundIdx + 1} / {sounds.length}
                   </span>
                 </>
               ) : (
                 <>
                   <span className="text-5xl md:text-6xl lg:text-7xl mb-2">{group.icon}</span>
-                  <span className="text-base md:text-lg lg:text-xl font-semibold text-[#3e366b]/60">
+                  <span className="text-base md:text-lg lg:text-xl font-semibold text-white/60">
                     Ready to sing?
                   </span>
                 </>
@@ -177,7 +177,7 @@ const GroupSong = ({ group, onComplete }) => {
                   ? 'bg-[#22c55e] text-white'
                   : idx === currentSoundIdx && playMode === 'playing-all'
                   ? 'bg-[#4d79ff] text-white ring-2 ring-[#4d79ff]/30'
-                  : 'bg-white text-[#3e366b] border-2 border-[#ae90fd]/50 hover:border-[#4d79ff] hover:shadow-lg'
+                  : 'bg-white/10 text-white border-2 border-[#ae90fd]/50 hover:border-[#4d79ff] hover:shadow-lg'
               }`}
               style={{
                 width: 'clamp(48px, 13vw, 85px)',
@@ -218,7 +218,7 @@ const GroupSong = ({ group, onComplete }) => {
             <>
               <motion.button
                 onClick={handlePause}
-                className="flex items-center gap-2 px-5 py-3 md:px-7 md:py-4 lg:px-9 lg:py-5 bg-white text-[#3e366b] font-bold text-base lg:text-lg border-2 border-[#ae90fd]"
+                className="flex items-center gap-2 px-5 py-3 md:px-7 md:py-4 lg:px-9 lg:py-5 bg-white/10 text-white font-bold text-base lg:text-lg border-2 border-[#ae90fd]"
                 style={{ borderRadius: '1.6rem', borderBottom: '4px solid #d1d5db', boxShadow: '0px 4px 0px rgba(0,0,0,0.08)' }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95, y: 3 }}

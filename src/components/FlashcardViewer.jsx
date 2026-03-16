@@ -86,14 +86,14 @@ const HighlightedWord = ({ word, activePhonemeIndex, highlightAll }) => {
               color: highlightAll ? '#22c55e' : '#E60023',
             } : {
               scale: 1,
-              color: '#3e366b',
+              color: '#ffffff',
             }}
             transition={{ duration: 0.3 }}
             style={{
               display: 'inline-block',
               textShadow: isActive
                 ? (highlightAll ? '0 0 20px rgba(34,197,94,0.5)' : '0 0 20px rgba(230,0,35,0.5)')
-                : '0 4px 12px rgba(62, 54, 107, 0.15)',
+                : '0 4px 12px rgba(0, 0, 0, 0.3)',
             }}
           >
             {seg.text}
@@ -329,8 +329,8 @@ const FlashcardViewer = ({ group, onComplete }) => {
 
       {/* Progress - top center */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 md:top-4 z-40">
-        <div className="bg-white/60 backdrop-blur-sm rounded-full px-3 py-1 md:px-4 md:py-1.5 lg:px-5 lg:py-2">
-          <span className="text-[#3e366b]/60 font-semibold text-xs md:text-sm lg:text-base">
+        <div className="bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 md:px-4 md:py-1.5 lg:px-5 lg:py-2">
+          <span className="text-white/60 font-semibold text-xs md:text-sm lg:text-base">
             {currentIndex + 1} / {words.length}
           </span>
         </div>

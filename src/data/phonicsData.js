@@ -263,7 +263,7 @@ export const PHONICS_GROUPS = [
   {
     id: 10,
     title: "Group 10",
-    sounds: ["Review"],
+    sounds: ["s", "a", "t", "i", "p", "n", "c", "k", "e", "h", "r", "m", "d"],
     subtitle: "Review Group 1-9",
     color: "#1ABC9C", // Turquoise
     icon: "⭐",
@@ -320,7 +320,7 @@ export const PHONICS_GROUPS = [
   {
     id: 12,
     title: "Group 12",
-    sounds: ["oo"],
+    sounds: ["oo", "ooo"],
     subtitle: "Long Vowel OO",
     color: "#27AE60", // Emerald
     icon: "📚",

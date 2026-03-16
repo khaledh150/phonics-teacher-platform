@@ -319,12 +319,12 @@ const BlendingFactory = ({ group, onComplete }) => {
   if (allDone) {
     return (
       <div className="h-full w-full flex items-center justify-center relative overflow-hidden"
-        style={{ background: '#E8F4FF' }}>
+        style={{ background: 'transparent' }}>
         <motion.div
           initial={{ scale: 0, rotate: -10 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-          className="bg-white p-6 md:p-10 text-center max-w-sm md:max-w-md mx-4"
+          className="bg-[#2d1b69] p-6 md:p-10 text-center max-w-sm md:max-w-md mx-4"
           style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
         >
           <motion.span className="text-6xl md:text-8xl block mb-3"
@@ -349,12 +349,12 @@ const BlendingFactory = ({ group, onComplete }) => {
 
   return (
     <div ref={containerRef} className="h-full w-full relative overflow-hidden flex flex-col"
-      style={{ background: '#E8F4FF' }}>
+      style={{ background: 'transparent' }}>
 
       {/* Progress - top center */}
       <div className="absolute top-3 left-1/2 -translate-x-1/2 md:top-4 z-30">
-        <div className="bg-white/70 backdrop-blur-sm rounded-full px-3 py-1 md:px-4 md:py-1.5">
-          <span className="text-[#3e366b]/60 font-semibold text-xs md:text-sm lg:text-base">
+        <div className="bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 md:px-4 md:py-1.5">
+          <span className="text-white/60 font-semibold text-xs md:text-sm lg:text-base">
             {wordIdx + 1} / {words.length}
           </span>
         </div>
@@ -397,7 +397,7 @@ const BlendingFactory = ({ group, onComplete }) => {
             <Volume2 className="w-6 h-6 md:w-7 md:h-7 text-white" />
           </motion.button>
           <motion.span
-            className="text-base md:text-xl lg:text-2xl font-bold text-[#3e366b]/60"
+            className="text-base md:text-xl lg:text-2xl font-bold text-white/60"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
@@ -440,7 +440,7 @@ const BlendingFactory = ({ group, onComplete }) => {
                   {slots[idx].letter}
                 </motion.span>
               ) : (
-                <span className="text-[#3e366b]/15 font-bold pointer-events-none" style={{ fontSize: 'clamp(1.5rem, 7vw, 2.5rem)' }}>
+                <span className="text-white/15 font-bold pointer-events-none" style={{ fontSize: 'clamp(1.5rem, 7vw, 2.5rem)' }}>
                   ?
                 </span>
               )}

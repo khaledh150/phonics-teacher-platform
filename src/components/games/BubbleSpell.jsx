@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Volume2 } from 'lucide-react';
+import { ArrowLeft, Maximize, Volume2 } from 'lucide-react';
 import { Application, Graphics, Text, TextStyle, Container } from 'pixi.js';
 import { playLetterSound, stopAllAudio } from '../../utils/letterSounds';
 import { speakAsync } from '../../utils/speech';
@@ -107,6 +107,14 @@ class PixiErrorBoundary extends React.Component {
 }
 
 // --- Main Game Component ---
+const toggleFullscreen = () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen?.();
+  } else {
+    document.exitFullscreen?.();
+  }
+};
+
 const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
   const [wordIndex, setWordIndex] = useState(0);
   const [spelledLetters, setSpelledLetters] = useState([]);
@@ -515,11 +523,19 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
   if (gameComplete) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#1a1147] to-[#4ECDC4]">
+        <motion.button
+          onClick={toggleFullscreen}
+          className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+        >
+          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-          className="bg-white p-8 md:p-12 text-center max-w-md mx-4"
+          className="bg-[#2d1b69] p-8 md:p-12 text-center max-w-md mx-4"
           style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
         >
           <motion.span
@@ -532,7 +548,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
           <h2 className="text-2xl md:text-3xl font-bold text-[#4ECDC4] mb-2">
             Spelling Star!
           </h2>
-          <p className="text-[#3e366b]/60 text-sm md:text-base mb-6">
+          <p className="text-white/60 text-sm md:text-base mb-6">
             You spelled all the words!
           </p>
           <div className="flex flex-col gap-3">
@@ -562,15 +578,26 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
 
   return (
     <div className="h-screen w-screen overflow-hidden relative flex flex-col bg-gradient-to-b from-[#0d1b3e] to-[#1a3a5c]">
-      {/* Back button */}
-      <motion.button
-        onClick={handleBack}
-        className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
-        style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-        whileTap={{ scale: 0.95, y: 3 }}
-      >
-        <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
-      </motion.button>
+      {/* Back + Fullscreen buttons */}
+      <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
+        <motion.button
+          onClick={handleBack}
+          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+        >
+          <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
+        <motion.button
+          onClick={toggleFullscreen}
+          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+          title="Toggle Fullscreen"
+        >
+          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
+      </div>
 
       {/* Speaker button — top right */}
       <motion.button
