@@ -5,6 +5,11 @@
 let currentVO = null;
 let currentResolve = null;
 
+// Global VO mute flag — controlled by MuteContext via setVOMuted()
+let voMuted = false;
+export const setVOMuted = (muted) => { voMuted = muted; };
+export const isVOMuted = () => voMuted;
+
 /**
  * Promise-based delay helper.
  * @param {number} ms - milliseconds to wait
@@ -19,6 +24,9 @@ export const delay = (ms) => new Promise((r) => setTimeout(r, ms));
  */
 export const playVO = (fileName) => {
   return new Promise((resolve) => {
+    // If VO is muted, resolve immediately (skip playback)
+    if (voMuted) { resolve(); return; }
+
     // Stop any currently playing VO (also resolves its pending promise)
     stopVO();
 

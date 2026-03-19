@@ -26,14 +26,14 @@ const SOUND_TO_FILE = {
   // c and k share the 'ck' sound
   c: 'ck', k: 'k',
   // Digraphs
-  ch: 'ch', sh: 'sh', th: 'th', ng: 'ng', qu: 'qu',
+  ch: 'ch', sh: 'sh', th: 'th', thh: 'thh', ng: 'ng', qu: 'qu',
   // Long vowels
   ai: 'ai', ay: 'ai', 'a-e': 'ai',
   oa: 'oa', ow: 'oa', 'o-e': 'oa',
   ie: 'ie', igh: 'ie', 'i-e': 'ie',
   ee: 'ee', ea: 'ee', 'e-e': 'ee',
   ue: 'ue', ew: 'ue', 'u-e': 'ue',
-  oo: 'oo',
+  oo: 'oo', ooo: 'ooo',
   ou: 'ou', oy: 'oi', oi: 'oi',
   or: 'or', al: 'or', au: 'or', aw: 'or',
   er: 'er', ir: 'er', ur: 'er',
@@ -88,7 +88,7 @@ export const stopAllAudio = () => {
 // Word-to-phonemes mapping for blending
 // Maps common phonics patterns to their constituent sounds
 const DIGRAPHS = ['th', 'sh', 'ch', 'ng', 'qu', 'ck', 'ai', 'ay', 'ee', 'ea', 'oa', 'ow', 'oo', 'ou', 'oi', 'oy', 'ie', 'ue', 'ew', 'ar', 'er', 'ir', 'ur', 'or', 'al', 'au', 'aw'];
-const TRIGRAPHS = ['igh'];
+const TRIGRAPHS = ['igh', 'ooo', 'thh'];
 
 /**
  * Split a word into phonemes for blending.

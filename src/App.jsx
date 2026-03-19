@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import './App.css';
 import InAppBrowserGuard from './components/InAppBrowserGuard';
+import { MuteProvider } from './contexts/MuteContext';
 import CurriculumMap from './components/CurriculumMap';
 import TeachingFlow from './components/TeachingFlow';
 import PlaygroundHub from './components/PlaygroundHub';
@@ -81,6 +82,7 @@ function App() {
   }, []);
 
   return (
+    <MuteProvider>
     <InAppBrowserGuard>
       <div className="min-h-screen bg-[#1a1147]">
         {screen === 'curriculum' && (
@@ -150,6 +152,7 @@ function App() {
         )}
       </div>
     </InAppBrowserGuard>
+    </MuteProvider>
   );
 }
 

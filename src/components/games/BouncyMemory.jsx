@@ -64,6 +64,7 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
   const [gameComplete, setGameComplete] = useState(false);
   const [roundNumber, setRoundNumber] = useState(1);
   const [showingCards, setShowingCards] = useState(true);
+  const [instructionLock, setInstructionLock] = useState(true);
 
   const isCheckingRef = useRef(false);
   const idleRef = useRef(null);
@@ -108,6 +109,7 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
       await playVO('Find the matching pairs!');
       if (cancelled) return;
       startIdleReminder();
+      if (!cancelled) setInstructionLock(false);
     };
     run();
 
@@ -148,6 +150,7 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
   // --- Card click handler ---
   const handleCardClick = useCallback(
     async (cardId) => {
+      if (instructionLock) return;
       if (showingCards) return;
       if (isCheckingRef.current) return;
 
@@ -227,7 +230,7 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
         }
       }
     },
-    [cards, flippedIds, matchedPairs, startIdleReminder, showingCards, roundNumber]
+    [cards, flippedIds, matchedPairs, startIdleReminder, showingCards, roundNumber, instructionLock]
   );
 
   // --- Back handler ---
@@ -255,7 +258,7 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-          className="bg-[#2d1b69] p-8 md:p-12 text-center max-w-md mx-4"
+          className="bg-[#2d1b69] p-8 md:p-12 text-center max-w-md mx-4 border-t-4 border-[#FFD000]"
           style={{
             borderRadius: '2.2rem',
             boxShadow: '0px 10px 0px rgba(0,0,0,0.12)',
@@ -277,10 +280,10 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
           <div className="flex flex-col gap-3">
             <motion.button
               onClick={onPlayAgain}
-              className="px-8 py-3 md:px-10 md:py-4 bg-[#8B5CF6] text-white font-bold text-base md:text-lg"
+              className="px-8 py-3 md:px-10 md:py-4 bg-[#22c55e] text-white font-bold text-base md:text-lg"
               style={{
                 borderRadius: '1.6rem',
-                borderBottom: '5px solid #7C3AED',
+                borderBottom: '5px solid #16a34a',
                 boxShadow: '0px 6px 0px rgba(0,0,0,0.12)',
               }}
               whileHover={{ scale: 1.05, y: -2 }}
@@ -340,7 +343,7 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
                 ? 'bg-[#22c55e] w-2.5 h-2.5'
                 : idx === roundNumber - 1
                 ? 'bg-[#8B5CF6] w-3 h-3 ring-2 ring-[#8B5CF6]/40'
-                : 'bg-white/20 w-2.5 h-2.5'
+                : 'bg-white/40 w-2.5 h-2.5'
             }`}
           />
         ))}
@@ -348,7 +351,7 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
 
       {/* Card grid */}
       <div className="flex-1 flex items-center justify-center p-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3 lg:gap-4 max-w-xs md:max-w-2xl w-full">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 md:gap-4 lg:gap-5 max-w-sm md:max-w-3xl lg:max-w-5xl w-full">
           {cards.map((card) => (
             <div
               key={card.id}
@@ -396,7 +399,7 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
                   }}
                 >
                   {card.type === 'word' ? (
-                    <span className="text-2xl md:text-3xl lg:text-4xl font-black text-[#3e366b] uppercase">
+                    <span className="text-3xl md:text-5xl lg:text-6xl font-black text-[#3e366b] uppercase">
                       {card.word}
                     </span>
                   ) : (

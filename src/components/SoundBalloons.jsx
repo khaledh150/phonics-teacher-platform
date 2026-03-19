@@ -783,8 +783,8 @@ const SoundBalloons = ({ group, onComplete }) => {
               <div className="flex items-center gap-3">
                 <motion.button
                   onClick={handlePlayAgain}
-                  className="px-6 py-3 bg-[#6B3FA0] text-white font-bold text-base md:text-lg"
-                  style={{ borderRadius: '1.6rem', borderBottom: '5px solid #4A2B70', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
+                  className="px-6 py-3 bg-[#22c55e] text-white font-bold text-base md:text-lg"
+                  style={{ borderRadius: '1.6rem', borderBottom: '5px solid #16a34a', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
                   whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.95, y: 4 }}
                   initial={{ opacity: 0, scale: 0.5 }}
@@ -795,8 +795,8 @@ const SoundBalloons = ({ group, onComplete }) => {
                 </motion.button>
                 <motion.button
                   onClick={handleFinish}
-                  className="px-6 py-3 bg-[#E60023] text-white font-bold text-base md:text-lg"
-                  style={{ borderRadius: '1.6rem', borderBottom: '5px solid #B3001B', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
+                  className="px-6 py-3 bg-[#22c55e] text-white font-bold text-base md:text-lg"
+                  style={{ borderRadius: '1.6rem', borderBottom: '5px solid #16a34a', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
                   whileHover={{ scale: 1.05, y: -2 }}
                   whileTap={{ scale: 0.95, y: 4 }}
                   initial={{ opacity: 0, scale: 0.5 }}

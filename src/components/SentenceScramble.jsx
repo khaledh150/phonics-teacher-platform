@@ -338,8 +338,8 @@ const SentenceScramble = ({ group, onComplete }) => {
           <p className="text-[#ae90fd] font-semibold text-lg mb-8">You built {sentences.length} sentences!</p>
           <motion.button
             onClick={() => onComplete()}
-            className="px-8 py-3 bg-[#E60023] text-white font-bold text-base md:text-lg"
-            style={{ borderRadius: '1.6rem', borderBottom: '5px solid #B3001B', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
+            className="px-8 py-3 bg-[#22c55e] text-white font-bold text-base md:text-lg"
+            style={{ borderRadius: '1.6rem', borderBottom: '5px solid #16a34a', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95, y: 4 }}
           >

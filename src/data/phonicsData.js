@@ -1,7 +1,7 @@
 // Phonics World - Level 1 Data
 // Based on the Phonics Workbook Level 1 - 20 Sound Groups
 
-import { getGroupWordNames } from '../utils/assetHelpers';
+import { getGroupWordNames, getGroupSentencePics } from '../utils/assetHelpers';
 
 export const PHONICS_GROUPS = [
   {
@@ -263,38 +263,9 @@ export const PHONICS_GROUPS = [
   {
     id: 10,
     title: "Group 10",
-    sounds: ["s", "a", "t", "i", "p", "n", "c", "k", "e", "h", "r", "m", "d"],
-    subtitle: "Review Group 1-9",
+    sounds: ["z", "w", "ng"],
     color: "#1ABC9C", // Turquoise
     icon: "⭐",
-    words: [
-      { word: "seat", image: "seat", sentence: "This is your seat." },
-      { word: "corn", image: "corn", sentence: "I eat corn for lunch." },
-      { word: "sap", image: "sap", sentence: "The tree has sticky sap." },
-      { word: "bake", image: "bake", sentence: "Mom will bake a cake." },
-      { word: "jab", image: "jab", sentence: "I got a jab at the clinic." },
-      { word: "home", image: "home", sentence: "I go home at 5 p.m." },
-      { word: "jaw", image: "jaw", sentence: "He has a strong jaw." },
-      { word: "cam", image: "cam", sentence: "We use a cam to take a video." },
-      { word: "tag", image: "tag", sentence: "I see a price tag on the shirt." },
-      { word: "high", image: "high", sentence: "The kite flies high." },
-    ],
-    exercises: {
-      fillBlank: [
-        { sentence: "This is your ___.", answer: "seat", options: ["seat", "meat", "beat"] },
-        { sentence: "Mom will ___ a cake.", answer: "bake", options: ["bake", "lake", "make"] },
-        { sentence: "I go ___ at 5 p.m.", answer: "home", options: ["home", "come", "some"] },
-        { sentence: "The kite flies ___.", answer: "high", options: ["high", "sigh", "thigh"] },
-        { sentence: "He has a strong ___.", answer: "jaw", options: ["jaw", "law", "paw"] },
-      ],
-    },
-  },
-  {
-    id: 11,
-    title: "Group 11",
-    sounds: ["z", "w", "ng"],
-    color: "#8E44AD", // Deep Purple
-    icon: "👑",
     words: [
       { word: "zip", image: "zip", sentence: "I pull the zip on my bag." },
       { word: "wag", image: "wag", sentence: "The dog will wag its tail." },
@@ -318,12 +289,12 @@ export const PHONICS_GROUPS = [
     },
   },
   {
-    id: 12,
-    title: "Group 12",
+    id: 11,
+    title: "Group 11",
     sounds: ["oo", "ooo"],
-    subtitle: "Long Vowel OO",
-    color: "#27AE60", // Emerald
-    icon: "📚",
+    subtitle: "Short & Long OO",
+    color: "#8E44AD", // Deep Purple
+    icon: "👑",
     words: [
       { word: "book", image: "book", sentence: "This is my favorite book." },
       { word: "wood", image: "wood", sentence: "The table is made of wood." },
@@ -347,11 +318,11 @@ export const PHONICS_GROUPS = [
     },
   },
   {
-    id: 13,
-    title: "Group 13",
+    id: 12,
+    title: "Group 12",
     sounds: ["v", "y", "x"],
-    color: "#E67E22", // Carrot
-    icon: "📦",
+    color: "#27AE60", // Emerald
+    icon: "📚",
     words: [
       { word: "vet", image: "vet", sentence: "The vet helps sick pets." },
       { word: "van", image: "van", sentence: "Dad drives a van." },
@@ -375,30 +346,59 @@ export const PHONICS_GROUPS = [
     },
   },
   {
-    id: 14,
-    title: "Group 14",
-    sounds: ["ch", "sh", "th"],
-    color: "#16A085", // Sea Green
-    icon: "🐚",
+    id: 13,
+    title: "Group 13",
+    sounds: ["ch", "sh"],
+    color: "#E67E22", // Carrot
+    icon: "📦",
     words: [
       { word: "chip", image: "chip", sentence: "I eat one chip." },
       { word: "chat", image: "chat", sentence: "They chat after school." },
       { word: "chop", image: "chop", sentence: "Dad will chop the wood." },
-      { word: "thick", image: "thick", sentence: "The book is very thick." },
-      { word: "three", image: "three", sentence: "I see three birds." },
-      { word: "this", image: "this", sentence: "This is my pen." },
-      { word: "that", image: "that", sentence: "I like that toy." },
-      { word: "shut", image: "shut", sentence: "Please shut the door." },
+      { word: "chin", image: "chin", sentence: "He has a strong chin." },
+      { word: "cash", image: "cash", sentence: "She pays with cash." },
+      { word: "ship", image: "ship", sentence: "The ship sails on the sea." },
       { word: "shop", image: "shop", sentence: "We go to the shop." },
-      { word: "shell", image: "shell", sentence: "I found a shell on the beach." },
+      { word: "shin", image: "shin", sentence: "He bumped his shin." },
+      { word: "shot", image: "shot", sentence: "She took a good shot." },
+      { word: "rash", image: "rash", sentence: "He has a rash on his arm." },
+      { word: "lash", image: "lash", sentence: "She has a long lash." },
     ],
     exercises: {
       fillBlank: [
         { sentence: "I eat one ___.", answer: "chip", options: ["chip", "ship", "skip"] },
-        { sentence: "I see ___ birds.", answer: "three", options: ["three", "tree", "free"] },
-        { sentence: "Please ___ the door.", answer: "shut", options: ["shut", "cut", "but"] },
         { sentence: "We go to the ___.", answer: "shop", options: ["shop", "chop", "stop"] },
-        { sentence: "I found a ___ on the beach.", answer: "shell", options: ["shell", "smell", "spell"] },
+        { sentence: "The ___ sails on the sea.", answer: "ship", options: ["ship", "chip", "skip"] },
+        { sentence: "She pays with ___.", answer: "cash", options: ["cash", "rash", "lash"] },
+        { sentence: "They ___ after school.", answer: "chat", options: ["chat", "chop", "chip"] },
+      ],
+    },
+  },
+  {
+    id: 14,
+    title: "Group 14",
+    sounds: ["th", "thh"],
+    color: "#16A085", // Sea Green
+    icon: "🐚",
+    words: [
+      { word: "thick", image: "thick", sentence: "The book is very thick." },
+      { word: "three", image: "three", sentence: "I see three birds." },
+      { word: "this", image: "this", sentence: "This is my pen." },
+      { word: "that", image: "that", sentence: "I like that toy." },
+      { word: "thin", image: "thin", sentence: "The paper is thin." },
+      { word: "them", image: "them", sentence: "I like all of them." },
+      { word: "then", image: "then", sentence: "We eat, then we play." },
+      { word: "with", image: "with", sentence: "I play with my friend." },
+      { word: "bath", image: "bath", sentence: "I take a bath every night." },
+      { word: "math", image: "math", sentence: "I am good at math." },
+    ],
+    exercises: {
+      fillBlank: [
+        { sentence: "I see ___ birds.", answer: "three", options: ["three", "tree", "free"] },
+        { sentence: "The book is very ___.", answer: "thick", options: ["thick", "think", "thin"] },
+        { sentence: "I take a ___ every night.", answer: "bath", options: ["bath", "math", "path"] },
+        { sentence: "I am good at ___.", answer: "math", options: ["math", "bath", "path"] },
+        { sentence: "I play ___ my friend.", answer: "with", options: ["with", "this", "that"] },
       ],
     },
   },
@@ -601,6 +601,31 @@ PHONICS_GROUPS.forEach((group) => {
       image: wordName,
       sentence: `I see a ${wordName}.`,
     };
+  });
+});
+
+// Auto-generate sentence data for ALL groups from sentences-pics images.
+// Sentence pic filenames ARE the sentence text (e.g. "He is a tall man.png").
+// If a group has no sentence-pics folder yet, it keeps its hardcoded sentences.
+// When pics are added, the app will auto-pick them up on next build.
+PHONICS_GROUPS.forEach((group) => {
+  const sentencePics = getGroupSentencePics(group.id);
+  if (sentencePics.length === 0) return;
+
+  // Match sentence pics to words by finding which group word appears in the sentence
+  group.words.forEach((w) => {
+    const wordLower = w.word.toLowerCase();
+    // Escape regex special chars in word
+    const escaped = wordLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const match = sentencePics.find((sp) =>
+      new RegExp(`\\b${escaped}\\b`, 'i').test(sp.sentence)
+    );
+    if (match) {
+      // Update sentence to match the pic filename, add period if no ending punctuation
+      let sentence = match.sentence;
+      if (!/[.!?]$/.test(sentence)) sentence += '.';
+      w.sentence = sentence;
+    }
   });
 });
 

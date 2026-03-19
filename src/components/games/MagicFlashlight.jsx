@@ -60,6 +60,7 @@ const MagicFlashlightGame = ({ group, onBack, onPlayAgain }) => {
   const [wordIndex, setWordIndex] = useState(0);
   const [isRevealed, setIsRevealed] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [instructionLock, setInstructionLock] = useState(true);
   const [pointerPos, setPointerPos] = useState({ x: 50, y: 50 });
   const [gameComplete, setGameComplete] = useState(false);
   const [shuffledOptions, setShuffledOptions] = useState([]);
@@ -106,6 +107,7 @@ const MagicFlashlightGame = ({ group, onBack, onPlayAgain }) => {
       if (cancelled) return;
       await playVO('Tap the starting letter!');
       if (cancelled) return;
+      if (!cancelled) setInstructionLock(false);
       startIdleReminder();
     };
     run();
@@ -119,6 +121,23 @@ const MagicFlashlightGame = ({ group, onBack, onPlayAgain }) => {
       clearTimeout(letterIdleRef.current);
     };
   }, []);
+
+  // Play "Tap the starting letter!" at start of each new round (after first)
+  useEffect(() => {
+    if (wordIndex === 0) return; // First round handled by mount VO
+    let cancelled = false;
+    setInstructionLock(true);
+    const run = async () => {
+      await delay(300);
+      if (cancelled) return;
+      await playVO('Tap the starting letter!');
+      if (cancelled) return;
+      setInstructionLock(false);
+      startIdleReminder();
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [wordIndex]);
 
   const startIdleReminder = useCallback(() => {
     clearTimeout(idleRef.current);
@@ -144,6 +163,7 @@ const MagicFlashlightGame = ({ group, onBack, onPlayAgain }) => {
   }, []);
 
   const handleLetterTap = useCallback(async (letter) => {
+    if (instructionLock) return;
     if (isProcessing || isRevealed || !currentWord) return;
     setIsProcessing(true);
     clearTimeout(idleRef.current);
@@ -182,7 +202,7 @@ const MagicFlashlightGame = ({ group, onBack, onPlayAgain }) => {
       setIsProcessing(false);
       startIdleReminder();
     }
-  }, [isProcessing, isRevealed, currentWord, correctSound, wordIndex, roundWords.length, startIdleReminder]);
+  }, [instructionLock, isProcessing, isRevealed, currentWord, correctSound, wordIndex, roundWords.length, startIdleReminder]);
 
   const handleBack = () => {
     window.speechSynthesis.cancel();
@@ -230,7 +250,7 @@ const MagicFlashlightGame = ({ group, onBack, onPlayAgain }) => {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-          className="bg-[#2d1b69] p-8 md:p-12 text-center max-w-md mx-4"
+          className="bg-[#2d1b69] border-t-4 border-[#FFD000] p-8 md:p-12 text-center max-w-md mx-4"
           style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
         >
           <motion.span
@@ -249,8 +269,8 @@ const MagicFlashlightGame = ({ group, onBack, onPlayAgain }) => {
           <div className="flex flex-col gap-3">
             <motion.button
               onClick={onPlayAgain}
-              className="px-8 py-3 md:px-10 md:py-4 bg-[#FFD000] text-[#3e366b] font-bold text-base md:text-lg"
-              style={{ borderRadius: '1.6rem', borderBottom: '5px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
+              className="px-8 py-3 md:px-10 md:py-4 bg-[#22c55e] text-white font-bold text-base md:text-lg"
+              style={{ borderRadius: '1.6rem', borderBottom: '5px solid #16a34a', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95, y: 4 }}
             >
@@ -304,7 +324,7 @@ const MagicFlashlightGame = ({ group, onBack, onPlayAgain }) => {
                 ? 'bg-[#22c55e] w-2.5 h-2.5'
                 : idx === wordIndex
                 ? 'bg-[#FFD000] w-3 h-3 ring-2 ring-[#FFD000]/40'
-                : 'bg-white/20 w-2.5 h-2.5'
+                : 'bg-white/40 w-2.5 h-2.5'
             }`}
           />
         ))}

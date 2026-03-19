@@ -115,23 +115,32 @@ export const getSentencePicMap = (groupId) => {
  * Find a sentence image by matching pic filenames against words in the sentence.
  * First tries exact keyword match, then scans sentence words for any matching pic.
  */
+// Strip all punctuation for lenient sentence matching
+const stripPunctuation = (s) =>
+  s.replace(/[^a-z0-9\s]/gi, '').replace(/\s+/g, ' ').trim().toLowerCase();
+
 export const findSentenceImage = (groupId, keyword, sentenceText) => {
   // Only use images from sentences-pics — never fall back to word images
-  // (word images represent individual words, not sentences)
   const groupPrefix = `../assets/lvl1/group-${groupId}/`;
   const normalizedKeyword = normalize(keyword);
+  const sentenceClean = sentenceText ? stripPunctuation(sentenceText) : '';
 
-  // Try direct keyword match from sentences-pics
   for (const [path, url] of Object.entries(allWordImages)) {
     if (!path.startsWith(groupPrefix)) continue;
     if (!path.toLowerCase().includes('sentences-pics')) continue;
     const fileName = normalize(path.split('/').pop());
+
+    // Try keyword match (old-style: "man.png")
     if (fileName === normalizedKeyword || fileName === `${normalizedKeyword}_`) {
+      return url;
+    }
+
+    // Try full sentence match (new-style: "He is a tall man.png")
+    if (sentenceClean && stripPunctuation(fileName) === sentenceClean) {
       return url;
     }
   }
 
-  // No sentence-specific image found — return null (don't show a misleading word image)
   return null;
 };
 
@@ -142,6 +151,7 @@ export const findSentenceImage = (groupId, keyword, sentenceText) => {
  * Returns a sorted array of normalized word names, e.g. ["cat", "hat", "mat"]
  */
 export const getGroupWordNames = (groupId) => {
+  // NOTE: groupPrefix includes trailing '/' to prevent group-1 matching group-10
   const groupPrefix = `../assets/lvl1/group-${groupId}/`;
   const words = new Set();
   for (const path of Object.keys(allWordImages)) {
@@ -158,20 +168,86 @@ export const getGroupWordNames = (groupId) => {
 };
 
 /**
- * YouTube video IDs for letter sounds, keyed by "groupId-sound".
- * Add entries here as videos become available.
+ * Get all sentence pics for a group with their sentence text derived from filename.
+ * For groups with sentence-titled pics (e.g. "He is a tall man.png"), the filename IS the sentence.
+ * Returns: [{ sentence: "He is a tall man", url: "..." }, ...]
+ */
+export const getGroupSentencePics = (groupId) => {
+  // NOTE: groupPrefix includes trailing '/' to prevent group-1 matching group-10
+  const groupPrefix = `../assets/lvl1/group-${groupId}/`;
+  const results = [];
+  for (const [path, url] of Object.entries(allWordImages)) {
+    if (!path.startsWith(groupPrefix)) continue;
+    if (!path.toLowerCase().includes('sentences-pics')) continue;
+    const raw = path.split('/').pop();
+    // Strip image extension — must not leak .png/.jpg etc. into sentence text
+    const sentence = raw
+      .replace(/\.(webp|png|jpe?g|svg)$/i, '')  // strip known image extensions
+      .replace(/\.\w{2,4}$/, '')                 // fallback: strip any remaining .ext
+      .replace(/_+$/, '')
+      .trim();
+    if (!sentence || sentence.toLowerCase().includes('untitled')) continue;
+    results.push({ sentence, url });
+  }
+  return results;
+};
+
+/**
+ * YouTube video IDs for letter sounds.
+ * Group-specific keys ("groupId-sound") override general keys ("sound").
  */
 const YOUTUBE_VIDEOS = {
   '1-s': 'uSVzk2pqWB4',
 };
 
 /**
+ * General letter song video IDs (apply to any group containing that sound).
+ */
+const LETTER_SONG_VIDEOS = {
+  a: 'gsb999VSvh8',
+  b: 'kzzXROKd-i0',
+  c: '1dhzPuT6jm0',
+  d: 'nb8DqaQmNWg',
+  e: 'beaUUPPUT2Y',
+  f: 'gVJQL1E7BFQ',
+  g: '0KXtxIiQ7gk',
+  h: 'NtUSMBzacQ0',
+  i: 'P56hZEhqFCw',
+  j: '6KXX6fCKWes',
+  k: 'OGVbUgqp7LQ',
+  l: 'qEXMoeYe47c',
+  m: 'Nvn9QvV7Aqk',
+  n: 'qE5HEeoVGb0',
+  o: 'oWbY5EKys60',
+  p: '-v1fg2Hp63s',
+  q: 'NKAookrRV4s',
+  qu: 'NKAookrRV4s',
+  r: 'gUSJeivdEH8',
+  t: 'HHEqOLZ0hr4',
+  u: 'nPJRhEV-kF8',
+  v: 'PA47cP88ySw',
+  w: 'MbUIYnDZZ-M',
+  x: 'RX9Pm9qj_QY',
+  y: 'L8PdL8ydI28',
+  z: 'HysVxhemAe4',
+};
+
+/**
  * Get YouTube embed URL for a sound in a group, or null if none.
+ * Checks group-specific override first, then general letter song.
  */
 export const getSoundYouTube = (groupId, soundName) => {
-  const key = `${groupId}-${soundName.toLowerCase()}`;
-  const videoId = YOUTUBE_VIDEOS[key];
-  return videoId ? `https://www.youtube.com/embed/${videoId}` : null;
+  const snd = soundName.toLowerCase();
+  // Group-specific override
+  const groupKey = `${groupId}-${snd}`;
+  if (YOUTUBE_VIDEOS[groupKey]) {
+    return `https://www.youtube.com/embed/${YOUTUBE_VIDEOS[groupKey]}`;
+  }
+  // General letter song
+  if (LETTER_SONG_VIDEOS[snd]) {
+    return `https://www.youtube.com/embed/${LETTER_SONG_VIDEOS[snd]}`;
+  }
+  return null;
 };
 
 /**

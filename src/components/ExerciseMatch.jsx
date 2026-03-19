@@ -612,20 +612,13 @@ const ExerciseMatch = ({ group, onComplete }) => {
               className="bg-[#2d1b69] p-8 md:p-12 text-center max-w-md mx-4 relative z-10"
               style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
             >
-              {/* Trophy with glow */}
-              <motion.div
-                className="relative inline-block mb-4"
-                animate={{ y: [0, -10, 0] }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              <motion.span
+                className="text-7xl md:text-8xl block mb-4"
+                animate={{ y: [0, -8, 0], rotate: [0, 5, -5, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
               >
-                <motion.div
-                  className="absolute inset-0 rounded-full"
-                  style={{ background: 'radial-gradient(circle, rgba(255,215,0,0.4) 0%, transparent 70%)', transform: 'scale(2.5)' }}
-                  animate={{ scale: [2.5, 3, 2.5], opacity: [0.4, 0.7, 0.4] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                />
-                <span className="text-7xl md:text-9xl block relative">&#127942;</span>
-              </motion.div>
+                🎯⭐
+              </motion.span>
 
               <motion.h2
                 className="text-3xl md:text-4xl font-bold text-[#6B3FA0] mb-1"
@@ -656,8 +649,8 @@ const ExerciseMatch = ({ group, onComplete }) => {
 
               <motion.button
                 onClick={onComplete}
-                className="px-8 py-3 bg-[#E60023] text-white font-bold text-base md:text-lg"
-                style={{ borderRadius: '1.6rem', borderBottom: '5px solid #B3001B', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
+                className="px-8 py-3 bg-[#22c55e] text-white font-bold text-base md:text-lg"
+                style={{ borderRadius: '1.6rem', borderBottom: '5px solid #16a34a', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
                 whileHover={{ scale: 1.05, y: -2 }}
                 whileTap={{ scale: 0.95, y: 4 }}
                 initial={{ opacity: 0, scale: 0.5 }}

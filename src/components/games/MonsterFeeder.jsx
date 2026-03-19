@@ -245,6 +245,8 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
   const eatVideoRef = useRef(null);
   const [cardShaking, setCardShaking] = useState(null); // word string or null
   const [cardExiting, setCardExiting] = useState(null); // word string or null
+  const [hideAllCards, setHideAllCards] = useState(false);
+  const [instructionLock, setInstructionLock] = useState(true);
 
   const mountedRef = useRef(true);
   const idleRef = useRef(null);
@@ -288,6 +290,8 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
   useEffect(() => {
     if (gameComplete) return;
     mountedRef.current = true;
+    setInstructionLock(true);
+    setHideAllCards(false);
     let cancelled = false;
     const run = async () => {
       setIsProcessing(true);
@@ -302,6 +306,7 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
       if (cancelled) return;
       setIsProcessing(false);
       isProcessingRef.current = false;
+      setInstructionLock(false);
       startIdleReminder();
     };
     run();
@@ -324,6 +329,7 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
   }, []);
 
   const handleDrop = useCallback(async (droppedWord, pointer) => {
+    if (instructionLock) return;
     if (isProcessingRef.current || !round) return;
 
     const monsterRect = monsterZoneRef.current?.getBoundingClientRect();
@@ -348,6 +354,7 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
     if (isCorrect) {
       // Correct word fed to monster
       setCardExiting(droppedWord);
+      setHideAllCards(true);
       playMunchSfx();
       setMonsterState('eating');
       if (eatVideoRef.current) {
@@ -382,6 +389,8 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
 
       if (currentRound < rounds.length - 1) {
         setCurrentRound((prev) => prev + 1);
+        setHideAllCards(false);
+        setCardExiting(null);
         setIsProcessing(false);
         isProcessingRef.current = false;
       } else {
@@ -406,7 +415,7 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
       isProcessingRef.current = false;
       startIdleReminder();
     }
-  }, [round, currentRound, rounds.length, startIdleReminder]);
+  }, [round, currentRound, rounds.length, startIdleReminder, instructionLock]);
 
   const handleBack = () => {
     window.speechSynthesis.cancel();
@@ -454,7 +463,7 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-          className="bg-[#2d1b69] p-8 md:p-12 text-center max-w-md mx-4"
+          className="bg-[#2d1b69] border-t-4 border-[#FFD000] p-8 md:p-12 text-center max-w-md mx-4"
           style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
         >
           <motion.span
@@ -473,8 +482,8 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
           <div className="flex flex-col gap-3">
             <motion.button
               onClick={onPlayAgain}
-              className="px-8 py-3 md:px-10 md:py-4 bg-[#FF6B9D] text-white font-bold text-base md:text-lg"
-              style={{ borderRadius: '1.6rem', borderBottom: '5px solid #E0527E', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
+              className="px-8 py-3 md:px-10 md:py-4 bg-[#22c55e] text-white font-bold text-base md:text-lg"
+              style={{ borderRadius: '1.6rem', borderBottom: '5px solid #16a34a', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95, y: 4 }}
             >
@@ -522,6 +531,7 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
       <div className="fixed top-3 right-3 md:top-4 md:right-4 z-[70] flex items-center gap-2">
         <motion.button
           onClick={async () => {
+            if (instructionLock) return;
             if (isProcessingRef.current) return;
             setIsProcessing(true);
             isProcessingRef.current = true;
@@ -549,7 +559,7 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
                   ? 'bg-[#22c55e] w-2.5 h-2.5'
                   : idx === currentRound
                   ? 'bg-[#FF6B9D] w-3 h-3 ring-2 ring-[#FF6B9D]/40'
-                  : 'bg-white/20 w-2.5 h-2.5'
+                  : 'bg-white/40 w-2.5 h-2.5'
               }`}
             />
           ))}
@@ -609,7 +619,7 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
       {/* 3 word choices at bottom — all draggable */}
       <div className="relative z-30 flex items-center justify-center gap-3 md:gap-5 pb-8 md:pb-12 lg:pb-16 pt-2 px-2">
         <AnimatePresence>
-          {round && round.choices.map((choice) => (
+          {!hideAllCards && round && round.choices.map((choice) => (
             cardExiting !== choice.word && (
               <DraggableWordCard
                 key={`${currentRound}-${choice.word}`}

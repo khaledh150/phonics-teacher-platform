@@ -218,13 +218,13 @@ const TeachingFlow = ({ group, onExit }) => {
           <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
         </motion.button>
       </div>
-      {/* Group label - below nav buttons */}
-      <div className="fixed top-14 md:top-16 left-3 z-[70]">
+      {/* Group label - left corner, below nav buttons */}
+      <div className="fixed top-[3.5rem] md:top-[4.2rem] lg:top-[4.5rem] left-3 z-[60]">
         <div
-          className="rounded-full px-3 py-1 md:px-4 md:py-1.5 text-white font-semibold text-xs md:text-sm lg:text-base"
-          style={{ backgroundColor: group.color, boxShadow: '0 2px 6px rgba(0,0,0,0.15)' }}
+          className="rounded-full px-3 py-0.5 md:px-4 md:py-1 text-white font-semibold text-[10px] md:text-xs lg:text-sm flex items-center gap-1 whitespace-nowrap"
+          style={{ backgroundColor: 'rgba(230, 0, 35, 0.25)', backdropFilter: 'blur(4px)' }}
         >
-          {group.title}
+          <span className="text-xs md:text-sm">{group.icon}</span> {group.title}
         </div>
       </div>
 
@@ -259,7 +259,7 @@ const TeachingFlow = ({ group, onExit }) => {
                     ? 'bg-[#22c55e]'
                     : idx === stepIndex
                     ? 'bg-[#4d79ff] ring-2 ring-[#4d79ff]/30'
-                    : 'bg-white/30'
+                    : 'bg-white/40'
                 }`}
                 style={{
                   width: idx === stepIndex ? 10 : 7,
@@ -423,30 +423,30 @@ const TeachingFlow = ({ group, onExit }) => {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-              className="bg-[#2d1b69] p-6 md:p-10 text-center max-w-sm mx-4"
+              className="bg-gradient-to-b from-[#f0e6ff] to-[#dfd0f8] p-6 md:p-10 text-center max-w-sm mx-4 border-t-4 border-[#FFD000]"
               style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
               onClick={(e) => e.stopPropagation()}
             >
-              <Home className="w-12 h-12 md:w-16 md:h-16 text-[#6B3FA0] mx-auto mb-4" />
-              <h3 className="text-xl md:text-2xl font-bold text-[#6B3FA0] mb-2">
+              <Home className="w-12 h-12 md:w-16 md:h-16 text-[#8B5CF6] mx-auto mb-4" />
+              <h3 className="text-xl md:text-2xl text-[#3e366b] mb-2" style={{ fontFamily: '"Fredoka", "Bubblegum Sans", "Comic Sans MS", cursive', fontWeight: 700, textShadow: 'none' }}>
                 Go Home?
               </h3>
-              <p className="text-white/60 text-sm md:text-base mb-6">
+              <p className="text-[#3e366b]/60 text-sm md:text-base mb-6">
                 Your progress in this group will be lost.
               </p>
               <div className="flex gap-3 justify-center">
                 <motion.button
                   onClick={() => setShowExitConfirm(false)}
-                  className="px-6 py-3 bg-white/10 text-white font-semibold transition-all"
-                  style={{ borderRadius: '1.6rem', borderBottom: '4px solid rgba(255,255,255,0.1)', boxShadow: '0px 4px 0px rgba(0,0,0,0.08)' }}
+                  className="px-6 py-3 bg-[#FFD000] text-[#3e366b] font-bold transition-all"
+                  style={{ borderRadius: '1.6rem', borderBottom: '4px solid #E0B800', boxShadow: '0px 4px 0px rgba(0,0,0,0.08)' }}
                   whileTap={{ scale: 0.95, y: 3 }}
                 >
                   Stay
                 </motion.button>
                 <motion.button
                   onClick={confirmExit}
-                  className="px-6 py-3 bg-[#6B3FA0] text-white font-semibold transition-all"
-                  style={{ borderRadius: '1.6rem', borderBottom: '4px solid #4A2B70', boxShadow: '0px 4px 0px rgba(0,0,0,0.12)' }}
+                  className="px-6 py-3 bg-[#FFD000] text-[#3e366b] font-bold transition-all"
+                  style={{ borderRadius: '1.6rem', borderBottom: '4px solid #E0B800', boxShadow: '0px 4px 0px rgba(0,0,0,0.12)' }}
                   whileTap={{ scale: 0.95, y: 3 }}
                 >
                   Go Home

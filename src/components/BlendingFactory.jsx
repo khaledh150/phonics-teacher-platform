@@ -97,8 +97,36 @@ const DragHint = () => (
   </motion.div>
 );
 
+// Split word into phoneme blocks using group sounds (digraphs stay together)
+const splitIntoBlocks = (word, groupSounds) => {
+  const blocks = [];
+  const w = word.toLowerCase();
+  // Sort sounds by length (longest first) so digraphs/trigraphs match before single letters
+  const sorted = [...groupSounds].sort((a, b) => b.length - a.length);
+  let i = 0;
+  while (i < w.length) {
+    let matched = false;
+    for (const sound of sorted) {
+      if (w.substring(i, i + sound.length) === sound.toLowerCase()) {
+        blocks.push(w.substring(i, i + sound.length));
+        i += sound.length;
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) {
+      blocks.push(w[i]);
+      i++;
+    }
+  }
+  return blocks;
+};
+
 const BlendingFactory = ({ group, onComplete }) => {
-  const words = useMemo(() => group.words, [group]);
+  const words = useMemo(() => {
+    const withImages = group.words.filter(w => getWordImage(group.id, w.image || w.word) !== null);
+    return withImages.length > 0 ? withImages : group.words;
+  }, [group]);
   const [wordIdx, setWordIdx] = useState(0);
   const [slots, setSlots] = useState([]);
   const [letters, setLetters] = useState([]);
@@ -108,6 +136,7 @@ const BlendingFactory = ({ group, onComplete }) => {
   const [shakeAll, setShakeAll] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [showHint, setShowHint] = useState(true);
+  const [instructionLock, setInstructionLock] = useState(true);
   const containerRef = useRef(null);
   const blendingRef = useRef(false);
   const idleReminderRef = useRef(null);
@@ -115,7 +144,7 @@ const BlendingFactory = ({ group, onComplete }) => {
   const cancelledRef = useRef(false);
 
   const currentWord = words[wordIdx];
-  const wordLetters = currentWord.word.split('');
+  const wordLetters = splitIntoBlocks(currentWord.word, group.sounds || []);
   const imageSrc = getWordImage(group.id, currentWord.image);
 
   // Clear idle reminders
@@ -154,6 +183,7 @@ const BlendingFactory = ({ group, onComplete }) => {
       await playVO('Drag the correct letter to the empty box.');
       if (cancelledRef.current) return;
       startIdleReminder();
+      if (!cancelledRef.current) setInstructionLock(false);
     };
     run();
     return () => { cancelledRef.current = true; stopVO(); clearIdleReminder(); };
@@ -287,6 +317,7 @@ const BlendingFactory = ({ group, onComplete }) => {
   }, []);
 
   const handleDrop = useCallback((letterId, letterObj, nativeEvent) => {
+    if (instructionLock) return;
     if (blending || wordDone) return;
     const { x, y } = getPointerCoords(nativeEvent);
     const slotIdx = findSlotAtPoint(x, y);
@@ -302,9 +333,10 @@ const BlendingFactory = ({ group, onComplete }) => {
       return next;
     });
     setLetters(prev => prev.filter(l => l.id !== letterId));
-  }, [blending, wordDone, slots, findSlotAtPoint, clearIdleReminder, startIdleReminder]);
+  }, [instructionLock, blending, wordDone, slots, findSlotAtPoint, clearIdleReminder, startIdleReminder]);
 
   const handleSlotTap = (idx) => {
+    if (instructionLock) return;
     if (blending || wordDone) return;
     if (slots[idx] === null) return;
     const letterObj = slots[idx];
@@ -328,15 +360,15 @@ const BlendingFactory = ({ group, onComplete }) => {
           style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
         >
           <motion.span className="text-6xl md:text-8xl block mb-3"
-            animate={{ y: [0, -8, 0] }}
+            animate={{ y: [0, -8, 0], rotate: [0, 5, -5, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          >&#127942;</motion.span>
+          >🏭⭐</motion.span>
           <h2 className="text-2xl md:text-3xl font-bold text-[#6B3FA0] mb-2">Word Builder!</h2>
           <p className="text-[#ae90fd] font-semibold text-lg mb-8">You built {words.length} words!</p>
           <motion.button
             onClick={() => onComplete()}
-            className="px-8 py-3 bg-[#E60023] text-white font-bold text-base md:text-lg"
-            style={{ borderRadius: '1.6rem', borderBottom: '5px solid #B3001B', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
+            className="px-8 py-3 bg-[#22c55e] text-white font-bold text-base md:text-lg"
+            style={{ borderRadius: '1.6rem', borderBottom: '5px solid #16a34a', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.95, y: 4 }}
           >

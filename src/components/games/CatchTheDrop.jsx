@@ -126,9 +126,11 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
   const [gameComplete, setGameComplete] = useState(false);
   const [pixiReady, setPixiReady] = useState(false);
   const [targetSound, setTargetSound] = useState('');
+  const [instructionLock, setInstructionLock] = useState(true);
 
   const containerRef = useRef(null);
   const appRef = useRef(null);
+  const instructionLockRef = useRef(true);
   const wagonRef = useRef(null);
   const itemsRef = useRef([]);
   const mountedRef = useRef(true);
@@ -160,6 +162,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
   useEffect(() => { roundIndexRef.current = roundIndex; }, [roundIndex]);
   useEffect(() => { caughtCountRef.current = caughtCount; }, [caughtCount]);
   useEffect(() => { targetSoundRef.current = targetSound; }, [targetSound]);
+  useEffect(() => { instructionLockRef.current = instructionLock; }, [instructionLock]);
 
   // Get words starting with a sound
   const getWordsForSound = useCallback((sound) => {
@@ -460,6 +463,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
 
         // Pointer events to move wagon
         app.canvas.addEventListener('pointermove', (e) => {
+          if (instructionLockRef.current) return;
           if (!wagonRef.current || destroyedRef.current) return;
           const rect = app.canvas.getBoundingClientRect();
           const x = ((e.clientX - rect.left) / rect.width) * app.screen.width;
@@ -467,6 +471,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
         });
 
         app.canvas.addEventListener('pointerdown', (e) => {
+          if (instructionLockRef.current) return;
           if (!wagonRef.current || destroyedRef.current) return;
           const rect = app.canvas.getBoundingClientRect();
           const x = ((e.clientX - rect.left) / rect.width) * app.screen.width;
@@ -570,6 +575,8 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
     const run = async () => {
       await playRoundIntro(targetSound);
       if (cancelled || !mountedRef.current) return;
+      setInstructionLock(false);
+      instructionLockRef.current = false;
       startSpawning();
     };
     run();
@@ -632,7 +639,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-          className="bg-[#2d1b69] p-8 md:p-12 text-center max-w-md mx-4"
+          className="bg-[#2d1b69] border-t-4 border-[#FFD000] p-8 md:p-12 text-center max-w-md mx-4"
           style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
         >
           <motion.span
@@ -706,7 +713,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
                 ? 'bg-[#22c55e] w-2.5 h-2.5'
                 : idx === roundIndex
                 ? 'bg-[#FFD000] w-3 h-3 ring-2 ring-[#FFD000]/40'
-                : 'bg-white/20 w-2.5 h-2.5'
+                : 'bg-white/40 w-2.5 h-2.5'
             }`}
           />
         ))}

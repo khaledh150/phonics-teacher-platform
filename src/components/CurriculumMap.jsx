@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Lock, Maximize, BookOpen, Gamepad2 } from 'lucide-react';
+import { Home, Lock, Maximize, BookOpen, Gamepad2, Settings, VolumeX, Volume2 } from 'lucide-react';
 import { PHONICS_GROUPS } from '../data/phonicsData';
 import wonderPhonicsLogo from '../assets/wonder-phonics-logo.webp';
 import { playVO, stopVO, delay } from '../utils/audioPlayer';
+import { useMute } from '../contexts/MuteContext';
 
 const toggleFullscreen = () => {
   if (!document.fullscreenElement) {
@@ -29,6 +30,8 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
   const welcomePlayingRef = useRef(false);
   const [longPressGroup, setLongPressGroup] = useState(null);
   const longPressTimerRef = useRef(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const { voMuted, toggleVoMute } = useMute();
 
   useEffect(() => {
     if (initialLevel) {
@@ -162,6 +165,57 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
         >
           <Maximize className="w-5 h-5 md:w-6 md:h-6 lg:w-7 lg:h-7 text-[#3e366b]" />
         </motion.button>
+      </div>
+
+      {/* Top-right: Settings cog */}
+      <div className="fixed top-3 right-3 md:top-4 md:right-4 z-50">
+        <motion.button
+          onClick={() => setShowSettings((s) => !s)}
+          className="p-2 md:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+          title="Settings"
+        >
+          <Settings className="w-5 h-5 md:w-6 md:h-6 lg:w-7 lg:h-7 text-[#3e366b]" />
+        </motion.button>
+
+        {/* Settings dropdown */}
+        <AnimatePresence>
+          {showSettings && (
+            <motion.div
+              initial={{ opacity: 0, y: -10, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.9 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+              className="absolute top-full right-0 mt-2 bg-[#2d1b69] border border-white/10 p-3 md:p-4 min-w-[180px]"
+              style={{ borderRadius: '1.2rem', boxShadow: '0px 8px 24px rgba(0,0,0,0.3)' }}
+            >
+              <button
+                onClick={toggleVoMute}
+                className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl hover:bg-white/10 transition-all"
+              >
+                {voMuted ? (
+                  <VolumeX className="w-5 h-5 text-red-400" />
+                ) : (
+                  <Volume2 className="w-5 h-5 text-[#22c55e]" />
+                )}
+                <span className="text-white text-sm font-medium">
+                  {voMuted ? 'VO Muted' : 'VO On'}
+                </span>
+                <div
+                  className={`ml-auto w-10 h-5 rounded-full transition-all relative ${voMuted ? 'bg-red-400/30' : 'bg-[#22c55e]/30'}`}
+                >
+                  <div
+                    className={`absolute top-0.5 w-4 h-4 rounded-full transition-all ${voMuted ? 'left-0.5 bg-red-400' : 'left-[22px] bg-[#22c55e]'}`}
+                  />
+                </div>
+              </button>
+              <p className="text-white/30 text-xs mt-2 px-3">
+                Mutes instructions, idle reminders &amp; encouragements
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <AnimatePresence mode="wait">

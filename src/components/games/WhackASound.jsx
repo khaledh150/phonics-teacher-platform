@@ -15,12 +15,10 @@ const toggleFullscreen = () => {
   }
 };
 
-const TOTAL_ROUNDS = 8;
 const NUM_HOLES = 6;
+const WHACKS_PER_ROUND = 6;
 const LETTER_VISIBLE_MS = 1500;
 const SPAWN_INTERVAL_MS = 800;
-
-const ALPHABET = 'abcdefghijklmnopqrstuvwxyz'.split('');
 
 // Pick N random items (Fisher-Yates partial shuffle)
 const pickRandom = (arr, n) => {
@@ -83,6 +81,8 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
   const [score, setScore] = useState(0);
   const [gameComplete, setGameComplete] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [whackCount, setWhackCount] = useState(0);
+  const [instructionLock, setInstructionLock] = useState(true);
   const [holes, setHoles] = useState(() =>
     Array.from({ length: NUM_HOLES }, () => ({ visible: false, letter: '', whacked: false, shaking: false }))
   );
@@ -97,14 +97,13 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
   const roundIndexRef = useRef(0);
   const correctShownRef = useRef(false);
   const cycleCountRef = useRef(0);
+  const whackCountRef = useRef(0);
 
-  // Build round targets from group sounds, cycling if needed
+  // Build round targets — each unique sound gets its own round
   const [roundTargets] = useState(() => {
     const sounds = group.sounds || [];
-    const targets = [];
-    for (let i = 0; i < TOTAL_ROUNDS; i++) {
-      targets.push(sounds[i % sounds.length]);
-    }
+    // Each unique sound gets its own round — no cycling, no repeats
+    const targets = [...sounds];
     // Shuffle for variety
     for (let i = targets.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -113,6 +112,8 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
     return targets;
   });
 
+  const TOTAL_ROUNDS = roundTargets.length;
+
   const targetSound = roundTargets[roundIndex] || '';
 
   // Keep refs in sync
@@ -120,12 +121,14 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
   useEffect(() => { roundIndexRef.current = roundIndex; }, [roundIndex]);
   useEffect(() => { holesRef.current = holes; }, [holes]);
   useEffect(() => { targetSoundRef.current = targetSound; }, [targetSound]);
+  useEffect(() => { whackCountRef.current = whackCount; }, [whackCount]);
 
-  // Get distractors (letters not matching the target)
+  // Get distractors from group sounds only
   const getDistractorLetter = useCallback((target) => {
-    const pool = ALPHABET.filter((l) => l !== target.toLowerCase());
+    const pool = (group.sounds || []).filter((s) => s.toLowerCase() !== target.toLowerCase());
+    if (pool.length === 0) return 'x'; // fallback
     return pool[Math.floor(Math.random() * pool.length)];
-  }, []);
+  }, [group.sounds]);
 
   // Clear all hole timers
   const clearAllHoleTimers = useCallback(() => {
@@ -248,12 +251,15 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
     await playLetterSound(targetSoundRef.current).catch(() => {});
     if (!mountedRef.current) return;
     startIdleReminder();
+    setInstructionLock(false);
     startSpawning();
   }, [startIdleReminder, startSpawning]);
 
   // Mount + first round
   useEffect(() => {
     mountedRef.current = true;
+    setWhackCount(0);
+    whackCountRef.current = 0;
     let cancelled = false;
     const run = async () => {
       await delay(500);
@@ -276,6 +282,9 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
   useEffect(() => {
     if (roundIndex === 0) return;
     if (gameComplete) return;
+    setInstructionLock(true);
+    setWhackCount(0);
+    whackCountRef.current = 0;
     let cancelled = false;
     const run = async () => {
       resetHoles();
@@ -289,6 +298,7 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
 
   // Handle whacking a hole
   const handleWhack = useCallback(async (holeIndex) => {
+    if (instructionLock) return;
     if (isProcessingRef.current) return;
     const hole = holesRef.current[holeIndex];
     if (!hole.visible || hole.whacked) return;
@@ -300,7 +310,6 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
       // CORRECT
       setIsProcessing(true);
       isProcessingRef.current = true;
-      clearAllHoleTimers();
 
       // Squish animation
       setHoles((prev) => {
@@ -312,28 +321,42 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
       playWhackSfx();
       triggerSmallBurst();
 
-      await delay(400);
-      if (!mountedRef.current) return;
-
-      await playEncouragement();
-      if (!mountedRef.current) return;
-
       setScore((s) => s + 1);
+      const newWhackCount = whackCountRef.current + 1;
+      setWhackCount(newWhackCount);
 
       await delay(400);
       if (!mountedRef.current) return;
 
-      const nextRound = roundIndexRef.current + 1;
-      if (nextRound >= TOTAL_ROUNDS) {
-        // Game complete
-        triggerCelebration();
-        await playVO('Great job!');
+      if (newWhackCount >= WHACKS_PER_ROUND) {
+        // Round complete
+        clearAllHoleTimers();
+        await playEncouragement();
         if (!mountedRef.current) return;
-        setGameComplete(true);
+        await delay(400);
+        if (!mountedRef.current) return;
+
+        const nextRound = roundIndexRef.current + 1;
+        if (nextRound >= TOTAL_ROUNDS) {
+          triggerCelebration();
+          await playVO('Great job!');
+          if (!mountedRef.current) return;
+          setGameComplete(true);
+        } else {
+          setWhackCount(0);
+          whackCountRef.current = 0;
+          setIsProcessing(false);
+          isProcessingRef.current = false;
+          setRoundIndex(nextRound);
+        }
       } else {
+        // More whacks needed - keep spawning
+        await playEncouragement();
+        if (!mountedRef.current) return;
         setIsProcessing(false);
         isProcessingRef.current = false;
-        setRoundIndex(nextRound);
+        correctShownRef.current = false; // Reset so correct letter shows again
+        startIdleReminder();
       }
     } else {
       // WRONG
@@ -343,6 +366,7 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
         return next;
       });
       playWrongSfx();
+      setScore((s) => Math.max(0, s - 1));
 
       // Clear shaking after animation
       const shakeTimer = setTimeout(() => {
@@ -365,7 +389,7 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
       isProcessingRef.current = false;
       startIdleReminder();
     }
-  }, [clearAllHoleTimers, startIdleReminder]);
+  }, [clearAllHoleTimers, startIdleReminder, instructionLock, TOTAL_ROUNDS, startSpawning]);
 
   // Confetti rain on results
   useEffect(() => {
@@ -415,7 +439,7 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-          className="bg-[#2d1b69] p-8 md:p-12 text-center max-w-md mx-4"
+          className="bg-[#2d1b69] border-t-4 border-[#FFD000] p-8 md:p-12 text-center max-w-md mx-4"
           style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
         >
           <motion.span
@@ -434,8 +458,8 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
           <div className="flex flex-col gap-3">
             <motion.button
               onClick={onPlayAgain}
-              className="px-8 py-3 md:px-10 md:py-4 bg-[#F59E0B] text-white font-bold text-base md:text-lg"
-              style={{ borderRadius: '1.6rem', borderBottom: '5px solid #D97706', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
+              className="px-8 py-3 md:px-10 md:py-4 bg-[#22c55e] text-white font-bold text-base md:text-lg"
+              style={{ borderRadius: '1.6rem', borderBottom: '5px solid #16a34a', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95, y: 4 }}
             >
@@ -490,7 +514,7 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
                 ? 'bg-[#22c55e] w-2.5 h-2.5'
                 : idx === roundIndex
                 ? 'bg-[#F59E0B] w-3 h-3 ring-2 ring-[#F59E0B]/40'
-                : 'bg-white/20 w-2.5 h-2.5'
+                : 'bg-white/40 w-2.5 h-2.5'
             }`}
           />
         ))}
@@ -508,6 +532,9 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
           <span className="text-3xl md:text-4xl font-black text-[#FFD000] uppercase">
             {targetSound}
           </span>
+          <span className="text-white/50 text-xs md:text-sm font-bold ml-3">
+            {whackCount}/{WHACKS_PER_ROUND}
+          </span>
         </motion.div>
       </div>
 
@@ -517,7 +544,7 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
         {/* Holes grid: 3x2 */}
         <div className="grid grid-cols-3 gap-x-4 gap-y-3 md:gap-x-8 md:gap-y-5 lg:gap-x-12 lg:gap-y-7">
           {holes.map((hole, holeIndex) => (
-            <div key={holeIndex} className="relative w-28 h-24 md:w-36 md:h-32 lg:w-44 lg:h-36">
+            <div key={holeIndex} className="relative w-36 h-28 md:w-44 md:h-36 lg:w-44 lg:h-36">
               {/* The popping letter */}
               <AnimatePresence>
                 {hole.visible && !hole.whacked && (
@@ -535,7 +562,7 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
                         : { type: 'spring', stiffness: 400, damping: 15 }
                     }
                     onClick={() => handleWhack(holeIndex)}
-                    className="absolute bottom-6 left-1/2 -translate-x-1/2 w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full bg-white flex items-center justify-center font-black text-3xl md:text-4xl lg:text-5xl text-[#3e366b] z-10 uppercase cursor-pointer select-none active:scale-95"
+                    className="absolute bottom-6 left-1/2 -translate-x-1/2 w-20 h-20 md:w-24 md:h-24 lg:w-24 lg:h-24 rounded-full bg-white flex items-center justify-center font-black text-4xl md:text-5xl lg:text-5xl text-[#3e366b] z-10 uppercase cursor-pointer select-none active:scale-95"
                     style={{ boxShadow: '0 4px 0 rgba(0,0,0,0.15)' }}
                   >
                     {hole.letter}
@@ -546,7 +573,7 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
                     initial={{ scaleY: 1, scaleX: 1 }}
                     animate={{ scaleY: 0.5, scaleX: 1.3, opacity: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="absolute bottom-6 left-1/2 -translate-x-1/2 w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full bg-[#22C55E] flex items-center justify-center font-black text-3xl md:text-4xl lg:text-5xl text-white z-10 uppercase"
+                    className="absolute bottom-6 left-1/2 -translate-x-1/2 w-20 h-20 md:w-24 md:h-24 lg:w-24 lg:h-24 rounded-full bg-[#22C55E] flex items-center justify-center font-black text-4xl md:text-5xl lg:text-5xl text-white z-10 uppercase"
                     style={{ boxShadow: '0 4px 0 rgba(0,0,0,0.15)' }}
                   >
                     {hole.letter}
@@ -554,7 +581,7 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
                 )}
               </AnimatePresence>
               {/* The hole */}
-              <div className="absolute bottom-0 w-full h-10 md:h-12 lg:h-14 bg-[#2a1a5e] rounded-[50%]" />
+              <div className="absolute bottom-0 w-full h-12 md:h-14 lg:h-14 bg-[#2a1a5e] rounded-[50%]" />
             </div>
           ))}
         </div>
