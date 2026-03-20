@@ -6,6 +6,7 @@ import { playLetterSound, getLetterSoundUrl } from '../utils/letterSounds';
 import { speakWithVoice } from '../utils/speech';
 import { playVO, stopVO, delay } from '../utils/audioPlayer';
 import { triggerCelebration, triggerSmallBurst } from '../utils/confetti';
+import natureBg from '../assets/backgrounds/cartoon-nature-landscape.webp';
 
 // Cycling encouragement for balloon pops
 const POP_ENCOURAGEMENTS = [
@@ -594,30 +595,16 @@ const SoundBalloons = ({ group, onComplete }) => {
 
   return (
     <div ref={containerRef} className="h-full w-full relative overflow-hidden select-none">
-      {/* Sky background */}
-      <div className="absolute inset-0" style={{
-        background: 'linear-gradient(180deg, #1a1147 0%, #2d1b69 40%, #1a1147 100%)',
-      }} />
-
-      {/* Soft floating circles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(10)].map((_, i) => (
-          <motion.div
-            key={`bg-circle-${i}`}
-            className="absolute rounded-full"
-            style={{
-              width: 40 + i * 20,
-              height: 40 + i * 20,
-              left: `${5 + i * 10}%`,
-              top: `${10 + (i % 3) * 30}%`,
-              background: ['rgba(174,144,253,0.12)', 'rgba(77,121,255,0.10)', 'rgba(255,215,0,0.10)', 'rgba(240,147,251,0.10)', 'rgba(34,197,94,0.08)'][i % 5],
-              filter: 'blur(2px)',
-            }}
-            animate={{ y: [0, -15, 0], x: [0, 10, 0], scale: [1, 1.1, 1] }}
-            transition={{ duration: 5 + i * 1.5, repeat: Infinity, ease: 'easeInOut', delay: i * 0.7 }}
-          />
-        ))}
-      </div>
+      {/* Nature background image — center-cropped, extends on wider screens */}
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: `url(${natureBg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center center',
+          backgroundRepeat: 'no-repeat',
+        }}
+      />
 
       {/* PixiJS canvas container — sits IN FRONT of background, BEHIND UI */}
       <div ref={canvasContainerRef} className="absolute inset-0 z-20" />
@@ -652,11 +639,9 @@ const SoundBalloons = ({ group, onComplete }) => {
         </div>
       </div>
 
-      {/* Ground — behind balloons (part of background) */}
-      <div className="absolute bottom-0 left-0 right-0 h-[8%] z-10" style={{
-        background: 'linear-gradient(180deg, #34D058 0%, #22a740 100%)',
-        borderTopLeftRadius: '50% 20px',
-        borderTopRightRadius: '50% 20px',
+      {/* Ground tint — subtle overlay at bottom to blend with background */}
+      <div className="absolute bottom-0 left-0 right-0 h-[6%] z-10 pointer-events-none" style={{
+        background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.15) 100%)',
       }} />
 
       {/* 3-2-1-GO Countdown */}

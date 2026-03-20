@@ -24,7 +24,9 @@
       "Bash(cd:*)",
       "Bash(ls:*)",
       "Bash(for g:*)",
-      "Read(//c/Apps and Games Dev/wonder-phonics-platform/src/assets/lvl1/group-$g/**)"
+      "Read(//c/Apps and Games Dev/wonder-phonics-platform/src/assets/lvl1/group-$g/**)",
+      "Bash(for f:*)",
+      "Read(//c/Apps and Games Dev/wonder-phonics-platform/src/components/games/**)"
     ]
   }
 }

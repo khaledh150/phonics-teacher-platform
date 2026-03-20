@@ -60,20 +60,49 @@ const GAMES = [
     description: 'Match words and pictures!',
   },
   {
-    id: 'phonics-train',
-    title: 'Phonics Train',
-    icon: '🚂',
-    color: '#EF4444',
-    borderColor: '#DC2626',
-    unlocked: false,
+    id: 'shadow-match',
+    title: 'Shadow Match',
+    icon: '🔍',
+    color: '#6B3FA0',
+    borderColor: '#5A2D91',
+    unlocked: true,
+    description: 'Match pictures to shadows!',
   },
   {
-    id: 'rhyme-time',
-    title: 'Rhyme Time',
-    icon: '🎵',
+    id: 'lily-pad-hop',
+    title: 'Lily Pad Hop',
+    icon: '🐸',
+    color: '#22C55E',
+    borderColor: '#16A34A',
+    unlocked: true,
+    description: 'Help the frog hop!',
+  },
+  {
+    id: 'sand-tracing',
+    title: 'Sand Tracing',
+    icon: '✏️',
+    color: '#F59E0B',
+    borderColor: '#D97706',
+    unlocked: true,
+    description: 'Trace letters in sand!',
+  },
+  {
+    id: 'carnival-wheel',
+    title: 'Carnival Wheel',
+    icon: '🎡',
+    color: '#EF4444',
+    borderColor: '#DC2626',
+    unlocked: true,
+    description: 'Spin and match sounds!',
+  },
+  {
+    id: 'scratch-discover',
+    title: 'Scratch & Find',
+    icon: '🎟️',
     color: '#10B981',
     borderColor: '#059669',
-    unlocked: false,
+    unlocked: true,
+    description: 'Scratch to reveal pictures!',
   },
 ];
 
@@ -128,7 +157,7 @@ const PlaygroundHub = ({ group, onBack, onSelectGame }) => {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden relative flex flex-col items-center justify-center"
+    <div className="h-screen w-screen overflow-y-auto relative flex flex-col items-center"
       style={{ background: 'linear-gradient(135deg, #1a1147 0%, #2d1b69 30%, #4a2c8a 60%, #6B3FA0 100%)' }}
     >
       {/* Floating sparkle decorations */}
@@ -175,7 +204,7 @@ const PlaygroundHub = ({ group, onBack, onSelectGame }) => {
 
       {/* Title */}
       <motion.div
-        className="text-center mb-6 md:mb-8 z-10"
+        className="text-center mb-6 md:mb-8 z-10 pt-16 md:pt-20 flex-shrink-0"
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 200, damping: 15 }}
@@ -196,7 +225,7 @@ const PlaygroundHub = ({ group, onBack, onSelectGame }) => {
 
       {/* Game grid */}
       <motion.div
-        className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5 lg:gap-6 px-4 md:px-8 max-w-4xl z-10"
+        className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5 lg:gap-6 px-4 md:px-8 max-w-4xl z-10 pb-8"
         variants={containerVariants}
         initial="hidden"
         animate="show"

@@ -11,6 +11,11 @@ import MonsterFeeder from './components/games/MonsterFeeder';
 import WhackASound from './components/games/WhackASound';
 import CatchTheDrop from './components/games/CatchTheDrop';
 import BouncyMemory from './components/games/BouncyMemory';
+import ShadowMatch from './components/games/ShadowMatch';
+import LilyPadHop from './components/games/LilyPadHop';
+import MagicSandTracing from './components/games/MagicSandTracing';
+import CarnivalWheel from './components/games/CarnivalWheel';
+import ScratchDiscover from './components/games/ScratchDiscover';
 
 // Increment this manually when you want to force a cache reset on deployed versions
 const APP_VERSION = "2.0.0";
@@ -149,6 +154,26 @@ function App() {
             group={selectedGroup}
             onBack={() => setActiveGame(null)}
           />
+        )}
+
+        {screen === 'playground' && selectedGroup && activeGame === 'shadow-match' && (
+          <ShadowMatch group={selectedGroup} onBack={() => setActiveGame(null)} />
+        )}
+
+        {screen === 'playground' && selectedGroup && activeGame === 'lily-pad-hop' && (
+          <LilyPadHop group={selectedGroup} onBack={() => setActiveGame(null)} />
+        )}
+
+        {screen === 'playground' && selectedGroup && activeGame === 'sand-tracing' && (
+          <MagicSandTracing group={selectedGroup} onBack={() => setActiveGame(null)} />
+        )}
+
+        {screen === 'playground' && selectedGroup && activeGame === 'carnival-wheel' && (
+          <CarnivalWheel group={selectedGroup} onBack={() => setActiveGame(null)} />
+        )}
+
+        {screen === 'playground' && selectedGroup && activeGame === 'scratch-discover' && (
+          <ScratchDiscover group={selectedGroup} onBack={() => setActiveGame(null)} />
         )}
       </div>
     </InAppBrowserGuard>

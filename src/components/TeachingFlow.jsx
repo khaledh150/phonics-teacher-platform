@@ -11,6 +11,15 @@ import SentenceScramble from './SentenceScramble';
 import PlaygroundHub from './PlaygroundHub';
 import MagicFlashlight from './games/MagicFlashlight';
 import BubbleSpell from './games/BubbleSpell';
+import MonsterFeeder from './games/MonsterFeeder';
+import WhackASound from './games/WhackASound';
+import CatchTheDrop from './games/CatchTheDrop';
+import BouncyMemory from './games/BouncyMemory';
+import ShadowMatch from './games/ShadowMatch';
+import LilyPadHop from './games/LilyPadHop';
+import MagicSandTracing from './games/MagicSandTracing';
+import CarnivalWheel from './games/CarnivalWheel';
+import ScratchDiscover from './games/ScratchDiscover';
 import Preloader from './Preloader';
 import { stopAllAudio } from '../utils/letterSounds';
 import { playVO, stopVO, delay } from '../utils/audioPlayer';
@@ -509,6 +518,78 @@ const TeachingFlow = ({ group, onExit }) => {
               group={group}
               onBack={() => setActiveGame(null)}
             />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {activeGame === 'monster-feeder' && (
+          <motion.div key="game-monster-feeder" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90]">
+            <MonsterFeeder group={group} onBack={() => setActiveGame(null)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {activeGame === 'whack-a-sound' && (
+          <motion.div key="game-whack-a-sound" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90]">
+            <WhackASound group={group} onBack={() => setActiveGame(null)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {activeGame === 'catch-drop' && (
+          <motion.div key="game-catch-drop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90]">
+            <CatchTheDrop group={group} onBack={() => setActiveGame(null)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {activeGame === 'bouncy-memory' && (
+          <motion.div key="game-bouncy-memory" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90]">
+            <BouncyMemory group={group} onBack={() => setActiveGame(null)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {activeGame === 'shadow-match' && (
+          <motion.div key="game-shadow-match" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90]">
+            <ShadowMatch group={group} onBack={() => setActiveGame(null)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {activeGame === 'lily-pad-hop' && (
+          <motion.div key="game-lily-pad-hop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90]">
+            <LilyPadHop group={group} onBack={() => setActiveGame(null)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {activeGame === 'sand-tracing' && (
+          <motion.div key="game-sand-tracing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90]">
+            <MagicSandTracing group={group} onBack={() => setActiveGame(null)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {activeGame === 'carnival-wheel' && (
+          <motion.div key="game-carnival-wheel" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90]">
+            <CarnivalWheel group={group} onBack={() => setActiveGame(null)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {activeGame === 'scratch-discover' && (
+          <motion.div key="game-scratch-discover" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90]">
+            <ScratchDiscover group={group} onBack={() => setActiveGame(null)} />
           </motion.div>
         )}
       </AnimatePresence>
