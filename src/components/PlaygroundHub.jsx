@@ -3,6 +3,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Lock, Maximize } from 'lucide-react';
 import { playVO, stopVO, delay } from '../utils/audioPlayer';
 import { stopAllAudio } from '../utils/letterSounds';
+import frogSheet from '../assets/characters/set-cute-drawing-frogs.svg';
+
+// Inline frog sprite component (same pattern as LilyPadHop)
+const FrogSprite = ({ size = 60 }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink"
+    viewBox="1265 75 680 510" width={size} height={size * (510 / 680)}
+    style={{ display: 'block' }}>
+    <image href={frogSheet} x="0" y="0" width="2000" height="2000" />
+  </svg>
+);
 
 const GAMES = [
   {
@@ -71,9 +81,9 @@ const GAMES = [
   {
     id: 'lily-pad-hop',
     title: 'Lily Pad Hop',
-    icon: '🐸',
-    color: '#22C55E',
-    borderColor: '#16A34A',
+    icon: 'frog-sprite',
+    color: '#6ACBED',
+    borderColor: '#4BA8D0',
     unlocked: true,
     description: 'Help the frog hop!',
   },
@@ -256,13 +266,17 @@ const PlaygroundHub = ({ group, onBack, onSelectGame }) => {
               </div>
             )}
 
-            <motion.span
-              className="text-5xl md:text-6xl lg:text-7xl mb-3"
+            <motion.div
+              className="mb-3 flex items-center justify-center"
               animate={game.unlocked ? { y: [0, -4, 0] } : {}}
               transition={{ duration: 2, repeat: Infinity, delay: GAMES.indexOf(game) * 0.2 }}
             >
-              {game.icon}
-            </motion.span>
+              {game.icon === 'frog-sprite' ? (
+                <FrogSprite size={70} />
+              ) : (
+                <span className="text-5xl md:text-6xl lg:text-7xl">{game.icon}</span>
+              )}
+            </motion.div>
             <span
               className="text-sm md:text-base lg:text-lg text-center leading-tight font-extrabold"
               style={{ color: game.unlocked ? '#fff' : '#888' }}

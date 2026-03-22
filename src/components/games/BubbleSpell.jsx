@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Maximize, Volume2 } from 'lucide-react';
-import { Application, Graphics, Text, TextStyle, Container } from 'pixi.js';
+import { Application, Graphics, Text, TextStyle, Container, Sprite as PixiSprite, Texture } from 'pixi.js';
 import { playLetterSound, stopAllAudio } from '../../utils/letterSounds';
+import bubblesSvg from '../../assets/materials/9 cartoon soap bubble vector set.svg';
 import { speakAsync } from '../../utils/speech';
 import { playVO, stopVO, delay } from '../../utils/audioPlayer';
 import { triggerCelebration, triggerSmallBurst } from '../../utils/confetti';
@@ -10,10 +11,19 @@ import { playEncouragement } from '../../utils/encouragement';
 
 const WORDS_PER_ROUND = 5;
 
-const BUBBLE_COLORS = [
-  0x4ECDC4, 0xFF6B9D, 0xFFD000, 0x8B5CF6, 0x60A5FA,
-  0x22C55E, 0xFF6600, 0xF59E0B, 0xE60023, 0x00B894,
+// Exact bounding boxes from SVG viewBox (450x320), all bubbles r=52.175
+const BUBBLE_FRAMES = [
+  { x: 29, y: 44, w: 105, h: 105 },   // teal bubble (cx=81.519, cy=96.085)
+  { x: 173, y: 44, w: 105, h: 105 },   // red/orange bubble (cx=225, cy=96.085)
+  { x: 316, y: 44, w: 105, h: 105 },   // yellow bubble (cx=368.481, cy=96.085)
+  { x: 29, y: 172, w: 105, h: 105 },   // light blue bubble (cx=81.519, cy=223.84)
+  { x: 173, y: 172, w: 105, h: 105 },  // purple bubble (cx=225, cy=223.84)
+  { x: 316, y: 172, w: 105, h: 105 },  // green bubble (cx=368.481, cy=223.84)
 ];
+
+// SVG viewBox dimensions
+const SVG_VB_W = 450;
+const SVG_VB_H = 320;
 
 const pickRandom = (arr, n) => {
   const copy = [...arr];
@@ -135,6 +145,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
   const idleRef = useRef(null);
   const spelledLettersRef = useRef([]);
   const wrongTapCountRef = useRef(0);
+  const bubbleTexturesRef = useRef([]);
   const [transitioning, setTransitioning] = useState(false);
 
   const [roundWords] = useState(() => pickRandom(group.words, WORDS_PER_ROUND));
@@ -228,6 +239,54 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         app.canvas.style.left = '0';
         el.appendChild(app.canvas);
         pixiAppRef.current = app;
+
+        // Load bubble SVG — fetch as text and create blob with explicit dimensions
+        // SVGs without width/height attributes render at browser default (300x150),
+        // so we inject explicit dimensions to match the viewBox (450x320).
+        let svgText;
+        try {
+          const resp = await fetch(bubblesSvg);
+          svgText = await resp.text();
+        } catch (e) {
+          console.error('Failed to fetch bubble SVG:', e);
+          svgText = null;
+        }
+        if (destroyedRef.current) { app.destroy(true); return; }
+
+        if (svgText) {
+          // Inject width/height so it renders at correct size
+          const renderW = SVG_VB_W * 2; // 900px for quality
+          const renderH = SVG_VB_H * 2; // 640px
+          const fixedSvg = svgText.replace(
+            /<svg([^>]*)>/,
+            `<svg$1 width="${renderW}" height="${renderH}">`
+          );
+          const blob = new Blob([fixedSvg], { type: 'image/svg+xml;charset=utf-8' });
+          const blobUrl = URL.createObjectURL(blob);
+
+          const svgImg = new Image();
+          svgImg.src = blobUrl;
+          await new Promise((resolve, reject) => {
+            svgImg.onload = resolve;
+            svgImg.onerror = reject;
+          });
+          URL.revokeObjectURL(blobUrl);
+          if (destroyedRef.current) { app.destroy(true); return; }
+
+          bubbleTexturesRef.current = BUBBLE_FRAMES.map(frame => {
+            const offscreen = document.createElement('canvas');
+            offscreen.width = 256;
+            offscreen.height = 256;
+            const ctx2d = offscreen.getContext('2d');
+            ctx2d.drawImage(
+              svgImg,
+              frame.x * 2, frame.y * 2,
+              frame.w * 2, frame.h * 2,
+              0, 0, 256, 256
+            );
+            return Texture.from(offscreen);
+          });
+        }
 
         // Compute bubble radius from canvas (1.5x bigger)
         const bRadius = Math.min(Math.max(50, Math.min(w, h) * 0.1), 72);
@@ -335,17 +394,16 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
     setIsProcessing(false);
 
     const TRAY_H = 80;
-    const playArea = h - TRAY_H; // usable height above tray
+    const playArea = h - TRAY_H;
 
     const wordLetters = currentWord.word.split('');
     const allLetters = [...wordLetters];
 
-    // 3x distractors: ~12-18 extra letters for a busy, fun screen
+    // 3x distractors
     const distractorPool = group.sounds.filter((s) => s.length === 1 && !wordLetters.includes(s));
     const fallbackPool = 'abcdefghijklmnopqrstuvwxyz'.split('').filter((c) => !wordLetters.includes(c));
     const pool = [...distractorPool, ...fallbackPool.filter((c) => !distractorPool.includes(c))];
     const numDistractors = Math.max(12, wordLetters.length * 3);
-    // Allow duplicate distractor letters so we can fill the count
     const distractors = [];
     for (let d = 0; d < numDistractors; d++) {
       distractors.push(pool[d % pool.length]);
@@ -358,9 +416,8 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       [allLetters[i], allLetters[j]] = [allLetters[j], allLetters[i]];
     }
 
-    // Spawn each bubble at a random position within the play area
+    // Spawn each bubble
     const R = bubbleRadiusRef.current;
-    const fontSize = Math.max(R * 0.6, 20);
 
     allLetters.forEach((letter, idx) => {
       const container = new Container();
@@ -368,21 +425,34 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       container.eventMode = 'static';
       container.cursor = 'pointer';
 
-      const gfx = new Graphics();
-      const color = BUBBLE_COLORS[idx % BUBBLE_COLORS.length];
-      gfx.circle(0, 0, R);
-      gfx.fill({ color, alpha: 0.7 });
-      gfx.circle(-R * 0.25, -R * 0.25, R * 0.3);
-      gfx.fill({ color: 0xffffff, alpha: 0.35 });
-      gfx.circle(0, 0, R);
-      gfx.stroke({ color: 0xffffff, width: 1.5, alpha: 0.25 });
-      container.addChild(gfx);
+      // SVG bubble sprite
+      const textures = bubbleTexturesRef.current;
+      if (textures.length > 0) {
+        const tex = textures[idx % textures.length];
+        const spr = new PixiSprite(tex);
+        spr.anchor.set(0.5);
+        spr.width = R * 2;
+        spr.height = R * 2;
+        container.addChild(spr);
+      } else {
+        // Fallback: draw a circle if textures failed
+        const circle = new Graphics();
+        circle.circle(0, 0, R);
+        circle.fill({ color: 0x4ECDC4, alpha: 0.7 });
+        container.addChild(circle);
+      }
+
+      // Invisible hit area circle for tap detection
+      const hitArea = new Graphics();
+      hitArea.circle(0, 0, R);
+      hitArea.fill({ color: 0x000000, alpha: 0.001 });
+      container.addChild(hitArea);
 
       const text = new Text({
-        text: letter.toUpperCase(),
+        text: letter.toLowerCase(),
         style: new TextStyle({
           fontFamily: 'Arial, Helvetica, sans-serif',
-          fontSize,
+          fontSize: Math.max(R * 0.7, 24),
           fontWeight: 'bold',
           fill: 0xffffff,
         }),
@@ -403,10 +473,8 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         letter,
         x: startX,
         y: startY,
-        // Velocity: random direction
         vx: (Math.random() - 0.5) * 1.4,
         vy: (Math.random() - 0.5) * 1.4,
-        // Visual
         shimmerPhase: Math.random() * Math.PI * 2,
         popped: false,
         popScale: 1,
@@ -421,7 +489,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       bubblesRef.current.push(bubble);
     });
 
-    // Announce word — same VO + dictation sequence as first round
+    // Announce word
     if (wordIndex > 0) {
       const announceWord = async () => {
         await delay(400);
@@ -473,9 +541,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         if (!mountedRef.current) return;
 
         if (wordIndexRef.current < roundWords.length - 1) {
-          // Transition: fade out remaining bubbles, then spawn new word
           setTransitioning(true);
-          // Animate all remaining bubbles shrinking away
           const remaining = bubblesRef.current.filter((bb) => !bb.popped);
           remaining.forEach((bb) => { bb.popped = true; bb.popScale = 1; });
           await delay(600);
@@ -498,7 +564,6 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       bubble.shakeStart = performance.now();
       wrongTapCountRef.current += 1;
 
-      // After 2+ wrong taps, play hint VO + dictation
       if (wrongTapCountRef.current >= 2) {
         wrongTapCountRef.current = 0;
         setIsProcessing(true);
@@ -613,7 +678,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         <Volume2 className="w-[18px] h-[18px] lg:w-5 lg:h-5 text-white" />
       </motion.button>
 
-      {/* Progress dots — next to speaker */}
+      {/* Progress dots */}
       <div className="fixed top-4 right-14 md:right-16 z-[70] flex items-center gap-1.5">
         {roundWords.map((_, idx) => (
           <div
@@ -632,7 +697,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       {/* PixiJS canvas area */}
       <div ref={canvasContainerRef} className="absolute inset-0 z-10" />
 
-      {/* Spelling tray at bottom — solid, above canvas */}
+      {/* Spelling tray at bottom */}
       <div className="absolute bottom-0 left-0 right-0 z-30 bg-[#0d1b3e] border-t-2 border-[#4ECDC4]/30 py-4 md:py-5 px-4">
         <AnimatePresence mode="wait">
           <motion.div

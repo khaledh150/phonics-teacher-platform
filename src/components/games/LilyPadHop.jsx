@@ -122,16 +122,20 @@ const WaterPlant = ({ flip, scale = 1 }) => (
 
 // ─── Game ────────────────────────────────────────────────────────────────────
 
-const ROW_HEIGHT = 180;
-const BOTTOM_PADDING = 120;
+const ROW_HEIGHT = 210;
+const BOTTOM_PADDING = 140;
 
 const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
   const rounds = useMemo(() => {
     const groupSounds = group.sounds || [];
-    const distractorPool = ALL_SOUNDS.filter((s) => !groupSounds.includes(s));
     return Array.from({ length: TOTAL_ROUNDS }, () => {
       const target = groupSounds[Math.floor(Math.random() * groupSounds.length)];
-      const distractors = shuffleArray(distractorPool).slice(0, 2);
+      // Match distractor length to target length
+      const targetLen = target.length;
+      const matchedPool = ALL_SOUNDS.filter((s) => !groupSounds.includes(s) && s.length === targetLen);
+      const fallbackPool = ALL_SOUNDS.filter((s) => !groupSounds.includes(s));
+      const pool = matchedPool.length >= 2 ? matchedPool : fallbackPool;
+      const distractors = shuffleArray(pool).slice(0, 2);
       const options = shuffleArray([target, ...distractors]);
       return { target, options };
     });
@@ -149,6 +153,7 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
   const [jumping, setJumping] = useState(null);
   const [swimBack, setSwimBack] = useState(null);
   const [wrongPads, setWrongPads] = useState({});
+  const [frogPopIn, setFrogPopIn] = useState(false);
 
   const isProcessingRef = useRef(false);
   const idleRef = useRef(null);
@@ -302,6 +307,9 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
       await delay(650);
       if (!mountedRef.current) return;
       setSwimBack(null);
+      // Pop the frog back in at resting position
+      setFrogPopIn(true);
+      setTimeout(() => setFrogPopIn(false), 400);
 
       isProcessingRef.current = false;
       startIdleReminder();
@@ -425,29 +433,7 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
         transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
       />
 
-      {/* Corner plants — SVG reeds/cattails in all 4 corners */}
-      {/* Top-left */}
-      <div className="fixed left-1 top-10 z-[5] pointer-events-none">
-        <motion.div animate={{ rotate: [-3, 3, -3] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}>
-          <WaterPlant scale={0.7} />
-        </motion.div>
-      </div>
-      <div className="fixed left-8 top-16 z-[5] pointer-events-none">
-        <motion.div animate={{ rotate: [-2, 4, -2] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}>
-          <WaterPlant scale={0.5} />
-        </motion.div>
-      </div>
-      {/* Top-right */}
-      <div className="fixed right-1 top-10 z-[5] pointer-events-none">
-        <motion.div animate={{ rotate: [3, -3, 3] }} transition={{ duration: 4.5, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}>
-          <WaterPlant scale={0.7} flip />
-        </motion.div>
-      </div>
-      <div className="fixed right-8 top-16 z-[5] pointer-events-none">
-        <motion.div animate={{ rotate: [2, -4, 2] }} transition={{ duration: 5.5, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}>
-          <WaterPlant scale={0.5} flip />
-        </motion.div>
-      </div>
+      {/* Corner plants — SVG reeds/cattails in bottom corners only */}
       {/* Bottom-left */}
       <div className="fixed left-1 bottom-1 z-[5] pointer-events-none">
         <motion.div animate={{ rotate: [-4, 2, -4] }} transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut', delay: 1 }}>
@@ -561,7 +547,7 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
               animate={{ rotate: [0, -15, 15, 0] }}
               transition={{ duration: 0.45 }}
             >
-              <Sprite sprite="frogJumping" size={80} />
+              <Sprite sprite="frogJumping" size={100} />
             </motion.div>
           </motion.div>
         )}
@@ -661,7 +647,7 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
                     <div
                       className="absolute rounded-full blur-md"
                       style={{
-                        width: 120, height: 30, bottom: -10,
+                        width: 150, height: 35, bottom: -10,
                         left: '50%', transform: 'translateX(-50%)',
                         background: 'rgba(255, 255, 255, 0.12)',
                       }}
@@ -684,15 +670,15 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
                         /* CORRECT: happy frog on pad (frogOnPad2) */
                         <motion.div
                           style={{ marginTop: -12 }}
-                          initial={{ scale: 0.3, opacity: 0 }}
+                          initial={frogPopIn ? { scale: 0, opacity: 0 } : { scale: 0.3, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1, y: [0, -6, 0] }}
                           transition={{
-                            scale: { type: 'spring', stiffness: 300, damping: 15 },
+                            scale: { type: 'spring', stiffness: 400, damping: 12 },
                             opacity: { duration: 0.2 },
                             y: { duration: 1.5, repeat: Infinity, ease: 'easeInOut', delay: 0.4 },
                           }}
                         >
-                          <Sprite sprite="frogOnPad2" size={120} />
+                          <Sprite sprite="frogOnPad2" size={150} />
                         </motion.div>
                       ) : isWrong ? (
                         /* WRONG: frogSitting replaces the pad entirely + green bubbles */
@@ -702,7 +688,7 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ type: 'spring', stiffness: 200, damping: 12 }}
                         >
-                          <Sprite sprite="frogSitting" size={110} />
+                          <Sprite sprite="frogSitting" size={140} />
                           <WaterBubbles />
                         </motion.div>
                       ) : (
@@ -710,21 +696,21 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
                         <>
                           <Sprite
                             sprite={optIdx % 2 === 0 ? 'lilyPad' : 'lilyPad2'}
-                            size={110}
+                            size={140}
                           />
                           {!isCompletedNonTarget && (
                             <span
-                              className={`absolute font-black uppercase select-none z-10 ${
+                              className={`absolute font-black select-none z-10 ${
                                 isActive ? 'text-white' : isCompleted ? 'text-white/60' : 'text-white/70'
                               }`}
                               style={{
-                                fontSize: 'clamp(1.2rem, 4vw, 2rem)',
+                                fontSize: 'clamp(2.5rem, 9vw, 5rem)',
                                 textShadow: '0 2px 6px rgba(0,0,0,0.5), 0 0 8px rgba(0,0,0,0.2)',
-                                top: '50%', left: '50%',
+                                top: '30%', left: '50%',
                                 transform: 'translate(-50%, -50%)',
                               }}
                             >
-                              {sound}
+                              {sound.toLowerCase()}
                             </span>
                           )}
                           {isCompleted && isTarget && (
@@ -752,10 +738,17 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
             <motion.div
               className="z-30"
               style={{ marginBottom: -20 }}
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+              initial={frogPopIn ? { scale: 0, opacity: 0 } : false}
+              animate={frogPopIn
+                ? { scale: 1, opacity: 1, y: [0, -8, 0] }
+                : { y: [0, -8, 0] }
+              }
+              transition={frogPopIn
+                ? { scale: { type: 'spring', stiffness: 400, damping: 12 }, y: { duration: 1.5, repeat: Infinity, ease: 'easeInOut', delay: 0.3 } }
+                : { duration: 1.5, repeat: Infinity, ease: 'easeInOut' }
+              }
             >
-              <Sprite sprite="frogOnPad" size={130} />
+              <Sprite sprite="frogOnPad" size={160} />
             </motion.div>
           )}
           {(frogPadIndex >= 0 || (frogPadIndex === -1 && frogHidden)) && (

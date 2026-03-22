@@ -8,6 +8,7 @@ import { triggerSmallBurst, triggerCelebration } from '../../utils/confetti';
 import { playEncouragement } from '../../utils/encouragement';
 import { getWordImage } from '../../utils/assetHelpers';
 import confetti from 'canvas-confetti';
+import forestBg from '../../assets/backgrounds/Forest_Moonlight.webm';
 
 const WORDS_PER_ROUND = 6;
 
@@ -293,6 +294,24 @@ const MagicFlashlightGame = ({ group, onBack, onPlayAgain }) => {
 
   return (
     <div className="h-screen w-screen overflow-hidden relative flex flex-col bg-[#1a1147]">
+      {/* Looping video background */}
+      <video
+        src={forestBg}
+        autoPlay
+        loop
+        muted
+        playsInline
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          objectPosition: 'center',
+          zIndex: 0,
+          pointerEvents: 'none',
+        }}
+      />
       {/* Back + Fullscreen buttons */}
       <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
         <motion.button

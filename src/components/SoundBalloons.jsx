@@ -98,6 +98,23 @@ const BALLOON_COLORS = [
 ];
 const TIME_PER_SOUND = 30;
 
+// Draw a balloon shape into a Graphics object
+const drawBalloon = (g, color, r, ry) => {
+  g.clear();
+  g.ellipse(0, 0, r, ry);
+  g.fill({ color, alpha: 0.92 });
+  g.ellipse(-r * 0.3, -ry * 0.35, r * 0.18, ry * 0.25);
+  g.fill({ color: 0xffffff, alpha: 0.3 });
+  g.moveTo(-5, ry - 2);
+  g.lineTo(5, ry - 2);
+  g.lineTo(0, ry + 10);
+  g.closePath();
+  g.fill({ color });
+  g.moveTo(0, ry + 10);
+  g.quadraticCurveTo(-4, ry + 25, 3, ry + 35);
+  g.stroke({ color: 0x999999, width: 1.5 });
+};
+
 const ALL_SOUNDS = [
   's', 'a', 't', 'i', 'p', 'n', 'e', 'h', 'r', 'm', 'd',
   'g', 'o', 'u', 'l', 'f', 'b', 'j', 'z', 'w', 'v', 'x', 'y', 'c', 'k',
@@ -107,27 +124,6 @@ const ALL_SOUNDS = [
 ];
 
 let balloonIdCounter = 0;
-
-// Draw a balloon shape into a Graphics object
-const drawBalloon = (g, color, r, ry) => {
-  g.clear();
-  // Body
-  g.ellipse(0, 0, r, ry);
-  g.fill({ color, alpha: 0.92 });
-  // Highlight
-  g.ellipse(-r * 0.3, -ry * 0.35, r * 0.18, ry * 0.25);
-  g.fill({ color: 0xffffff, alpha: 0.3 });
-  // Knot
-  g.moveTo(-5, ry - 2);
-  g.lineTo(5, ry - 2);
-  g.lineTo(0, ry + 10);
-  g.closePath();
-  g.fill({ color });
-  // String
-  g.moveTo(0, ry + 10);
-  g.quadraticCurveTo(-4, ry + 25, 3, ry + 35);
-  g.stroke({ color: 0x999999, width: 1.5 });
-};
 
 // --- Main Component ---
 const SoundBalloons = ({ group, onComplete }) => {
@@ -329,8 +325,12 @@ const SoundBalloons = ({ group, onComplete }) => {
           if (isTarget) {
             sound = currentTarget;
           } else {
-            const distractors = ALL_SOUNDS.filter(s => s !== currentTarget);
-            sound = distractors[Math.floor(Math.random() * distractors.length)];
+            // Match distractor length to target length
+            const targetLen = currentTarget.length;
+            const distractors = ALL_SOUNDS.filter(s => s !== currentTarget && s.length === targetLen);
+            sound = distractors.length > 0
+              ? distractors[Math.floor(Math.random() * distractors.length)]
+              : ALL_SOUNDS.filter(s => s !== currentTarget)[Math.floor(Math.random() * (ALL_SOUNDS.length - 1))];
           }
 
           const colorIdx = Math.floor(Math.random() * BALLOON_COLORS.length);
@@ -348,12 +348,12 @@ const SoundBalloons = ({ group, onComplete }) => {
           drawBalloon(gfx, color, r, ry);
           container.addChild(gfx);
 
-          // Add letter text
+          // Add letter text (lowercase, bigger font)
           const txt = new Text({
-            text: sound,
+            text: sound.toLowerCase(),
             style: new TextStyle({
               fontFamily: 'Arial, Helvetica, sans-serif',
-              fontSize: Math.max(balloonSize * 0.32, 22),
+              fontSize: Math.max(balloonSize * 0.42, 28),
               fontWeight: 'bold',
               fill: 0xffffff,
               dropShadow: { color: 0x000000, alpha: 0.35, blur: 4, distance: 2 },
@@ -380,7 +380,6 @@ const SoundBalloons = ({ group, onComplete }) => {
           const balloonData = {
             id: balloonIdCounter++,
             sound,
-            colorIdx,
             x: bx,
             y: by,
             currentX: bx,
