@@ -123,7 +123,7 @@ const WaterPlant = ({ flip, scale = 1 }) => (
 // ─── Game ────────────────────────────────────────────────────────────────────
 
 const ROW_HEIGHT = 210;
-const BOTTOM_PADDING = 140;
+const BOTTOM_PADDING = 200;
 
 const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
   const rounds = useMemo(() => {
@@ -165,6 +165,8 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
 
   const roundData = rounds[currentRound] || rounds[0];
   const totalGameHeight = (TOTAL_ROUNDS + 2) * ROW_HEIGHT + BOTTOM_PADDING;
+  // Responsive pad size — smaller on phones to prevent overflow
+  const padSize = typeof window !== 'undefined' && window.innerWidth < 500 ? 100 : 140;
 
   const startIdleReminder = useCallback(() => {
     clearTimeout(idleRef.current);
@@ -230,7 +232,9 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
   }, [gameComplete]);
 
   const getPadLayout = useCallback((roundIdx) => {
-    const xShift = roundIdx % 2 === 0 ? -8 : 8;
+    // Reduce xShift on narrow screens to prevent overflow
+    const isNarrow = window.innerWidth < 500;
+    const xShift = isNarrow ? 0 : (roundIdx % 2 === 0 ? -8 : 8);
     const yFromBottom = (roundIdx + 1) * ROW_HEIGHT + BOTTOM_PADDING;
     return { xShift, yFromBottom };
   }, []);
@@ -239,7 +243,7 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
     if (gameComplete) return;
     const viewportHeight = window.innerHeight;
     const activeRowY = totalGameHeight - ((currentRound + 1) * ROW_HEIGHT + BOTTOM_PADDING);
-    const targetScroll = activeRowY - viewportHeight * 0.4;
+    const targetScroll = activeRowY - viewportHeight * 0.35;
     const maxScroll = totalGameHeight - viewportHeight;
     const clamped = Math.max(0, Math.min(targetScroll, maxScroll));
     setScrollOffset(-clamped);
@@ -283,11 +287,12 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
 
     await delay(500);
     if (!mountedRef.current) return;
-    setJumping(null);
 
     if (sound !== roundData.target) {
       // Wrong — show frog fallen in water replacing the pad + bubbles
+      // Set wrongPads BEFORE clearing jumping so resting frog stays hidden
       setWrongPads((prev) => ({ ...prev, [padKey]: true }));
+      setJumping(null);
 
       await playVO('Oops, try again!');
       if (!mountedRef.current) return;
@@ -317,6 +322,7 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
     }
 
     // Correct!
+    setJumping(null);
     setFrogPadIndex(roundIdx);
     setFrogCorrectOpt(optionIdx);
 
@@ -361,7 +367,8 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
     if (mountedRef.current) startIdleReminder();
   };
 
-  const frogHidden = !!jumping || !!swimBack;
+  const hasWrongPads = Object.keys(wrongPads).length > 0;
+  const frogHidden = !!jumping || !!swimBack || hasWrongPads;
 
   // --- Results screen ---
   if (gameComplete) {
@@ -621,10 +628,11 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
           return (
             <div
               key={roundIdx}
-              className="absolute left-1/2 flex items-center justify-center gap-3 md:gap-6 lg:gap-10"
+              className="absolute left-1/2 flex items-center justify-center gap-1 sm:gap-3 md:gap-6 lg:gap-10"
               style={{
                 top: `${yPos}px`,
                 transform: `translateX(calc(-50% + ${xShift}vw))`,
+                maxWidth: 'calc(100vw - 16px)',
               }}
             >
               {rd.options.map((sound, optIdx) => {
@@ -647,7 +655,7 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
                     <div
                       className="absolute rounded-full blur-md"
                       style={{
-                        width: 150, height: 35, bottom: -10,
+                        width: padSize + 10, height: 35, bottom: -10,
                         left: '50%', transform: 'translateX(-50%)',
                         background: 'rgba(255, 255, 255, 0.12)',
                       }}
@@ -678,7 +686,7 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
                             y: { duration: 1.5, repeat: Infinity, ease: 'easeInOut', delay: 0.4 },
                           }}
                         >
-                          <Sprite sprite="frogOnPad2" size={150} />
+                          <Sprite sprite="frogOnPad2" size={padSize + 10} />
                         </motion.div>
                       ) : isWrong ? (
                         /* WRONG: frogSitting replaces the pad entirely + green bubbles */
@@ -688,7 +696,7 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ type: 'spring', stiffness: 200, damping: 12 }}
                         >
-                          <Sprite sprite="frogSitting" size={140} />
+                          <Sprite sprite="frogSitting" size={padSize} />
                           <WaterBubbles />
                         </motion.div>
                       ) : (
@@ -696,7 +704,7 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
                         <>
                           <Sprite
                             sprite={optIdx % 2 === 0 ? 'lilyPad' : 'lilyPad2'}
-                            size={140}
+                            size={padSize}
                           />
                           {!isCompletedNonTarget && (
                             <span
@@ -732,7 +740,7 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
         <div
           ref={frogStartRef}
           className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center"
-          style={{ top: `${totalGameHeight - BOTTOM_PADDING + 10}px` }}
+          style={{ top: `${totalGameHeight - BOTTOM_PADDING + 20}px` }}
         >
           {frogPadIndex === -1 && !frogHidden && (
             <motion.div

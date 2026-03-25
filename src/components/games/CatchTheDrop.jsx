@@ -1,12 +1,29 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Maximize } from 'lucide-react';
-import { Application, Graphics, Text, TextStyle, Container } from 'pixi.js';
+import { Application, Graphics, Text, TextStyle, Container, Sprite as PixiSprite, Texture, Assets } from 'pixi.js';
 import { playLetterSound, stopAllAudio } from '../../utils/letterSounds';
 import { playVO, stopVO, delay } from '../../utils/audioPlayer';
 import { triggerCelebration, triggerSmallBurst } from '../../utils/confetti';
 import { playEncouragement } from '../../utils/encouragement';
 import confetti from 'canvas-confetti';
+import { createSkyBackground } from '../themes/SkyBackground';
+
+// Hot-air balloon + bubble sprites
+import hotairBalloonUrl from '../../assets/backgrounds/sky/hotair-balloon.png';
+import bubble1Url from '../../assets/materials/ballons-bubbles/bubble-1.png';
+import bubble2Url from '../../assets/materials/ballons-bubbles/bubble-2.png';
+import bubble3Url from '../../assets/materials/ballons-bubbles/bubble-3.png';
+import bubble4Url from '../../assets/materials/ballons-bubbles/bubble-4.png';
+import bubble5Url from '../../assets/materials/ballons-bubbles/bubble-5.png';
+import bubble6Url from '../../assets/materials/ballons-bubbles/bubble-6.png';
+import bubble7Url from '../../assets/materials/ballons-bubbles/bubble-7.png';
+import bubble8Url from '../../assets/materials/ballons-bubbles/bubble-8.png';
+
+const ITEM_BUBBLE_URLS = [
+  bubble1Url, bubble2Url, bubble3Url, bubble4Url,
+  bubble5Url, bubble6Url, bubble7Url, bubble8Url,
+];
 
 const toggleFullscreen = () => {
   if (!document.fullscreenElement) {
@@ -20,11 +37,6 @@ const TOTAL_ROUNDS = 8;
 const CATCHES_PER_ROUND = 6;
 const SPAWN_INTERVAL_MS = 900;
 const CORRECT_CHANCE = 0.4;
-
-const ITEM_COLORS = [
-  '#ffffff', '#F0F4FF', '#FFF8E1', '#F0FFF4', '#FFF0F5',
-  '#F5F0FF', '#E8F8F5', '#FEF9E7',
-];
 
 const DISTRACTOR_WORDS = [
   'big', 'red', 'fun', 'hot', 'cup', 'leg', 'van', 'zip',
@@ -145,6 +157,10 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
   const wagonRedRef = useRef(false);
   const wagonBodyRef = useRef(null);
   const speedMultRef = useRef(1);
+  const skyRef = useRef(null);
+  const itemBubbleTexturesRef = useRef([]);
+  const laneCountRef = useRef(3);
+  const nextLaneRef = useRef(0);
 
   // Build round sounds from group
   const [roundSounds] = useState(() => {
@@ -195,22 +211,199 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
     }, 10000);
   }, []);
 
-  // Play round intro VO
+  // Track spawns to guarantee a correct word every N spawns
+  const spawnCountRef = useRef(0);
+  const correctSinceLastRef = useRef(false);
+
+  // Helper: create a drop item container with bubble + text
+  const createDropItem = useCallback((word, w) => {
+    const itemSize = Math.max(90, Math.min(150, w * 0.22));
+    const itemContainer = new Container();
+
+    const textures = itemBubbleTexturesRef.current;
+    if (textures.length > 0) {
+      const tex = textures[Math.floor(Math.random() * textures.length)];
+      const spr = new PixiSprite(tex);
+      spr.anchor.set(0.5);
+      spr.width = itemSize;
+      spr.height = itemSize;
+      itemContainer.addChild(spr);
+    } else {
+      const bg = new Graphics();
+      bg.circle(0, 0, itemSize / 2);
+      bg.fill({ color: 0x4ECDC4, alpha: 0.7 });
+      itemContainer.addChild(bg);
+    }
+
+    const fontSize = Math.max(20, Math.min(32, w * 0.045));
+    const text = new Text({
+      text: word,
+      style: new TextStyle({
+        fontFamily: 'Arial, Helvetica, sans-serif',
+        fontSize,
+        fontWeight: 'bold',
+        fill: '#ffffff',
+        dropShadow: { color: 0x000000, alpha: 0.3, blur: 3, distance: 1 },
+      }),
+    });
+    text.anchor.set(0.5);
+    itemContainer.addChild(text);
+
+    return { itemContainer, itemSize };
+  }, []);
+
+  // Tutorial: (1) sway balloon left-right, (2) drop items with target off-center, (3) move to catch
+  const runTutorialAnimation = useCallback((sound) => {
+    const app = appRef.current;
+    const wagon = wagonRef.current;
+    if (!app || !wagon || !mountedRef.current) return Promise.resolve();
+
+    const screenW = app.screen.width;
+    const correctWords = getWordsForSound(sound);
+    const distractorWords = getDistractorWords(sound);
+    if (correctWords.length === 0) return Promise.resolve();
+
+    const lanes = laneCountRef.current;
+    const laneW = screenW / lanes;
+    const centerX = screenW / 2;
+
+    // Phase 0: sway left-right to show movement ability
+    // Phase 1: drop items (correct NOT in center), move balloon to catch
+    let phase = 0;
+    let phaseT = 0;
+    let demoItems = [];
+    let targetX = centerX;
+    const swayRange = screenW * 0.3;
+
+    // Pick correct lane — avoid center lane so balloon must visibly move
+    const centerLane = Math.floor(lanes / 2);
+    const nonCenterLanes = [];
+    for (let i = 0; i < lanes; i++) { if (i !== centerLane) nonCenterLanes.push(i); }
+    const correctLane = nonCenterLanes[Math.floor(Math.random() * nonCenterLanes.length)];
+    const correctWord = correctWords[Math.floor(Math.random() * correctWords.length)];
+
+    return new Promise((resolve) => {
+      const tutTicker = (ticker) => {
+        if (!mountedRef.current) {
+          demoItems.forEach(d => {
+            try { if (d.container.parent) app.stage.removeChild(d.container); d.container.destroy({ children: true }); } catch(e) {}
+          });
+          app.ticker.remove(tutTicker);
+          resolve();
+          return;
+        }
+        const dt = ticker.deltaTime;
+        phaseT += dt;
+
+        if (phase === 0) {
+          // Sway balloon left then right then back to center
+          // 0-25: move left, 25-75: move right, 75-100: back to center
+          if (phaseT < 25) {
+            wagon.x = centerX - swayRange * (phaseT / 25);
+          } else if (phaseT < 75) {
+            const t = (phaseT - 25) / 50;
+            wagon.x = centerX - swayRange + swayRange * 2 * t;
+          } else if (phaseT < 100) {
+            const t = (phaseT - 75) / 25;
+            wagon.x = centerX + swayRange - swayRange * t;
+          } else {
+            // Done swaying — spawn demo drops
+            wagon.x = centerX;
+            phase = 1;
+            phaseT = 0;
+
+            for (let i = 0; i < lanes; i++) {
+              const word = i === correctLane
+                ? correctWord
+                : (distractorWords.length > 0
+                  ? distractorWords[Math.floor(Math.random() * distractorWords.length)]
+                  : 'no');
+              const { itemContainer, itemSize } = createDropItem(word, screenW);
+              itemContainer.x = laneW * i + laneW / 2;
+              itemContainer.y = -itemSize / 2;
+              app.stage.addChild(itemContainer);
+              demoItems.push({
+                container: itemContainer,
+                laneX: laneW * i + laneW / 2,
+                isCorrect: i === correctLane,
+                speed: 2.0,
+                caught: false,
+              });
+            }
+            targetX = demoItems[correctLane].laneX;
+          }
+        } else if (phase === 1) {
+          // Move balloon toward correct lane and drop items
+          wagon.x += (targetX - wagon.x) * 0.05 * dt;
+
+          let allDone = true;
+          for (const d of demoItems) {
+            if (d.caught) continue;
+            d.container.y += d.speed * dt;
+
+            if (d.container.y >= wagon.y - 50) {
+              d.caught = true;
+              if (d.isCorrect) {
+                d.container.alpha = 0;
+                playCatchSfx();
+              } else {
+                d.container.alpha = 0.3;
+              }
+            }
+            if (!d.caught) allDone = false;
+          }
+
+          if (allDone) {
+            app.ticker.remove(tutTicker);
+            setTimeout(() => {
+              demoItems.forEach(d => {
+                try { if (d.container.parent) app.stage.removeChild(d.container); d.container.destroy({ children: true }); } catch(e) {}
+              });
+              wagon.x = centerX;
+              resolve();
+            }, 300);
+          }
+        }
+      };
+      app.ticker.add(tutTicker);
+    });
+  }, [getWordsForSound, getDistractorWords, createDropItem]);
+
+  // Play round intro VO — tutorial runs simultaneously with VO on first round
   const playRoundIntro = useCallback(async (sound) => {
     pausedRef.current = true;
-    await playVO('Catch the items that start with the sound...');
-    if (!mountedRef.current) return;
-    await delay(300);
-    if (!mountedRef.current) return;
-    await playLetterSound(sound).catch(() => {});
-    if (!mountedRef.current) return;
-    await delay(500);
-    if (!mountedRef.current) return;
-    await playVO('Move the wagon to catch them!');
+
+    if (roundIndexRef.current === 0) {
+      // Run tutorial animation and VO at the same time
+      const voSequence = (async () => {
+        await playVO('Catch the items that start with the sound...');
+        if (!mountedRef.current) return;
+        await delay(300);
+        if (!mountedRef.current) return;
+        await playLetterSound(sound).catch(() => {});
+        if (!mountedRef.current) return;
+        await delay(500);
+        if (!mountedRef.current) return;
+        await playVO('Move the wagon to catch them!');
+      })();
+      const tutorialAnim = runTutorialAnimation(sound);
+      await Promise.all([voSequence, tutorialAnim]);
+    } else {
+      await playVO('Catch the items that start with the sound...');
+      if (!mountedRef.current) return;
+      await delay(300);
+      if (!mountedRef.current) return;
+      await playLetterSound(sound).catch(() => {});
+      if (!mountedRef.current) return;
+      await delay(500);
+      if (!mountedRef.current) return;
+      await playVO('Move the wagon to catch them!');
+    }
+
     if (!mountedRef.current) return;
     pausedRef.current = false;
     startIdleReminder();
-  }, [startIdleReminder]);
+  }, [startIdleReminder, runTutorialAnimation]);
 
   // Handle catching an item (called from ticker context via ref)
   const handleCatchRef = useRef(null);
@@ -309,6 +502,9 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
   // Start spawning items
   const startSpawning = useCallback(() => {
     clearInterval(spawnIntervalRef.current);
+    spawnCountRef.current = 0;
+    correctSinceLastRef.current = false;
+
     spawnIntervalRef.current = setInterval(() => {
       if (destroyedRef.current || pausedRef.current) return;
       const app = appRef.current;
@@ -323,46 +519,46 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
 
       if (correctWords.length === 0) return;
 
-      const isCorrect = Math.random() < CORRECT_CHANCE;
+      const lanes = laneCountRef.current;
+      spawnCountRef.current++;
+
+      // Guarantee at least one correct word every full cycle through all lanes
+      const forceCorrect = spawnCountRef.current % lanes === 0 && !correctSinceLastRef.current;
+      const isCorrect = forceCorrect || Math.random() < CORRECT_CHANCE;
+
       let word;
       if (isCorrect && correctWords.length > 0) {
         word = correctWords[Math.floor(Math.random() * correctWords.length)];
+        correctSinceLastRef.current = true;
       } else if (distractorWords.length > 0) {
         word = distractorWords[Math.floor(Math.random() * distractorWords.length)];
       } else {
         word = correctWords[Math.floor(Math.random() * correctWords.length)];
+        correctSinceLastRef.current = true;
       }
 
-      const itemW = Math.max(100, Math.min(160, w * 0.2));
-      const itemH = 55;
+      // Reset correct tracking each full lane cycle
+      if (spawnCountRef.current % lanes === 0) {
+        correctSinceLastRef.current = false;
+      }
 
-      const itemContainer = new Container();
+      const { itemContainer, itemSize } = createDropItem(word, w);
 
-      const bg = new Graphics();
-      bg.roundRect(0, 0, itemW, itemH, 10);
-      const color = ITEM_COLORS[Math.floor(Math.random() * ITEM_COLORS.length)];
-      bg.fill(color);
-      bg.stroke({ color: 0xcccccc, width: 1.5, alpha: 0.5 });
-      itemContainer.addChild(bg);
+      // Grid lanes: pick lane in round-robin, ensure spacing from last item in same lane
+      const laneW = w / lanes;
+      const lane = nextLaneRef.current % lanes;
+      nextLaneRef.current = (nextLaneRef.current + 1) % lanes;
+      const spawnX = laneW * lane + laneW / 2;
 
-      const fontSize = Math.max(20, Math.min(32, w * 0.045));
-      const text = new Text({
-        text: word,
-        style: new TextStyle({
-          fontFamily: 'Arial, Helvetica, sans-serif',
-          fontSize,
-          fontWeight: 'bold',
-          fill: '#3e366b',
-        }),
-      });
-      text.anchor.set(0.5);
-      text.x = itemW / 2;
-      text.y = itemH / 2;
-      itemContainer.addChild(text);
+      // Check vertical spacing: more gap between drops
+      const MIN_GAP = itemSize * 2.5;
+      const tooClose = itemsRef.current.some(it =>
+        !it.caught && Math.abs(it.graphics.x - spawnX) < laneW * 0.5 && it.graphics.y < MIN_GAP
+      );
+      if (tooClose) return; // skip this spawn, next interval will try again
 
-      const spawnX = Math.random() * (w - itemW);
       itemContainer.x = spawnX;
-      itemContainer.y = -50;
+      itemContainer.y = -itemSize / 2;
 
       app.stage.addChild(itemContainer);
 
@@ -375,7 +571,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
         caught: false,
       });
     }, SPAWN_INTERVAL_MS);
-  }, [getWordsForSound, getDistractorWords]);
+  }, [getWordsForSound, getDistractorWords, createDropItem]);
 
   // Initialize PixiJS
   useEffect(() => {
@@ -397,9 +593,10 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
         await app.init({
           width: w,
           height: h,
-          backgroundAlpha: 0,
+          backgroundAlpha: 1,
+          backgroundColor: 0x87CEEB,
           antialias: true,
-          resolution: Math.min(window.devicePixelRatio || 1, 2),
+          resolution: 1,
           autoDensity: true,
         });
         if (destroyed) { app.destroy(true); return; }
@@ -412,62 +609,64 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
         el.appendChild(app.canvas);
         appRef.current = app;
 
+        // Sky parallax background
+        try {
+          skyRef.current = await createSkyBackground(app);
+        } catch (e) { console.warn('Sky bg failed:', e); }
+        if (destroyed) { app.destroy(true); return; }
+
+        // Load hot-air balloon + item bubble textures via Assets.load (PixiJS v8)
+        try {
+          const texArr = await Promise.all(ITEM_BUBBLE_URLS.map(url => Assets.load(url)));
+          itemBubbleTexturesRef.current = texArr;
+        } catch (e) { console.warn('Item bubble textures failed:', e); }
+        if (destroyed) { app.destroy(true); return; }
+
         const screenW = app.screen.width;
         const screenH = app.screen.height;
 
-        // Wagon dimensions
-        const wagonWidth = Math.max(120, Math.min(200, screenW * 0.22));
-        const wagonHeight = 65;
-        const wheelRadius = 14;
-        const wagonY = screenH - wagonHeight - 80;
+        // Compute lane count based on screen width (3 for phones, more for bigger)
+        laneCountRef.current = screenW < 600 ? 3 : screenW < 1100 ? 4 : 5;
 
-        // Create wagon container
+        // Hot-air balloon — sized proportionally, raised up from bottom
+        const wagonWidth = Math.max(140, Math.min(260, screenW * 0.32));
+        const wagonHeight = wagonWidth * 1.4;
+        const wagonY = screenH - wagonHeight * 0.5 - 80;
+
         const wagonContainer = new Container();
 
-        // Wagon body
-        const body = new Graphics();
-        body.roundRect(0, 0, wagonWidth, wagonHeight - wheelRadius, 12);
-        body.fill('#FFD000');
-        body.stroke({ color: 0xE0B800, width: 3 });
-        wagonContainer.addChild(body);
-        wagonBodyRef.current = body;
+        let balloonSprite;
+        try {
+          const tex = await Assets.load(hotairBalloonUrl);
+          balloonSprite = new PixiSprite(tex);
+          balloonSprite.anchor.set(0.5);
+          balloonSprite.width = wagonWidth;
+          balloonSprite.height = wagonHeight;
+          wagonContainer.addChild(balloonSprite);
+          wagonBodyRef.current = balloonSprite;
+        } catch (e) {
+          // Fallback: simple colored ellipse
+          const body = new Graphics();
+          body.ellipse(0, 0, wagonWidth / 2, wagonHeight / 2);
+          body.fill('#FFD000');
+          wagonContainer.addChild(body);
+          wagonBodyRef.current = body;
+        }
+        if (destroyed) { app.destroy(true); return; }
 
-        // Wagon interior accent
-        const accent = new Graphics();
-        accent.roundRect(4, 4, wagonWidth - 8, wagonHeight - wheelRadius - 8, 8);
-        accent.fill({ color: 0xFFE44D, alpha: 0.5 });
-        wagonContainer.addChild(accent);
-
-        // Left wheel
-        const leftWheel = new Graphics();
-        leftWheel.circle(wagonWidth * 0.25, wagonHeight - wheelRadius, wheelRadius);
-        leftWheel.fill('#8B4513');
-        leftWheel.stroke({ color: 0x654321, width: 2 });
-        leftWheel.circle(wagonWidth * 0.25, wagonHeight - wheelRadius, 3);
-        leftWheel.fill('#654321');
-        wagonContainer.addChild(leftWheel);
-
-        // Right wheel
-        const rightWheel = new Graphics();
-        rightWheel.circle(wagonWidth * 0.75, wagonHeight - wheelRadius, wheelRadius);
-        rightWheel.fill('#8B4513');
-        rightWheel.stroke({ color: 0x654321, width: 2 });
-        rightWheel.circle(wagonWidth * 0.75, wagonHeight - wheelRadius, 3);
-        rightWheel.fill('#654321');
-        wagonContainer.addChild(rightWheel);
-
-        wagonContainer.x = screenW / 2 - wagonWidth / 2;
+        wagonContainer.x = screenW / 2;
         wagonContainer.y = wagonY;
         app.stage.addChild(wagonContainer);
         wagonRef.current = wagonContainer;
 
-        // Pointer events to move wagon
+        // Pointer events to move balloon catcher
+        const halfW = wagonWidth / 2;
         app.canvas.addEventListener('pointermove', (e) => {
           if (instructionLockRef.current) return;
           if (!wagonRef.current || destroyedRef.current) return;
           const rect = app.canvas.getBoundingClientRect();
           const x = ((e.clientX - rect.left) / rect.width) * app.screen.width;
-          wagonRef.current.x = Math.max(0, Math.min(x - wagonWidth / 2, app.screen.width - wagonWidth));
+          wagonRef.current.x = Math.max(halfW, Math.min(x, app.screen.width - halfW));
         });
 
         app.canvas.addEventListener('pointerdown', (e) => {
@@ -475,7 +674,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
           if (!wagonRef.current || destroyedRef.current) return;
           const rect = app.canvas.getBoundingClientRect();
           const x = ((e.clientX - rect.left) / rect.width) * app.screen.width;
-          wagonRef.current.x = Math.max(0, Math.min(x - wagonWidth / 2, app.screen.width - wagonWidth));
+          wagonRef.current.x = Math.max(halfW, Math.min(x, app.screen.width - halfW));
         });
 
         // Game loop
@@ -554,6 +753,8 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
       stopVO();
       clearTimeout(idleRef.current);
       clearInterval(spawnIntervalRef.current);
+      // Clean up sky
+      if (skyRef.current) { skyRef.current.destroy(); skyRef.current = null; }
       // Clean up items
       itemsRef.current.forEach((item) => {
         try { item.graphics.destroy({ children: true }); } catch (e) { /* silent */ }
@@ -626,7 +827,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
 
   if (gameComplete) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#1a1147] to-[#22C55E]">
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#5BA3D9] to-[#87CEEB]">
         <motion.button
           onClick={toggleFullscreen}
           className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
@@ -681,7 +882,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden relative flex flex-col bg-[#1a1147]">
+    <div className="h-screen w-screen overflow-hidden relative flex flex-col">
       {/* Back + Fullscreen buttons */}
       <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
         <motion.button
@@ -717,20 +918,6 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
             }`}
           />
         ))}
-      </div>
-
-      {/* Target sound display */}
-      <div className="fixed top-12 left-1/2 -translate-x-1/2 z-[60]">
-        <motion.div
-          key={targetSound}
-          initial={{ opacity: 0, scale: 0.8, y: -10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-          className="bg-white/10 backdrop-blur-sm px-6 py-2 rounded-2xl flex items-center gap-3"
-        >
-          <span className="text-white/70 text-sm font-bold">Catch:</span>
-          <span className="text-3xl font-black text-[#FFD000] uppercase">{targetSound}</span>
-        </motion.div>
       </div>
 
       {/* Caught count indicator */}

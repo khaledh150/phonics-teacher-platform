@@ -8,6 +8,7 @@ import { playEncouragement } from '../../utils/encouragement';
 import confetti from 'canvas-confetti';
 import beachBg from '../../assets/backgrounds/beach-aerial-view.webp';
 import stickersSvgRaw from '../../assets/materials/Summer-sticker-collection.svg?raw';
+import CrabCompanion from './CrabCompanion';
 
 // ─── Individual SVG imports from tracing-letter folder ──────────────────────
 const tracingRawModules = import.meta.glob('../../assets/materials/tracing-letter/*.svg', { query: '?raw', eager: true });
@@ -59,12 +60,15 @@ class SandParticles {
   constructor() { this.p = []; }
   emit(x, y, count = 6) {
     for (let i = 0; i < count; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const spd = 2 + Math.random() * 4.5;
+      // Scatter sideways and slightly downward — sand settles, doesn't fly up
+      const a = Math.PI * 0.1 + Math.random() * Math.PI * 0.8; // 18°-162° (downward arc)
+      const spd = 1.2 + Math.random() * 2.5;
       this.p.push({
-        x, y, vx: Math.cos(a) * spd, vy: Math.sin(a) * spd - 3,
-        life: 1, decay: 0.012 + Math.random() * 0.02,
-        size: 4 + Math.random() * 8, hue: 35 + Math.random() * 25,
+        x, y,
+        vx: Math.cos(a) * spd * (Math.random() > 0.5 ? 1 : -1),
+        vy: Math.abs(Math.sin(a)) * spd * 0.5 + 0.3,
+        life: 1, decay: 0.015 + Math.random() * 0.02,
+        size: 6 + Math.random() * 10, hue: 35 + Math.random() * 25,
       });
     }
   }
@@ -706,6 +710,9 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
   const [isActivelyTracing, setIsActivelyTracing] = useState(false);
   const [shovelAnimKey, setShovelAnimKey] = useState(0);
   const particlesRef = useRef(new SandParticles());
+  const [isIdleForCrab, setIsIdleForCrab] = useState(false);
+  const [letterCompletedTrigger, setLetterCompletedTrigger] = useState(0);
+  const crabIdleTimerRef = useRef(null);
 
   const currentChar = (allLetters[activeLetterIdx] || allLetters[0]).toLowerCase();
   const isUppercase = letterCase === 'upper';
@@ -714,7 +721,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
   // Responsive trail width — scales with canvas size
   const trailWidth = useMemo(() => {
     const side = Math.max(canvasSize.w, canvasSize.h);
-    return Math.max(50, Math.round(side * 0.16));
+    return Math.max(55, Math.round(side * 0.18));
   }, [canvasSize]);
 
   // ── Measure canvas — same size for both cases, lowercase shrink via CSS ──
@@ -816,7 +823,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
 
   useEffect(() => { redrawCanvas(); }, [redrawCanvas]);
 
-  // ── Particle loop ──
+  // ── Particle loop — canvas is now outside AnimatePresence so it persists ──
   useEffect(() => {
     const pCanvas = particleCanvasRef.current;
     if (!pCanvas) return;
@@ -835,9 +842,14 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
 
   const startIdleReminder = useCallback(() => {
     clearTimeout(idleRef.current);
+    clearTimeout(crabIdleTimerRef.current);
+    setIsIdleForCrab(false);
+    crabIdleTimerRef.current = setTimeout(() => {
+      if (mountedRef.current) setIsIdleForCrab(true);
+    }, 8000);
     idleRef.current = setTimeout(async () => {
       if (!mountedRef.current) return;
-      await playVO('trace_the_letter');
+      await playVO('Trace the letter!');
     }, 8000);
   }, []);
 
@@ -845,7 +857,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
     let cancelled = false;
     mountedRef.current = true;
     const run = async () => {
-      await playVO('trace_the_letter');
+      await playVO('Trace the letter!');
       if (cancelled) return;
       startIdleReminder();
       if (!cancelled) setInstructionLock(false);
@@ -857,6 +869,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
       window.speechSynthesis.cancel();
       stopAllAudio(); stopVO();
       clearTimeout(idleRef.current);
+      clearTimeout(crabIdleTimerRef.current);
       cancelAnimationFrame(animFrameRef.current);
     };
   }, [startIdleReminder]);
@@ -882,6 +895,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
     }
 
     // All strokes done for this letter+case
+    setLetterCompletedTrigger(t => t + 1);
     setShowCursor(false);
     try { await playLetterSound(currentChar); } catch (e) {}
     if (!mountedRef.current) return;
@@ -961,6 +975,8 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
     const pos = getCanvasPos(e);
     if (!pos) return;
     clearTimeout(idleRef.current);
+    clearTimeout(crabIdleTimerRef.current);
+    setIsIdleForCrab(false);
 
     const startPt = currentStroke.pts[0];
     const distCursor = dist(pos, cursorPosRef.current);
@@ -1005,7 +1021,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
           y: cursorPosRef.current.y + (pathPt.y - cursorPosRef.current.y) * 0.75,
         };
         setCursorPos({ ...cursorPosRef.current });
-        particlesRef.current.emit(cursorPosRef.current.x, cursorPosRef.current.y, 5);
+        particlesRef.current.emit(cursorPosRef.current.x, cursorPosRef.current.y, 8);
       }
 
       redrawCanvas();
@@ -1015,12 +1031,12 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
       // where arrow is physically near the start of a circular stroke)
       const endPt = currentStroke.pts[currentStroke.pts.length - 1];
       const pctDone = newIdx / (currentStroke.pts.length - 1);
-      const minProgressMet = pctDone >= 0.5;
+      const minProgressMet = pctDone >= 0.65;
       const nearArrow = minProgressMet && currentStroke.arrowPt
-        ? dist(currentStroke.pts[newIdx], currentStroke.arrowPt) < trailWidth * 0.8
+        ? dist(currentStroke.pts[newIdx], currentStroke.arrowPt) < trailWidth * 0.5
         : false;
       const nearEnd = minProgressMet && endPt
-        ? dist(currentStroke.pts[newIdx], endPt) < trailWidth * 0.8
+        ? dist(currentStroke.pts[newIdx], endPt) < trailWidth * 0.5
         : false;
       const isComplete = nearArrow || nearEnd || pctDone >= COMPLETION_THRESHOLD;
 
@@ -1077,6 +1093,12 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
   if (gameComplete) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#1a1147] to-[#6B3FA0]">
+        <CrabCompanion
+          isActivelyTracing={false}
+          isGameComplete={true}
+          letterCompletedTrigger={letterCompletedTrigger}
+          isIdle={false}
+        />
         <motion.button onClick={toggleFullscreen}
           className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000]"
           style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
@@ -1171,11 +1193,17 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
         </motion.button>
       </div>
 
+      {/* Crab companion */}
+      <CrabCompanion
+        isActivelyTracing={isActivelyTracing}
+        isGameComplete={gameComplete}
+        letterCompletedTrigger={letterCompletedTrigger}
+        isIdle={isIdleForCrab}
+      />
+
       {/* Decorative beach stickers */}
       <img src={STICKERS.swimRing} alt="" className="fixed pointer-events-none z-[5] opacity-85"
         style={{ left: '0.5%', top: '28%', width: 'clamp(80px, 13vw, 150px)', transform: 'rotate(-10deg)' }} />
-      <img src={STICKERS.surfboard} alt="" className="fixed pointer-events-none z-[5] opacity-85"
-        style={{ left: '1%', bottom: '12%', width: 'clamp(65px, 10vw, 120px)', transform: 'rotate(12deg)' }} />
       <img src={STICKERS.flower} alt="" className="fixed pointer-events-none z-[5] opacity-85"
         style={{ right: '0.5%', top: '30%', width: 'clamp(80px, 13vw, 140px)', transform: 'rotate(-5deg)' }} />
 
@@ -1253,12 +1281,13 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
                   onPointerDown={handlePointerDown}
                   onPointerMove={handlePointerMove} />
 
-                {/* Particle canvas */}
-                <canvas ref={particleCanvasRef} width={canvasSize.w} height={canvasSize.h}
-                  className="absolute inset-0 w-full h-full pointer-events-none"
-                  style={{ zIndex: 2 }} />
               </motion.div>
             </AnimatePresence>
+
+            {/* Particle canvas — outside AnimatePresence so it persists across letter changes */}
+            <canvas ref={particleCanvasRef} width={canvasSize.w} height={canvasSize.h}
+              className="absolute inset-0 w-full h-full pointer-events-none"
+              style={{ zIndex: 12 }} />
 
             {/* Shovel indicator — circle + shovel, positioned at stroke start */}
             {showCursor && canvasEl && (
@@ -1267,8 +1296,8 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
                   key={`shovel-${shovelAnimKey}`}
                   className="fixed pointer-events-none z-[60] flex items-center justify-center"
                   style={{
-                    left: pencilCenterX - 44, top: pencilCenterY - 44,
-                    width: 88, height: 88,
+                    left: pencilCenterX - 52, top: pencilCenterY - 52,
+                    width: 104, height: 104,
                     transition: isActivelyTracing ? 'none' : 'left 0.15s ease, top 0.15s ease',
                   }}
                   initial={{ scale: 0, opacity: 0, x: -150, y: -100 }}
@@ -1288,15 +1317,15 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
                   {/* Semi-transparent circle background */}
                   <div className="absolute inset-0 rounded-full"
                     style={{
-                      background: 'rgba(255, 210, 50, 0.35)',
-                      border: '2.5px solid rgba(255, 180, 0, 0.5)',
-                      boxShadow: '0 0 12px rgba(255,200,0,0.4)',
+                      background: 'rgba(255, 210, 50, 0.55)',
+                      border: '2.5px solid rgba(255, 180, 0, 0.65)',
+                      boxShadow: '0 0 16px rgba(255,200,0,0.5)',
                     }} />
                   {/* Shovel — square container with object-fit for true centering, 2.5x size */}
                   <motion.img src={STICKERS.shovel} alt=""
                     className="select-none"
                     style={{
-                      width: 60, height: 60,
+                      width: 76, height: 76,
                       objectFit: 'contain',
                       filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))',
                     }}

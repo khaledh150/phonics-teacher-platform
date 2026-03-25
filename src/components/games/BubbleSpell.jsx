@@ -1,29 +1,29 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Maximize, Volume2 } from 'lucide-react';
-import { Application, Graphics, Text, TextStyle, Container, Sprite as PixiSprite, Texture } from 'pixi.js';
+import { Application, Graphics, Text, TextStyle, Container, Sprite as PixiSprite, Texture, Assets } from 'pixi.js';
 import { playLetterSound, stopAllAudio } from '../../utils/letterSounds';
-import bubblesSvg from '../../assets/materials/9 cartoon soap bubble vector set.svg';
 import { speakAsync } from '../../utils/speech';
 import { playVO, stopVO, delay } from '../../utils/audioPlayer';
 import { triggerCelebration, triggerSmallBurst } from '../../utils/confetti';
 import { playEncouragement } from '../../utils/encouragement';
+import { createSkyBackground } from '../themes/SkyBackground';
+
+// Bubble PNG sprites
+import bubble1Url from '../../assets/materials/ballons-bubbles/bubble-1.png';
+import bubble2Url from '../../assets/materials/ballons-bubbles/bubble-2.png';
+import bubble3Url from '../../assets/materials/ballons-bubbles/bubble-3.png';
+import bubble4Url from '../../assets/materials/ballons-bubbles/bubble-4.png';
+import bubble5Url from '../../assets/materials/ballons-bubbles/bubble-5.png';
+import bubble6Url from '../../assets/materials/ballons-bubbles/bubble-6.png';
+import bubble7Url from '../../assets/materials/ballons-bubbles/bubble-7.png';
+import bubble8Url from '../../assets/materials/ballons-bubbles/bubble-8.png';
 
 const WORDS_PER_ROUND = 5;
-
-// Exact bounding boxes from SVG viewBox (450x320), all bubbles r=52.175
-const BUBBLE_FRAMES = [
-  { x: 29, y: 44, w: 105, h: 105 },   // teal bubble (cx=81.519, cy=96.085)
-  { x: 173, y: 44, w: 105, h: 105 },   // red/orange bubble (cx=225, cy=96.085)
-  { x: 316, y: 44, w: 105, h: 105 },   // yellow bubble (cx=368.481, cy=96.085)
-  { x: 29, y: 172, w: 105, h: 105 },   // light blue bubble (cx=81.519, cy=223.84)
-  { x: 173, y: 172, w: 105, h: 105 },  // purple bubble (cx=225, cy=223.84)
-  { x: 316, y: 172, w: 105, h: 105 },  // green bubble (cx=368.481, cy=223.84)
+const BUBBLE_PNG_URLS = [
+  bubble1Url, bubble2Url, bubble3Url, bubble4Url,
+  bubble5Url, bubble6Url, bubble7Url, bubble8Url,
 ];
-
-// SVG viewBox dimensions
-const SVG_VB_W = 450;
-const SVG_VB_H = 320;
 
 const pickRandom = (arr, n) => {
   const copy = [...arr];
@@ -146,6 +146,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
   const spelledLettersRef = useRef([]);
   const wrongTapCountRef = useRef(0);
   const bubbleTexturesRef = useRef([]);
+  const skyRef = useRef(null);
   const [transitioning, setTransitioning] = useState(false);
 
   const [roundWords] = useState(() => pickRandom(group.words, WORDS_PER_ROUND));
@@ -225,9 +226,10 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         await app.init({
           width: w,
           height: h,
-          backgroundAlpha: 0,
+          backgroundAlpha: 1,
+          backgroundColor: 0x87CEEB,
           antialias: true,
-          resolution: Math.min(window.devicePixelRatio || 1, 2),
+          resolution: 1,
           autoDensity: true,
         });
         if (destroyedRef.current) { app.destroy(true); return; }
@@ -240,56 +242,22 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         el.appendChild(app.canvas);
         pixiAppRef.current = app;
 
-        // Load bubble SVG — fetch as text and create blob with explicit dimensions
-        // SVGs without width/height attributes render at browser default (300x150),
-        // so we inject explicit dimensions to match the viewBox (450x320).
-        let svgText;
+        // Sky parallax background
         try {
-          const resp = await fetch(bubblesSvg);
-          svgText = await resp.text();
-        } catch (e) {
-          console.error('Failed to fetch bubble SVG:', e);
-          svgText = null;
-        }
+          skyRef.current = await createSkyBackground(app);
+        } catch (e) { console.warn('Sky bg failed:', e); }
         if (destroyedRef.current) { app.destroy(true); return; }
 
-        if (svgText) {
-          // Inject width/height so it renders at correct size
-          const renderW = SVG_VB_W * 2; // 900px for quality
-          const renderH = SVG_VB_H * 2; // 640px
-          const fixedSvg = svgText.replace(
-            /<svg([^>]*)>/,
-            `<svg$1 width="${renderW}" height="${renderH}">`
-          );
-          const blob = new Blob([fixedSvg], { type: 'image/svg+xml;charset=utf-8' });
-          const blobUrl = URL.createObjectURL(blob);
-
-          const svgImg = new Image();
-          svgImg.src = blobUrl;
-          await new Promise((resolve, reject) => {
-            svgImg.onload = resolve;
-            svgImg.onerror = reject;
-          });
-          URL.revokeObjectURL(blobUrl);
-          if (destroyedRef.current) { app.destroy(true); return; }
-
-          bubbleTexturesRef.current = BUBBLE_FRAMES.map(frame => {
-            const offscreen = document.createElement('canvas');
-            offscreen.width = 256;
-            offscreen.height = 256;
-            const ctx2d = offscreen.getContext('2d');
-            ctx2d.drawImage(
-              svgImg,
-              frame.x * 2, frame.y * 2,
-              frame.w * 2, frame.h * 2,
-              0, 0, 256, 256
-            );
-            return Texture.from(offscreen);
-          });
-        }
+        // Load bubble PNG textures via Assets.load (PixiJS v8)
+        try {
+          const texArr = await Promise.all(BUBBLE_PNG_URLS.map(url => Assets.load(url)));
+          bubbleTexturesRef.current = texArr;
+        } catch (e) { console.warn('Bubble textures failed:', e); }
+        if (destroyedRef.current) { app.destroy(true); return; }
 
         // Compute bubble radius from canvas (1.5x bigger)
-        const bRadius = Math.min(Math.max(50, Math.min(w, h) * 0.1), 72);
+        // Bigger on phones (min 50), scales up on larger screens
+        const bRadius = Math.min(Math.max(50, Math.min(w, h) * 0.09), 65);
         bubbleRadiusRef.current = bRadius;
 
         const TRAY_H = 80;
@@ -362,6 +330,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
 
     return () => {
       destroyedRef.current = true;
+      if (skyRef.current) { skyRef.current.destroy(); skyRef.current = null; }
       const pixiApp = pixiAppRef.current;
       if (pixiApp) {
         try { pixiApp.ticker.stop(); } catch (e) { /* silent */ }
@@ -452,9 +421,10 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         text: letter.toLowerCase(),
         style: new TextStyle({
           fontFamily: 'Arial, Helvetica, sans-serif',
-          fontSize: Math.max(R * 0.7, 24),
+          fontSize: Math.max(R * 0.75, 20),
           fontWeight: 'bold',
-          fill: 0xffffff,
+          fill: '#3e366b',
+          dropShadow: { color: 0xffffff, alpha: 0.5, blur: 2, distance: 0 },
         }),
       });
       text.anchor.set(0.5);
@@ -590,7 +560,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
 
   if (gameComplete) {
     return (
-      <div className="h-screen w-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#1a1147] to-[#4ECDC4]">
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#5BA3D9] to-[#87CEEB]">
         <motion.button
           onClick={toggleFullscreen}
           className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
@@ -645,7 +615,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden relative flex flex-col bg-gradient-to-b from-[#0d1b3e] to-[#1a3a5c]">
+    <div className="h-screen w-screen overflow-hidden relative flex flex-col">
       {/* Back + Fullscreen buttons */}
       <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
         <motion.button
@@ -698,7 +668,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       <div ref={canvasContainerRef} className="absolute inset-0 z-10" />
 
       {/* Spelling tray at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 bg-[#0d1b3e] border-t-2 border-[#4ECDC4]/30 py-4 md:py-5 px-4">
+      <div className="absolute bottom-0 left-0 right-0 z-30 bg-white/20 backdrop-blur-md border-t border-white/30 py-4 md:py-5 px-4">
         <AnimatePresence mode="wait">
           <motion.div
             key={wordIndex}
@@ -716,7 +686,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
                   className={`w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-xl flex items-center justify-center text-xl md:text-2xl lg:text-3xl font-black uppercase ${
                     isSpelled
                       ? 'bg-[#4ECDC4] text-white'
-                      : 'bg-white/10 text-white/20 border-2 border-dashed border-white/20'
+                      : 'bg-white/40 text-[#3e366b]/30 border-2 border-dashed border-[#3e366b]/20'
                   }`}
                   style={isSpelled ? {
                     borderBottom: '4px solid #38B2AC',

@@ -16,6 +16,15 @@ const FrogSprite = ({ size = 60 }) => (
 
 const GAMES = [
   {
+    id: 'sand-tracing',
+    title: 'Sand Tracing',
+    icon: '✏️',
+    color: '#F59E0B',
+    borderColor: '#D97706',
+    unlocked: true,
+    description: 'Trace letters in sand!',
+  },
+  {
     id: 'flashlight',
     title: 'Magic Flashlight',
     icon: '🔦',
@@ -86,15 +95,6 @@ const GAMES = [
     borderColor: '#4BA8D0',
     unlocked: true,
     description: 'Help the frog hop!',
-  },
-  {
-    id: 'sand-tracing',
-    title: 'Sand Tracing',
-    icon: '✏️',
-    color: '#F59E0B',
-    borderColor: '#D97706',
-    unlocked: true,
-    description: 'Trace letters in sand!',
   },
   {
     id: 'carnival-wheel',
@@ -171,24 +171,18 @@ const PlaygroundHub = ({ group, onBack, onSelectGame }) => {
       style={{ background: 'linear-gradient(135deg, #1a1147 0%, #2d1b69 30%, #4a2c8a 60%, #6B3FA0 100%)' }}
     >
       {/* Floating sparkle decorations */}
-      {[...Array(6)].map((_, i) => (
-        <motion.div
+      {[0, 1, 2].map((i) => (
+        <div
           key={i}
-          className="absolute text-yellow-300/30 pointer-events-none"
+          className="absolute text-yellow-300/20 pointer-events-none"
           style={{
-            left: `${10 + i * 15}%`,
-            top: `${15 + (i % 3) * 25}%`,
-            fontSize: `${20 + i * 4}px`,
+            left: `${15 + i * 30}%`,
+            top: `${20 + (i % 2) * 30}%`,
+            fontSize: `${22 + i * 4}px`,
           }}
-          animate={{
-            y: [0, -15, 0],
-            opacity: [0.2, 0.5, 0.2],
-            rotate: [0, 180, 360],
-          }}
-          transition={{ duration: 3 + i * 0.5, repeat: Infinity, delay: i * 0.4 }}
         >
           ✦
-        </motion.div>
+        </div>
       ))}
 
       {/* Back + Fullscreen buttons */}
@@ -266,17 +260,13 @@ const PlaygroundHub = ({ group, onBack, onSelectGame }) => {
               </div>
             )}
 
-            <motion.div
-              className="mb-3 flex items-center justify-center"
-              animate={game.unlocked ? { y: [0, -4, 0] } : {}}
-              transition={{ duration: 2, repeat: Infinity, delay: GAMES.indexOf(game) * 0.2 }}
-            >
+            <div className="mb-3 flex items-center justify-center">
               {game.icon === 'frog-sprite' ? (
                 <FrogSprite size={70} />
               ) : (
                 <span className="text-5xl md:text-6xl lg:text-7xl">{game.icon}</span>
               )}
-            </motion.div>
+            </div>
             <span
               className="text-sm md:text-base lg:text-lg text-center leading-tight font-extrabold"
               style={{ color: game.unlocked ? '#fff' : '#888' }}

@@ -391,14 +391,17 @@ export const PHONICS_GROUPS = [
       { word: "with", image: "with", sentence: "I play with my friend." },
       { word: "bath", image: "bath", sentence: "I take a bath every night." },
       { word: "math", image: "math", sentence: "I am good at math." },
+      { word: "moth", image: "moth", sentence: "A moth flew to the light." },
+      { word: "these", image: "these", sentence: "I want these toys." },
+      { word: "things", image: "things", sentence: "Put your things away." },
     ],
     exercises: {
       fillBlank: [
         { sentence: "I see ___ birds.", answer: "three", options: ["three", "tree", "free"] },
-        { sentence: "The book is very ___.", answer: "thick", options: ["thick", "think", "thin"] },
-        { sentence: "I take a ___ every night.", answer: "bath", options: ["bath", "math", "path"] },
-        { sentence: "I am good at ___.", answer: "math", options: ["math", "bath", "path"] },
-        { sentence: "I play ___ my friend.", answer: "with", options: ["with", "this", "that"] },
+        { sentence: "The paper is ___.", answer: "thin", options: ["thin", "then", "them"] },
+        { sentence: "___ is my pen.", answer: "this", options: ["this", "that", "them"] },
+        { sentence: "I am good at ___.", answer: "math", options: ["math", "moth", "that"] },
+        { sentence: "We eat, ___ we play.", answer: "then", options: ["then", "them", "that"] },
       ],
     },
   },
@@ -422,11 +425,11 @@ export const PHONICS_GROUPS = [
     ],
     exercises: {
       fillBlank: [
-        { sentence: "I took a ___ at school.", answer: "quiz", options: ["quiz", "quit", "quid"] },
-        { sentence: "Please be ___ in class.", answer: "quiet", options: ["quiet", "quick", "quilt"] },
+        { sentence: "I took a ___ at school.", answer: "quiz", options: ["quiz", "quit", "quin"] },
+        { sentence: "Please be ___ in class.", answer: "quiet", options: ["quiet", "quit", "quiz"] },
         { sentence: "The ___ wears a crown.", answer: "queen", options: ["queen", "green", "seen"] },
-        { sentence: "The duck says ___.", answer: "quack", options: ["quack", "quick", "quest"] },
-        { sentence: "We go on a ___ for treasure.", answer: "quest", options: ["quest", "guest", "best"] },
+        { sentence: "He wants to ___ the game.", answer: "quit", options: ["quit", "quiz", "quin"] },
+        { sentence: "___ is my friend.", answer: "Quin", options: ["Quin", "queen", "quiz"] },
       ],
     },
   },
@@ -447,14 +450,20 @@ export const PHONICS_GROUPS = [
       { word: "count", image: "count", sentence: "Can you count to ten?" },
       { word: "round", image: "round", sentence: "The ball is round." },
       { word: "house", image: "house", sentence: "This is my house." },
+      { word: "couch", image: "couch", sentence: "I sit on the couch." },
+      { word: "howl", image: "howl", sentence: "The wolf likes to howl." },
+      { word: "mouth", image: "mouth", sentence: "Open your mouth wide." },
+      { word: "out", image: "out", sentence: "The cat ran out the door." },
+      { word: "pouch", image: "pouch", sentence: "The kangaroo has a pouch." },
+      { word: "south", image: "south", sentence: "Birds fly south in winter." },
     ],
     exercises: {
       fillBlank: [
-        { sentence: "An ___ sits on the tree.", answer: "owl", options: ["owl", "howl", "bowl"] },
+        { sentence: "An ___ sits on the tree.", answer: "owl", options: ["owl", "howl", "fowl"] },
         { sentence: "The ___ eats grass.", answer: "cow", options: ["cow", "how", "now"] },
-        { sentence: "The music is too ___.", answer: "loud", options: ["loud", "cloud", "proud"] },
-        { sentence: "The ball is ___.", answer: "round", options: ["round", "sound", "found"] },
-        { sentence: "This is my ___.", answer: "house", options: ["house", "mouse", "louse"] },
+        { sentence: "The music is too ___.", answer: "loud", options: ["loud", "out", "south"] },
+        { sentence: "A ___ walks near the farm.", answer: "fowl", options: ["fowl", "owl", "howl"] },
+        { sentence: "Open your ___.", answer: "mouth", options: ["mouth", "south", "out"] },
       ],
     },
   },
@@ -482,7 +491,7 @@ export const PHONICS_GROUPS = [
         { sentence: "The plant grows in the ___.", answer: "soil", options: ["soil", "toil", "foil"] },
         { sentence: "The ___ is playing.", answer: "boy", options: ["boy", "toy", "joy"] },
         { sentence: "She smiled with ___.", answer: "joy", options: ["joy", "boy", "toy"] },
-        { sentence: "Dogs are ___ pets.", answer: "loyal", options: ["loyal", "royal", "foil"] },
+        { sentence: "He found a ___ on the ground.", answer: "coin", options: ["coin", "foil", "boil"] },
       ],
     },
   },
@@ -532,14 +541,21 @@ export const PHONICS_GROUPS = [
       { word: "curl", image: "curl", sentence: "She has a nice curl in her hair." },
       { word: "fur", image: "fur", sentence: "The cat has soft fur." },
       { word: "curve", image: "curve", sentence: "The road has a sharp curve." },
+      { word: "chirp", image: "chirp", sentence: "I hear the birds chirp." },
+      { word: "herd", image: "herd", sentence: "A herd of cows is in the field." },
+      { word: "hurt", image: "hurt", sentence: "I hurt my knee." },
+      { word: "perm", image: "perm", sentence: "She got a perm at the salon." },
+      { word: "shirt", image: "shirt", sentence: "He wears a red shirt." },
+      { word: "turf", image: "turf", sentence: "We play on the turf." },
+      { word: "turn", image: "turn", sentence: "It is your turn now." },
     ],
     exercises: {
       fillBlank: [
-        { sentence: "The ___ flows fast.", answer: "river", options: ["river", "liver", "giver"] },
-        { sentence: "A ___ is in the sky.", answer: "bird", options: ["bird", "word", "herd"] },
-        { sentence: "The cat has soft ___.", answer: "fur", options: ["fur", "her", "sir"] },
-        { sentence: "There is ___ on my shoe.", answer: "dirt", options: ["dirt", "girl", "bird"] },
+        { sentence: "A ___ is in the sky.", answer: "bird", options: ["bird", "herd", "shirt"] },
+        { sentence: "The cat has soft ___.", answer: "fur", options: ["fur", "sir", "curl"] },
         { sentence: "The ___ plays with her doll.", answer: "girl", options: ["girl", "curl", "bird"] },
+        { sentence: "She has a nice ___ in her hair.", answer: "curl", options: ["curl", "girl", "fern"] },
+        { sentence: "___, please sit here.", answer: "sir", options: ["sir", "bird", "fur"] },
       ],
     },
   },
@@ -560,6 +576,10 @@ export const PHONICS_GROUPS = [
       { word: "bark", image: "bark", sentence: "Dogs bark at strangers." },
       { word: "card", image: "card", sentence: "I got a birthday card." },
       { word: "park", image: "park", sentence: "We play at the park." },
+      { word: "far", image: "far", sentence: "The star is very far." },
+      { word: "mark", image: "mark", sentence: "I got a good mark on my test." },
+      { word: "shark", image: "shark", sentence: "A shark swims in the sea." },
+      { word: "tar", image: "tar", sentence: "The road is made of tar." },
     ],
     exercises: {
       fillBlank: [
@@ -576,7 +596,7 @@ export const PHONICS_GROUPS = [
 // Auto-generate words for groups 1-13 from sounds-pics images.
 // Images are the source of truth — adding/removing a pic auto-updates the word list.
 // Existing sentence data is preserved; new words get a simple default sentence.
-const AUTO_GEN_GROUPS = 13; // groups 1 through 13
+const AUTO_GEN_GROUPS = 20; // groups 1 through 20
 
 PHONICS_GROUPS.forEach((group) => {
   if (group.id > AUTO_GEN_GROUPS) return;
