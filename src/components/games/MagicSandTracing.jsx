@@ -554,8 +554,71 @@ async function extractTracingPaths(char, isUppercase, canvasW, canvasH) {
       })
       .filter(s => s.isDot || s.len > 5);
 
-    // W/w: keep all strokes separate (4 distinct strokes for the zigzag shape)
-    // Merging creates discontinuous paths that break the tracing corridor detection
+    // ── Phase 7: Smart stroke reorder — compare document order vs connectivity chain ──
+    // Document order (digit clusters as they appear in SVG) is correct for MOST letters
+    // (A, T, I, etc.) but fails for letters where digit-to-dashgroup matching goes wrong
+    // (W, Z, P). Connectivity chaining (endpoint→nearest start) fixes those but breaks
+    // letters where strokes don't physically connect (A, T, I).
+    //
+    // Strategy: compute BOTH orderings, score each by total endpoint→next-start distance,
+    // and only use connectivity chaining when it's significantly better (50%+ improvement).
+    if (strokes.length > 1) {
+      // Score an ordering: sum of distances from stroke[i] endpoint to stroke[i+1] start
+      const scoreOrder = (arr) => {
+        let total = 0;
+        for (let i = 0; i < arr.length - 1; i++) {
+          if (arr[i].isDot || arr[i + 1].isDot) continue;
+          const end = arr[i].pts[arr[i].pts.length - 1];
+          const start = arr[i + 1].pts[0];
+          total += Math.hypot(end.x - start.x, end.y - start.y);
+        }
+        return total;
+      };
+
+      const docScore = scoreOrder(strokes);
+
+      // Build connectivity chain ordering
+      const chainOrder = [];
+      const used = new Set();
+
+      // Root: stroke whose start is most upper-left (y + x*0.3)
+      let bestRoot = 0, bestRootScore = Infinity;
+      for (let i = 0; i < strokes.length; i++) {
+        if (strokes[i].isDot) continue;
+        const p = strokes[i].pts[0];
+        const s = p.y + p.x * 0.3;
+        if (s < bestRootScore) { bestRootScore = s; bestRoot = i; }
+      }
+      used.add(bestRoot);
+      chainOrder.push(bestRoot);
+
+      while (chainOrder.length < strokes.length) {
+        const curr = strokes[chainOrder[chainOrder.length - 1]];
+        const endPt = curr.pts[curr.pts.length - 1];
+        let nearest = -1, nearestDist = Infinity;
+        for (let i = 0; i < strokes.length; i++) {
+          if (used.has(i)) continue;
+          const d = Math.hypot(endPt.x - strokes[i].pts[0].x, endPt.y - strokes[i].pts[0].y);
+          if (d < nearestDist) { nearestDist = d; nearest = i; }
+        }
+        if (nearest === -1) break;
+        used.add(nearest);
+        chainOrder.push(nearest);
+      }
+      for (let i = 0; i < strokes.length; i++) {
+        if (!used.has(i)) chainOrder.push(i);
+      }
+
+      const chainedStrokes = chainOrder.map(i => strokes[i]);
+      const chainScore = scoreOrder(chainedStrokes);
+
+      // Only use chaining if it's significantly better (50%+ improvement)
+      // This preserves document order for A, T, I (where strokes don't chain nicely)
+      // but fixes W, Z, P (where strokes physically connect end→start)
+      if (chainScore < docScore * 0.5) {
+        strokes = chainedStrokes;
+      }
+    }
 
     // Build clip path
     let clipPath = null;
