@@ -30,6 +30,7 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
   const welcomePlayingRef = useRef(false);
   const [longPressGroup, setLongPressGroup] = useState(null);
   const longPressTimerRef = useRef(null);
+  const justLongPressedRef = useRef(false);
   const [showSettings, setShowSettings] = useState(false);
   const { voMuted, toggleVoMute } = useMute();
 
@@ -321,18 +322,23 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
                 <div key={group.id} className="relative flex flex-col items-center">
                   <motion.button
                     onClick={() => {
-                      if (longPressGroup === group.id) return;
+                      // Block only the click that's part of the long-press gesture
+                      if (justLongPressedRef.current) { justLongPressedRef.current = false; return; }
+                      // Dismiss playground if open, then navigate
+                      setLongPressGroup(null);
                       onSelectGroup(group);
                     }}
                     onPointerDown={() => {
+                      justLongPressedRef.current = false;
                       longPressTimerRef.current = setTimeout(() => {
                         setLongPressGroup((prev) => prev === group.id ? null : group.id);
+                        justLongPressedRef.current = true;
                       }, 500);
                     }}
                     onPointerUp={() => clearTimeout(longPressTimerRef.current)}
                     onPointerLeave={() => clearTimeout(longPressTimerRef.current)}
                     onContextMenu={(e) => e.preventDefault()}
-                    className="flex flex-col items-center justify-center bg-white transition-all w-full"
+                    className="flex flex-col items-center justify-center bg-white transition-all w-full select-none"
                     style={{
                       borderRadius: '2.2rem',
                       borderWidth: '3px',

@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2 } from 'lucide-react';
+import Lottie from 'lottie-react';
 import { Application, Graphics, Text, TextStyle, Container, Sprite as PixiSprite, Texture, Assets } from 'pixi.js';
 import { playLetterSound, getLetterSoundUrl } from '../utils/letterSounds';
 import { speakWithVoice } from '../utils/speech';
 import { playVO, stopVO, delay } from '../utils/audioPlayer';
 import { triggerCelebration, triggerSmallBurst } from '../utils/confetti';
-import { createSkyBackground } from './themes/SkyBackground';
+import { createSkyBackground, SkyOverlay } from './themes/SkyBackground';
 
 // Balloon PNG sprites
 import balloonBlueUrl from '../assets/materials/ballons-bubbles/balloon-blue.png';
@@ -15,6 +16,10 @@ import balloonPinkUrl from '../assets/materials/ballons-bubbles/balloon-pink.png
 import balloonPurpleUrl from '../assets/materials/ballons-bubbles/balloon-purple.png';
 import balloonRedUrl from '../assets/materials/ballons-bubbles/balloon-red.png';
 import balloonYellowUrl from '../assets/materials/ballons-bubbles/balloon-yellow.png';
+
+// Lottie + tutorial assets
+import cuteCatData from '../assets/materials/cute-cat.json';
+import tutorialArmUrl from '../assets/materials/tutorial-pointing-arm.png';
 
 // Cycling encouragement for balloon pops
 const POP_ENCOURAGEMENTS = [
@@ -324,7 +329,7 @@ const SoundBalloons = ({ group, onComplete }) => {
         pixiAppRef.current._spawnBalloon = () => {
           if (destroyed || gameOverRef.current) return;
           const active = balloonsRef.current.filter(b => !b.popped);
-          if (active.length >= 10) return;
+          if (active.length >= 20) return;
 
           const currentTarget = targetSoundRef.current;
           const isTarget = Math.random() < 0.6;
@@ -369,15 +374,16 @@ const SoundBalloons = ({ group, onComplete }) => {
           const txt = new Text({
             text: sound.toLowerCase(),
             style: new TextStyle({
-              fontFamily: 'Arial, Helvetica, sans-serif',
-              fontSize: Math.max(bSize * 0.48, 32),
-              fontWeight: 'bold',
-              fill: 0xffffff,
-              dropShadow: { color: 0x000000, alpha: 0.35, blur: 4, distance: 2 },
+              fontFamily: '"Fredoka", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif',
+              fontSize: Math.max(bSize * 0.55, 36),
+              fontWeight: '900',
+              fill: '#3e366b',
+              stroke: { color: '#ffffff', width: 3 },
+              dropShadow: { color: 0xffffff, alpha: 0.5, blur: 3, distance: 0 },
             }),
           });
           txt.anchor.set(0.5, 0.5);
-          txt.y = -bSize * 0.3;
+          txt.y = -bSize * 0.5;
           container.addChild(txt);
 
           // Hit area
@@ -400,7 +406,7 @@ const SoundBalloons = ({ group, onComplete }) => {
             x: bx,
             y: by,
             currentX: bx,
-            speed: 0.5 + Math.random() * 0.5,
+            speed: 1.0 + Math.random() * 0.7,
             swayOffset: Math.random() * Math.PI * 2,
             swayAmp: 12 + Math.random() * 20,
             size: balloonSize,
@@ -467,8 +473,11 @@ const SoundBalloons = ({ group, onComplete }) => {
     };
   }, [sounds]);
 
-  // Tutorial hand position state
+  // Tutorial hand + cat Lottie state
   const [tutorialHand, setTutorialHand] = useState(null); // { x, y, visible, popping }
+  const [showCatLottie, setShowCatLottie] = useState(false);
+  const [showCountdown, setShowCountdown] = useState(false);
+  const hasPlayedOnceRef = useRef(false);
 
   // Tutorial + 3-2-1-GO countdown
   useEffect(() => {
@@ -482,143 +491,164 @@ const SoundBalloons = ({ group, onComplete }) => {
       await delay(1200);
       if (cancelled) return;
 
-      // Step 2: Tutorial — spawn demo balloons in PixiJS and animate a hand to pop the target
-      const app = pixiAppRef.current;
-      if (app && !cancelled) {
-        const stageW = app.screen.width;
-        const stageH = app.screen.height;
-        const balloonSize = Math.min(Math.max(110, stageW * 0.22), 180);
-        const bSize = balloonSize * 1.05;
-        const textures = balloonTexturesRef.current;
-        const targetSound = sounds[0];
+      // Step 2: Tutorial — only on first play
+      if (!hasPlayedOnceRef.current) {
+        const app = pixiAppRef.current;
+        if (app && !cancelled) {
+          const stageW = app.screen.width;
+          const stageH = app.screen.height;
+          const balloonSize = Math.min(Math.max(110, stageW * 0.22), 180);
+          const bSize = balloonSize * 1.05;
+          const textures = balloonTexturesRef.current;
+          const targetSound = sounds[0];
 
-        // Pick 4 demo sounds: 1 target + 3 distractors
-        const distractors = ALL_SOUNDS.filter(s => s !== targetSound && s.length === targetSound.length);
-        const demoSounds = [targetSound];
-        for (let i = 0; i < 3 && distractors.length > 0; i++) {
-          const idx = Math.floor(Math.random() * distractors.length);
-          demoSounds.push(distractors.splice(idx, 1)[0]);
-        }
-        // Shuffle
-        for (let i = demoSounds.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [demoSounds[i], demoSounds[j]] = [demoSounds[j], demoSounds[i]];
-        }
-        const targetIdx = demoSounds.indexOf(targetSound);
-
-        // Spawn demo balloon containers
-        const demoBalloons = [];
-        const spacing = stageW / (demoSounds.length + 1);
-        for (let i = 0; i < demoSounds.length; i++) {
-          const container = new Container();
-          if (textures.length > 0) {
-            const tex = textures[Math.floor(Math.random() * textures.length)];
-            const spr = new PixiSprite(tex);
-            spr.anchor.set(0.5);
-            const aspect = tex.height / tex.width;
-            spr.width = bSize;
-            spr.height = bSize * aspect;
-            container.addChild(spr);
-          } else {
-            const gfx = new Graphics();
-            gfx.ellipse(0, 0, bSize * 0.45, bSize * 0.5);
-            gfx.fill({ color: 0xFF1E56, alpha: 0.92 });
-            container.addChild(gfx);
+          // Pick 7 demo sounds: 3 targets + 4 distractors
+          const distractors = ALL_SOUNDS.filter(s => s !== targetSound && s.length === targetSound.length);
+          const demoSounds = [targetSound, targetSound, targetSound];
+          for (let i = 0; i < 4 && distractors.length > 0; i++) {
+            const idx = Math.floor(Math.random() * distractors.length);
+            demoSounds.push(distractors.splice(idx, 1)[0]);
           }
-          const txt = new Text({
-            text: demoSounds[i].toLowerCase(),
-            style: new TextStyle({
-              fontFamily: 'Arial, Helvetica, sans-serif',
-              fontSize: Math.max(bSize * 0.48, 32),
-              fontWeight: 'bold',
-              fill: 0xffffff,
-              dropShadow: { color: 0x000000, alpha: 0.35, blur: 4, distance: 2 },
-            }),
+          for (let i = demoSounds.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [demoSounds[i], demoSounds[j]] = [demoSounds[j], demoSounds[i]];
+          }
+
+          const targetIndices = [];
+          for (let i = 0; i < demoSounds.length; i++) {
+            if (demoSounds[i] === targetSound) targetIndices.push(i);
+          }
+
+          const demoBalloons = [];
+          const spacing = stageW / (demoSounds.length + 1);
+          for (let i = 0; i < demoSounds.length; i++) {
+            const container = new Container();
+            if (textures.length > 0) {
+              const tex = textures[Math.floor(Math.random() * textures.length)];
+              const spr = new PixiSprite(tex);
+              spr.anchor.set(0.5);
+              const aspect = tex.height / tex.width;
+              spr.width = bSize;
+              spr.height = bSize * aspect;
+              container.addChild(spr);
+            } else {
+              const gfx = new Graphics();
+              gfx.ellipse(0, 0, bSize * 0.45, bSize * 0.5);
+              gfx.fill({ color: 0xFF1E56, alpha: 0.92 });
+              container.addChild(gfx);
+            }
+            const txt = new Text({
+              text: demoSounds[i].toLowerCase(),
+              style: new TextStyle({
+                fontFamily: '"Fredoka", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif',
+                fontSize: Math.max(bSize * 0.55, 36),
+                fontWeight: '900',
+                fill: '#3e366b',
+                stroke: { color: '#ffffff', width: 3 },
+                dropShadow: { color: 0xffffff, alpha: 0.5, blur: 3, distance: 0 },
+              }),
+            });
+            txt.anchor.set(0.5, 0.5);
+            txt.y = -bSize * 0.5;
+            container.addChild(txt);
+
+            const bx = spacing * (i + 1);
+            const targetY = stageH * (0.2 + Math.random() * 0.4);
+            container.x = bx;
+            container.y = stageH + bSize;
+            app.stage.addChild(container);
+            demoBalloons.push({ container, targetX: bx, targetY, isTarget: demoSounds[i] === targetSound });
+          }
+
+          // Animate balloons floating up
+          await new Promise((resolve) => {
+            let t = 0;
+            const riseTicker = (ticker) => {
+              if (cancelled) { app.ticker.remove(riseTicker); resolve(); return; }
+              t += ticker.deltaTime;
+              let allDone = true;
+              for (const db of demoBalloons) {
+                db.container.y += (db.targetY - db.container.y) * 0.06 * ticker.deltaTime;
+                if (Math.abs(db.container.y - db.targetY) > 2) allDone = false;
+              }
+              if (allDone || t > 90) { app.ticker.remove(riseTicker); resolve(); }
+            };
+            app.ticker.add(riseTicker);
           });
-          txt.anchor.set(0.5, 0.5);
-          txt.y = -bSize * 0.3;
-          container.addChild(txt);
+          if (cancelled) { demoBalloons.forEach(db => { try { app.stage.removeChild(db.container); db.container.destroy({ children: true }); } catch(e){} }); return; }
 
-          const bx = spacing * (i + 1);
-          container.x = bx;
-          container.y = stageH + bSize;
-          app.stage.addChild(container);
-          demoBalloons.push({ container, targetX: bx, targetY: stageH * 0.45 });
-        }
+          await delay(400);
+          if (cancelled) { demoBalloons.forEach(db => { try { app.stage.removeChild(db.container); db.container.destroy({ children: true }); } catch(e){} }); return; }
 
-        // Animate balloons floating up to position
-        await new Promise((resolve) => {
-          let t = 0;
-          const riseTicker = (ticker) => {
-            if (cancelled) { app.ticker.remove(riseTicker); resolve(); return; }
-            t += ticker.deltaTime;
-            let allDone = true;
-            for (const db of demoBalloons) {
-              db.container.y += (db.targetY - db.container.y) * 0.06 * ticker.deltaTime;
-              if (Math.abs(db.container.y - db.targetY) > 2) allDone = false;
-            }
-            if (allDone || t > 90) { app.ticker.remove(riseTicker); resolve(); }
-          };
-          app.ticker.add(riseTicker);
-        });
-        if (cancelled) { demoBalloons.forEach(db => { try { app.stage.removeChild(db.container); db.container.destroy({ children: true }); } catch(e){} }); return; }
+          // Pop 2 targets with hand coming from bottom of screen
+          const canvasEl = canvasContainerRef.current;
+          const targetsToPop = targetIndices.slice(0, 2);
+          for (const tIdx of targetsToPop) {
+            if (cancelled) break;
+            const targetBalloon = demoBalloons[tIdx];
+            if (!canvasEl || !targetBalloon || targetBalloon.container.alpha === 0) continue;
 
-        await delay(400);
-        if (cancelled) { demoBalloons.forEach(db => { try { app.stage.removeChild(db.container); db.container.destroy({ children: true }); } catch(e){} }); return; }
+            const rect = canvasEl.getBoundingClientRect();
+            // Hand starts from below the screen
+            const startX = rect.left + rect.width * 0.5;
+            const startY = rect.top + rect.height + 100;
+            const endX = rect.left + (targetBalloon.targetX / stageW) * rect.width;
+            const endY = rect.top + (targetBalloon.targetY / stageH) * rect.height;
 
-        // Show hand and move it to the target balloon
-        const targetBalloon = demoBalloons[targetIdx];
-        const canvasEl = canvasContainerRef.current;
-        if (canvasEl && targetBalloon) {
-          const rect = canvasEl.getBoundingClientRect();
-          const startX = rect.left + rect.width * 0.5;
-          const startY = rect.top + rect.height * 0.85;
-          const endX = rect.left + (targetBalloon.targetX / stageW) * rect.width;
-          const endY = rect.top + (targetBalloon.targetY / stageH) * rect.height;
+            setTutorialHand({ x: startX, y: startY, visible: true, popping: false });
+            await delay(250);
+            if (cancelled) break;
 
-          // Show hand at start position
-          setTutorialHand({ x: startX, y: startY, visible: true, popping: false });
-          await delay(300);
-          if (cancelled) { setTutorialHand(null); demoBalloons.forEach(db => { try { app.stage.removeChild(db.container); db.container.destroy({ children: true }); } catch(e){} }); return; }
+            setTutorialHand({ x: endX, y: endY, visible: true, popping: false });
+            await delay(500);
+            if (cancelled) break;
 
-          // Move hand to target
-          setTutorialHand({ x: endX, y: endY, visible: true, popping: false });
-          await delay(600);
-          if (cancelled) { setTutorialHand(null); demoBalloons.forEach(db => { try { app.stage.removeChild(db.container); db.container.destroy({ children: true }); } catch(e){} }); return; }
+            setTutorialHand({ x: endX, y: endY, visible: true, popping: true });
+            playPopSound();
+            await new Promise((resolve) => {
+              let t = 0;
+              const popTicker = (ticker) => {
+                if (cancelled) { app.ticker.remove(popTicker); resolve(); return; }
+                t += ticker.deltaTime;
+                const s = Math.max(0, 1 - t * 0.08);
+                targetBalloon.container.scale.set(s);
+                targetBalloon.container.alpha = s;
+                if (s <= 0) { app.ticker.remove(popTicker); resolve(); }
+              };
+              app.ticker.add(popTicker);
+            });
 
-          // Pop the target balloon
-          setTutorialHand({ x: endX, y: endY, visible: true, popping: true });
-          playPopSound();
-          targetBalloon.container.scale.set(0);
-          targetBalloon.container.alpha = 0;
-          await delay(500);
-          if (cancelled) { setTutorialHand(null); demoBalloons.forEach(db => { try { app.stage.removeChild(db.container); db.container.destroy({ children: true }); } catch(e){} }); return; }
-
+            await delay(300);
+            if (cancelled) break;
+            setTutorialHand(null);
+            await delay(200);
+          }
           setTutorialHand(null);
+          if (cancelled) { demoBalloons.forEach(db => { try { app.stage.removeChild(db.container); db.container.destroy({ children: true }); } catch(e){} }); return; }
+
+          // Fade out remaining demo balloons
+          await new Promise((resolve) => {
+            let t = 0;
+            const fadeTicker = (ticker) => {
+              if (cancelled) { app.ticker.remove(fadeTicker); resolve(); return; }
+              t += ticker.deltaTime;
+              for (const db of demoBalloons) {
+                db.container.alpha = Math.max(0, db.container.alpha - 0.04 * ticker.deltaTime);
+              }
+              if (t > 30) { app.ticker.remove(fadeTicker); resolve(); }
+            };
+            app.ticker.add(fadeTicker);
+          });
+
+          demoBalloons.forEach(db => {
+            try { app.stage.removeChild(db.container); db.container.destroy({ children: true }); } catch(e) {}
+          });
         }
-
-        // Fade out remaining demo balloons
-        await new Promise((resolve) => {
-          let t = 0;
-          const fadeTicker = (ticker) => {
-            if (cancelled) { app.ticker.remove(fadeTicker); resolve(); return; }
-            t += ticker.deltaTime;
-            for (const db of demoBalloons) {
-              db.container.alpha = Math.max(0, db.container.alpha - 0.04 * ticker.deltaTime);
-            }
-            if (t > 30) { app.ticker.remove(fadeTicker); resolve(); }
-          };
-          app.ticker.add(fadeTicker);
-        });
-
-        // Cleanup demo balloons
-        demoBalloons.forEach(db => {
-          try { app.stage.removeChild(db.container); db.container.destroy({ children: true }); } catch(e) {}
-        });
+        if (cancelled) return;
       }
-      if (cancelled) return;
 
-      // Step 3: 3-2-1-GO countdown
+      // Step 3: 3-2-1-GO countdown (shown AFTER tutorial)
+      setShowCountdown(true);
       setCountdown(3);
       await delay(200);
       if (cancelled) return;
@@ -634,12 +664,15 @@ const SoundBalloons = ({ group, onComplete }) => {
       setCountdown(0); playCountdownTick(true);
       await delay(700);
       if (cancelled) return;
+      setShowCountdown(false);
       setGameStarted(true);
       gameStartedRef.current = true;
+      hasPlayedOnceRef.current = true;
+      setShowCatLottie(true);
       startIdleReminder(true);
     };
     run();
-    return () => { cancelled = true; stopVO(); clearIdleReminder(); setTutorialHand(null); };
+    return () => { cancelled = true; stopVO(); clearIdleReminder(); setTutorialHand(null); setShowCatLottie(false); setShowCountdown(false); };
   }, [gameStarted, sounds, announceSound]);
 
   // Game timer
@@ -663,9 +696,16 @@ const SoundBalloons = ({ group, onComplete }) => {
           clearInterval(timerRef.current);
           clearInterval(spawnIntervalRef.current);
           clearTimeout(idleReminderRef.current);
-          setShowResults(true);
-          triggerCelebration();
-          transitioningRef.current = false;
+          // Play Time's up VO before showing results
+          const showFinal = async () => {
+            triggerSmallBurst();
+            await playVO("Time's up!");
+            await delay(500);
+            setShowResults(true);
+            triggerCelebration();
+            transitioningRef.current = false;
+          };
+          showFinal();
         } else {
           const handleTransition = async () => {
             triggerSmallBurst();
@@ -707,8 +747,9 @@ const SoundBalloons = ({ group, onComplete }) => {
 
     const spawn = () => pixiAppRef.current?._spawnBalloon?.();
 
-    for (let i = 0; i < 3; i++) setTimeout(spawn, i * 200);
-    spawnIntervalRef.current = setInterval(spawn, 700);
+    // Spawn 3 immediately, then steady rate
+    for (let i = 0; i < 3; i++) setTimeout(spawn, i * 100);
+    spawnIntervalRef.current = setInterval(spawn, 200);
     return () => clearInterval(spawnIntervalRef.current);
   }, [gameStarted, displayTargetIdx]);
 
@@ -760,6 +801,55 @@ const SoundBalloons = ({ group, onComplete }) => {
       {/* PixiJS canvas container — sky background + balloons rendered here */}
       <div ref={canvasContainerRef} className="absolute inset-0 z-20" />
 
+      {/* Background flying birds */}
+      <SkyOverlay />
+
+      {/* Cat Lottie — floats in during game */}
+      <AnimatePresence>
+        {showCatLottie && (
+          <motion.div
+            className="fixed z-[52] pointer-events-none"
+            style={{ bottom: '2%', right: '3%', width: 'clamp(200px, 35vw, 400px)' }}
+            initial={{ y: 200, opacity: 0 }}
+            animate={{ y: [0, -15, 0], opacity: 1 }}
+            exit={{ y: 200, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 120, damping: 14, y: { duration: 3, repeat: Infinity, ease: 'easeInOut' } }}
+          >
+            <Lottie animationData={cuteCatData} loop autoplay style={{ width: '100%', height: '100%' }} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Tutorial pointing arm */}
+      <AnimatePresence>
+        {tutorialHand && tutorialHand.visible && (
+          <motion.img
+            src={tutorialArmUrl}
+            alt=""
+            className="fixed z-[56] pointer-events-none select-none"
+            style={{
+              width: 'clamp(140px, 25vw, 260px)',
+              // Rotate -90deg and flip so the arm points upward; fingertip is at top
+              transform: 'rotate(-90deg) scaleX(-1)',
+              transformOrigin: 'center center',
+              // Position so fingertip (top of rotated image) touches the target
+              left: tutorialHand.x,
+              top: tutorialHand.y,
+              marginLeft: '-12%',
+              marginTop: '-25%',
+            }}
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{
+              opacity: 1,
+              scale: tutorialHand.popping ? 1.15 : 1,
+              x: 0, y: 0,
+            }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            transition={{ duration: 0.35 }}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Header HUD — z-50 to be above canvas */}
       <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-end px-4 pt-3 md:pt-4 lg:pt-6">
         <div className="flex items-center gap-2">
@@ -790,9 +880,9 @@ const SoundBalloons = ({ group, onComplete }) => {
         </div>
       </div>
 
-      {/* 3-2-1-GO Countdown */}
+      {/* 3-2-1-GO Countdown — only shown after tutorial finishes */}
       <AnimatePresence mode="wait">
-        {!gameStarted && (
+        {showCountdown && (
           <motion.div className="fixed inset-0 z-[55] flex items-center justify-center pointer-events-none">
             <motion.span
               key={countdown}

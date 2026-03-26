@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Maximize, Volume2 } from 'lucide-react';
+import Lottie from 'lottie-react';
 import { Application, Graphics, Text, TextStyle, Container, Sprite as PixiSprite, Texture, Assets } from 'pixi.js';
 import { playLetterSound, stopAllAudio } from '../../utils/letterSounds';
 import { speakAsync } from '../../utils/speech';
 import { playVO, stopVO, delay } from '../../utils/audioPlayer';
 import { triggerCelebration, triggerSmallBurst } from '../../utils/confetti';
 import { playEncouragement } from '../../utils/encouragement';
-import { createSkyBackground } from '../themes/SkyBackground';
+import { SkyFullBackground } from '../themes/SkyBackground';
+
+import dogBathingData from '../../assets/materials/dog-bathing-in-bathtub.json';
 
 // Bubble PNG sprites
 import bubble1Url from '../../assets/materials/ballons-bubbles/bubble-1.png';
@@ -172,7 +175,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         if (!mountedRef.current) return;
         await speakAsync(w.word, { rate: 0.85 });
       }
-    }, 10000);
+    }, 6000);
   }, [roundWords]);
 
   // Replay target word via speaker button
@@ -226,8 +229,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         await app.init({
           width: w,
           height: h,
-          backgroundAlpha: 1,
-          backgroundColor: 0x87CEEB,
+          backgroundAlpha: 0,
           antialias: true,
           resolution: 1,
           autoDensity: true,
@@ -242,11 +244,22 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         el.appendChild(app.canvas);
         pixiAppRef.current = app;
 
-        // Sky parallax background
-        try {
-          skyRef.current = await createSkyBackground(app);
-        } catch (e) { console.warn('Sky bg failed:', e); }
-        if (destroyedRef.current) { app.destroy(true); return; }
+        // Resize handler — keeps canvas resolution matched to container so bubbles don't stretch
+        const resizeObserver = new ResizeObserver((entries) => {
+          if (destroyedRef.current || !pixiAppRef.current) return;
+          const entry = entries[0];
+          if (!entry) return;
+          const newW = Math.round(entry.contentRect.width);
+          const newH = Math.round(entry.contentRect.height);
+          if (newW > 0 && newH > 0) {
+            pixiAppRef.current.renderer.resize(newW, newH);
+          }
+        });
+        resizeObserver.observe(el);
+        // Store for cleanup
+        el._resizeObserver = resizeObserver;
+
+        // Sky background handled by CSS gradient + DOM clouds/birds (behind transparent canvas)
 
         // Load bubble PNG textures via Assets.load (PixiJS v8)
         try {
@@ -261,6 +274,8 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         bubbleRadiusRef.current = bRadius;
 
         const TRAY_H = 80;
+        // Dog Lottie occupies bottom ~25% — bubbles spawn from above the dog area
+        const DOG_H_RATIO = 0.25;
         app.ticker.add((ticker) => {
           const dt = ticker.deltaTime;
           const cW = app.screen.width;
@@ -289,34 +304,54 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
               continue;
             }
 
-            // Straight-line drift, bounce off walls
+            // Float upward + lateral drift, bounce off side walls
             b.x += b.vx * dt;
-            b.y += b.vy * dt;
+            b.y += b.vy * dt; // vy is negative (upward)
 
-            // Bounce off edges (reflect velocity)
-            if (b.y < minY) { b.y = minY; b.vy = Math.abs(b.vy); }
-            if (b.y > maxY) { b.y = maxY; b.vy = -Math.abs(b.vy); }
+            // Bounce off side edges
             if (b.x < minX) { b.x = minX; b.vx = Math.abs(b.vx); }
             if (b.x > maxX) { b.x = maxX; b.vx = -Math.abs(b.vx); }
+
+            // If bubble floats above visible area, recycle — respawn from dog position
+            if (b.y < -R * 2) {
+              b.firstWave = false;
+              b.y = cH * 0.78 + Math.random() * (cH * 0.05);
+              b.x = cW * 0.3 + Math.random() * (cW * 0.4);
+              b.growPhase = 0;
+            }
+            // Keep bubbles from sinking below play area
+            if (b.y > maxY) { b.y = maxY; }
+
+            // Growth phase — starts shortly after spawning
+            const spawnZone = cH * 0.72;
+            if (b.growPhase < 1) {
+              if (b.y < spawnZone) {
+                b.growPhase = Math.min(1, b.growPhase + 0.008 * dt);
+              }
+              const growScale = 0.3 + b.growPhase * 0.7;
+              b.container.scale.set(growScale);
+            }
 
             // Shimmer (gentle scale pulse)
             b.shimmerPhase += 0.025 * dt;
             const shimmerScale = 1 + Math.sin(b.shimmerPhase) * 0.025;
+            if (b.growPhase >= 1) { b.container.scale.set(shimmerScale); }
 
-            // Shake on wrong tap
+            // Shake on wrong tap — red tint on sprite
             let shakeX = 0;
             if (b.shakeStart !== null) {
               const elapsed = performance.now() - b.shakeStart;
-              if (elapsed < 400) {
-                shakeX = Math.sin(elapsed * 0.05) * 6 * (1 - elapsed / 400);
+              if (elapsed < 500) {
+                shakeX = Math.sin(elapsed * 0.05) * 8 * (1 - elapsed / 500);
+                if (b.sprite) b.sprite.tint = 0xFF4444;
               } else {
                 b.shakeStart = null;
+                if (b.sprite) b.sprite.tint = 0xFFFFFF;
               }
             }
 
             b.container.x = b.x + shakeX;
             b.container.y = b.y;
-            b.container.scale.set(shimmerScale);
           }
         });
 
@@ -330,7 +365,8 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
 
     return () => {
       destroyedRef.current = true;
-      if (skyRef.current) { skyRef.current.destroy(); skyRef.current = null; }
+      // Clean up resize observer
+      if (el._resizeObserver) { el._resizeObserver.disconnect(); el._resizeObserver = null; }
       const pixiApp = pixiAppRef.current;
       if (pixiApp) {
         try { pixiApp.ticker.stop(); } catch (e) { /* silent */ }
@@ -352,7 +388,8 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
     const h = app.screen.height;
     if (w === 0 || h === 0) return;
 
-    // Clear old bubbles
+    // Clear old bubbles and spawn timers
+    if (bubblesRef.current._cleanupSpawnTimers) bubblesRef.current._cleanupSpawnTimers();
     bubblesRef.current.forEach((b) => {
       try { app.stage.removeChild(b.container); } catch (e) { /* */ }
       try { b.container.destroy({ children: true }); } catch (e) { /* */ }
@@ -385,54 +422,57 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       [allLetters[i], allLetters[j]] = [allLetters[j], allLetters[i]];
     }
 
-    // Spawn each bubble
+    // Spawn bubbles one-by-one with stagger
     const R = bubbleRadiusRef.current;
+    const spawnTimers = [];
 
-    allLetters.forEach((letter, idx) => {
+    const spawnBubble = (letter, idx) => {
+      if (destroyedRef.current || !pixiAppRef.current) return;
       const container = new Container();
       container.interactive = true;
       container.eventMode = 'static';
       container.cursor = 'pointer';
 
       // SVG bubble sprite
+      let bubbleSprite = null;
       const textures = bubbleTexturesRef.current;
       if (textures.length > 0) {
         const tex = textures[idx % textures.length];
-        const spr = new PixiSprite(tex);
-        spr.anchor.set(0.5);
-        spr.width = R * 2;
-        spr.height = R * 2;
-        container.addChild(spr);
+        bubbleSprite = new PixiSprite(tex);
+        bubbleSprite.anchor.set(0.5);
+        bubbleSprite.width = R * 2;
+        bubbleSprite.height = R * 2;
+        container.addChild(bubbleSprite);
       } else {
-        // Fallback: draw a circle if textures failed
         const circle = new Graphics();
         circle.circle(0, 0, R);
         circle.fill({ color: 0x4ECDC4, alpha: 0.7 });
         container.addChild(circle);
       }
 
-      // Invisible hit area circle for tap detection
-      const hitArea = new Graphics();
-      hitArea.circle(0, 0, R);
-      hitArea.fill({ color: 0x000000, alpha: 0.001 });
-      container.addChild(hitArea);
+      // Hit area in local coords — must be large enough to compensate for scale-down during growth.
+      // At minimum scale 0.3, pointer coords are divided by 0.3 (amplified ~3.3x),
+      // so a tap at visual radius R maps to local ~R/0.3 = R*3.3. Use R*4 to be safe.
+      const hitR = R * 4;
+      container.hitArea = { contains: (x, y) => (x * x + y * y) <= hitR * hitR };
 
       const text = new Text({
         text: letter.toLowerCase(),
         style: new TextStyle({
-          fontFamily: 'Arial, Helvetica, sans-serif',
-          fontSize: Math.max(R * 0.75, 20),
-          fontWeight: 'bold',
+          fontFamily: '"Fredoka", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif',
+          fontSize: Math.max(R * 0.85, 24),
+          fontWeight: '900',
           fill: '#3e366b',
+          stroke: { color: '#ffffff', width: 3 },
           dropShadow: { color: 0xffffff, alpha: 0.5, blur: 2, distance: 0 },
         }),
       });
       text.anchor.set(0.5);
       container.addChild(text);
 
-      // Random position across full play area
-      const startX = R + 10 + Math.random() * (w - R * 2 - 20);
-      const startY = R + 10 + Math.random() * (playArea - R * 2 - 20);
+      // Spawn from behind the dog (bottom ~80% of canvas height)
+      const startX = w * 0.3 + Math.random() * (w * 0.4);
+      const startY = h * 0.78 + Math.random() * (h * 0.05);
 
       container.x = startX;
       container.y = startY;
@@ -443,12 +483,15 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         letter,
         x: startX,
         y: startY,
-        vx: (Math.random() - 0.5) * 1.4,
-        vy: (Math.random() - 0.5) * 1.4,
+        vx: (Math.random() - 0.5) * 1.2,
+        vy: -(0.15 + Math.random() * 0.35),
         shimmerPhase: Math.random() * Math.PI * 2,
         popped: false,
         popScale: 1,
         shakeStart: null,
+        growPhase: 0,
+        firstWave: true,
+        sprite: bubbleSprite,
         container,
       };
 
@@ -457,7 +500,17 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       });
 
       bubblesRef.current.push(bubble);
+    };
+
+    // Stagger spawn: one bubble every 150ms
+    allLetters.forEach((letter, idx) => {
+      const timer = setTimeout(() => spawnBubble(letter, idx), idx * 150);
+      spawnTimers.push(timer);
     });
+
+    // Store timers for cleanup
+    const cleanupTimers = () => spawnTimers.forEach(t => clearTimeout(t));
+    bubblesRef.current._cleanupSpawnTimers = cleanupTimers;
 
     // Announce word
     if (wordIndex > 0) {
@@ -534,10 +587,15 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       bubble.shakeStart = performance.now();
       wrongTapCountRef.current += 1;
 
-      if (wrongTapCountRef.current >= 2) {
+      // Play "oops try again" on every wrong tap
+      playVO('oops_try_again').catch(() => {});
+
+      if (wrongTapCountRef.current >= 3) {
         wrongTapCountRef.current = 0;
         setIsProcessing(true);
         isProcessingRef.current = true;
+        await delay(600);
+        if (!mountedRef.current) return;
         await playVO('Pop the bubbles to spell the word!');
         if (!mountedRef.current) return;
         const w = roundWords[wordIndexRef.current];
@@ -616,6 +674,9 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
 
   return (
     <div className="h-screen w-screen overflow-hidden relative flex flex-col">
+      {/* Sky background: blue sky + clouds + birds (all behind canvas) */}
+      <SkyFullBackground />
+
       {/* Back + Fullscreen buttons */}
       <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
         <motion.button
@@ -664,8 +725,28 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         ))}
       </div>
 
-      {/* PixiJS canvas area */}
-      <div ref={canvasContainerRef} className="absolute inset-0 z-10" />
+      {/* PixiJS canvas area — transparent, bubbles only */}
+      <div ref={canvasContainerRef} className="absolute inset-0 z-[10]" style={{ maxWidth: '100vw', maxHeight: '100vh' }} />
+
+      {/* Dog bathing Lottie — centered at bottom, behind spelling tray */}
+      <div
+        className="absolute z-[12] pointer-events-none flex justify-center"
+        style={{
+          bottom: 'clamp(20px, 3vh, 50px)',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: 'clamp(380px, 55vw, 500px)',
+          height: 'clamp(310px, 44vw, 400px)',
+          maxHeight: '40vh',
+        }}
+      >
+        <Lottie
+          animationData={dogBathingData}
+          loop
+          autoplay
+          style={{ width: '100%', height: '100%' }}
+        />
+      </div>
 
       {/* Spelling tray at bottom */}
       <div className="absolute bottom-0 left-0 right-0 z-30 bg-white/20 backdrop-blur-md border-t border-white/30 py-4 md:py-5 px-4">
@@ -686,7 +767,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
                   className={`w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-xl flex items-center justify-center text-xl md:text-2xl lg:text-3xl font-black uppercase ${
                     isSpelled
                       ? 'bg-[#4ECDC4] text-white'
-                      : 'bg-white/40 text-[#3e366b]/30 border-2 border-dashed border-[#3e366b]/20'
+                      : 'bg-white/40 text-[#3e366b]/50 border-2 border-dashed border-[#3e366b]/40'
                   }`}
                   style={isSpelled ? {
                     borderBottom: '4px solid #38B2AC',

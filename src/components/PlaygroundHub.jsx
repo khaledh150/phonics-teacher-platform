@@ -4,6 +4,7 @@ import { ArrowLeft, Lock, Maximize } from 'lucide-react';
 import { playVO, stopVO, delay } from '../utils/audioPlayer';
 import { stopAllAudio } from '../utils/letterSounds';
 import frogSheet from '../assets/characters/set-cute-drawing-frogs.svg';
+import hotairBalloonImg from '../assets/backgrounds/sky/hotair-balloon.png';
 
 // Inline frog sprite component (same pattern as LilyPadHop)
 const FrogSprite = ({ size = 60 }) => (
@@ -14,6 +15,8 @@ const FrogSprite = ({ size = 60 }) => (
   </svg>
 );
 
+// Order: Sand Tracing, Bubble Spell, Catch the Drop, Lily Pad Hop, Match & Remember,
+//        Scratch & Find, Monster Feeder, Whack-a-Sound, Shadow Match, Carnival Wheel, Magic Flashlight
 const GAMES = [
   {
     id: 'sand-tracing',
@@ -25,15 +28,6 @@ const GAMES = [
     description: 'Trace letters in sand!',
   },
   {
-    id: 'flashlight',
-    title: 'Magic Flashlight',
-    icon: '🔦',
-    color: '#FFD000',
-    borderColor: '#E0B800',
-    unlocked: true,
-    description: 'Find the hidden pictures!',
-  },
-  {
     id: 'bubble-spell',
     title: 'Bubble Spell',
     icon: '🫧',
@@ -41,6 +35,42 @@ const GAMES = [
     borderColor: '#38B2AC',
     unlocked: true,
     description: 'Pop bubbles to spell words!',
+  },
+  {
+    id: 'catch-drop',
+    title: 'Sky Catcher',
+    icon: 'hotair-balloon',
+    color: '#22C55E',
+    borderColor: '#16A34A',
+    unlocked: true,
+    description: 'Catch the right sounds!',
+  },
+  {
+    id: 'lily-pad-hop',
+    title: 'Lily Pad Hop',
+    icon: 'frog-sprite',
+    color: '#6ACBED',
+    borderColor: '#4BA8D0',
+    unlocked: true,
+    description: 'Help the frog hop!',
+  },
+  {
+    id: 'bouncy-memory',
+    title: 'Match & Remember',
+    icon: '🧩',
+    color: '#8B5CF6',
+    borderColor: '#7C3AED',
+    unlocked: true,
+    description: 'Match words and pictures!',
+  },
+  {
+    id: 'scratch-discover',
+    title: 'Scratch & Find',
+    icon: '🎟️',
+    color: '#10B981',
+    borderColor: '#059669',
+    unlocked: true,
+    description: 'Scratch to reveal pictures!',
   },
   {
     id: 'monster-feeder',
@@ -61,24 +91,6 @@ const GAMES = [
     description: 'Whack the matching letter!',
   },
   {
-    id: 'catch-drop',
-    title: 'Catch the Drop',
-    icon: '🛒',
-    color: '#22C55E',
-    borderColor: '#16A34A',
-    unlocked: true,
-    description: 'Catch the right sounds!',
-  },
-  {
-    id: 'bouncy-memory',
-    title: 'Bouncy Memory',
-    icon: '🧠',
-    color: '#8B5CF6',
-    borderColor: '#7C3AED',
-    unlocked: true,
-    description: 'Match words and pictures!',
-  },
-  {
     id: 'shadow-match',
     title: 'Shadow Match',
     icon: '🔍',
@@ -86,15 +98,6 @@ const GAMES = [
     borderColor: '#5A2D91',
     unlocked: true,
     description: 'Match pictures to shadows!',
-  },
-  {
-    id: 'lily-pad-hop',
-    title: 'Lily Pad Hop',
-    icon: 'frog-sprite',
-    color: '#6ACBED',
-    borderColor: '#4BA8D0',
-    unlocked: true,
-    description: 'Help the frog hop!',
   },
   {
     id: 'carnival-wheel',
@@ -106,13 +109,13 @@ const GAMES = [
     description: 'Spin and match sounds!',
   },
   {
-    id: 'scratch-discover',
-    title: 'Scratch & Find',
-    icon: '🎟️',
-    color: '#10B981',
-    borderColor: '#059669',
+    id: 'flashlight',
+    title: 'Magic Flashlight',
+    icon: '🔦',
+    color: '#FFD000',
+    borderColor: '#E0B800',
     unlocked: true,
-    description: 'Scratch to reveal pictures!',
+    description: 'Find the hidden pictures!',
   },
 ];
 
@@ -262,7 +265,9 @@ const PlaygroundHub = ({ group, onBack, onSelectGame }) => {
 
             <div className="mb-3 flex items-center justify-center">
               {game.icon === 'frog-sprite' ? (
-                <FrogSprite size={70} />
+                <FrogSprite size={90} />
+              ) : game.icon === 'hotair-balloon' ? (
+                <img src={hotairBalloonImg} alt="" className="select-none" style={{ width: 90, height: 90, objectFit: 'contain' }} draggable={false} />
               ) : (
                 <span className="text-5xl md:text-6xl lg:text-7xl">{game.icon}</span>
               )}

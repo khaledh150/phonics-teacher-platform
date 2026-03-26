@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Maximize, Volume2 } from 'lucide-react';
-import { playVO, stopVO, delay } from '../../utils/audioPlayer';
+import { playVO, stopVO, delay, playLetterVO } from '../../utils/audioPlayer';
 import { stopAllAudio, playLetterSound } from '../../utils/letterSounds';
 import { triggerSmallBurst, triggerCelebration } from '../../utils/confetti';
 import { playEncouragement } from '../../utils/encouragement';
 import confetti from 'canvas-confetti';
-import beachBg from '../../assets/backgrounds/beach-aerial-view.webp';
 import stickersSvgRaw from '../../assets/materials/Summer-sticker-collection.svg?raw';
 import CrabCompanion from './CrabCompanion';
+import BeachBackground from '../themes/BeachBackground';
 
 // ─── Individual SVG imports from tracing-letter folder ──────────────────────
 const tracingRawModules = import.meta.glob('../../assets/materials/tracing-letter/*.svg', { query: '?raw', eager: true });
@@ -254,9 +254,8 @@ async function extractTracingPaths(char, isUppercase, canvasW, canvasH) {
 
     // ── Phase 3: Collect stroke start points (#FCFDFF number text) ──
     // The FCFDFF paths are number digit outlines (1, 2, 3...).
-    // Use getTotalLength() to reliably determine which digit: "1" has the shortest
-    // perimeter, "2" is longer, "3" is longest. This is far more reliable than bbox width.
-    const strokeStarts = [];
+    // Cluster nearby sub-paths into single digits, preserve SVG document order.
+    const rawFcPaths = [];
 
     for (const el of allPaths) {
       const fill = getPathFill(el);
@@ -266,17 +265,35 @@ async function extractTracingPaths(char, isUppercase, canvasW, canvasH) {
       const bb = getPathBBox(d, tempSvg);
       if (bb.w > 100 || bb.h > 100) continue;
       if (bb.area < 2) continue;
-      // Measure path perimeter length to determine digit
-      const tempPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      tempPath.setAttribute('d', d);
-      tempSvg.appendChild(tempPath);
-      const pathLen = tempPath.getTotalLength();
-      tempSvg.removeChild(tempPath);
-      strokeStarts.push({ x: bb.cx, y: bb.cy, bb, pathLen });
+      rawFcPaths.push({ x: bb.cx, y: bb.cy, bb });
     }
 
-    // Sort by pathLen ascending — "1" shortest perimeter, "2" medium, "3" longest
-    strokeStarts.sort((a, b) => a.pathLen - b.pathLen);
+    // Cluster nearby FCFDFF sub-paths into composite digits (e.g. "4" has 2 sub-paths)
+    // Preserve document order (first-encountered cluster comes first = digit 1, then 2, etc.)
+    const CLUSTER_DIST = 30;
+    const digitClusters = [];
+    const fcUsed = new Set();
+    for (let i = 0; i < rawFcPaths.length; i++) {
+      if (fcUsed.has(i)) continue;
+      fcUsed.add(i);
+      const cluster = [rawFcPaths[i]];
+      for (let j = i + 1; j < rawFcPaths.length; j++) {
+        if (fcUsed.has(j)) continue;
+        if (cluster.some(c => dist(c, rawFcPaths[j]) < CLUSTER_DIST)) {
+          fcUsed.add(j);
+          cluster.push(rawFcPaths[j]);
+        }
+      }
+      let cx = 0, cy = 0;
+      for (const c of cluster) { cx += c.x; cy += c.y; }
+      cx /= cluster.length; cy /= cluster.length;
+      digitClusters.push({ x: cx, y: cy, bb: cluster[0].bb });
+    }
+
+    // Use document order — the SVG author placed digits 1,2,3,4 in order.
+    // This is the most reliable ordering for letters like W where strokes
+    // alternate between top/bottom positions (reading-order sort fails).
+    const strokeStarts = digitClusters;
 
     // ── Phase 4: Assign dash groups to stroke starts, then chain within each group ──
     // Each dashGroup belongs to exactly ONE stroke. Match by nearest distance.
@@ -510,7 +527,7 @@ async function extractTracingPaths(char, isUppercase, canvasW, canvasH) {
     const offX = (canvasW - vw * scale) / 2;
     const offY = (canvasH - vh * scale) / 2;
 
-    const strokes = orderedStrokes
+    let strokes = orderedStrokes
       .map(stroke => {
         const scaled = stroke.pts.map(p => ({
           x: (p.x - vx) * scale + offX,
@@ -536,6 +553,9 @@ async function extractTracingPaths(char, isUppercase, canvasW, canvasH) {
         return { pts: scaled, len, isDot, arrowPt: arrowScaled, startSvg: startScaled };
       })
       .filter(s => s.isDot || s.len > 5);
+
+    // W/w: keep all strokes separate (4 distinct strokes for the zigzag shape)
+    // Merging creates discontinuous paths that break the tracing corridor detection
 
     // Build clip path
     let clipPath = null;
@@ -713,6 +733,8 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
   const [isIdleForCrab, setIsIdleForCrab] = useState(false);
   const [letterCompletedTrigger, setLetterCompletedTrigger] = useState(0);
   const crabIdleTimerRef = useRef(null);
+  const currentSoundRef = useRef(currentSound);
+  useEffect(() => { currentSoundRef.current = currentSound; }, [currentSound]);
 
   const currentChar = (allLetters[activeLetterIdx] || allLetters[0]).toLowerCase();
   const isUppercase = letterCase === 'upper';
@@ -850,6 +872,11 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
     idleRef.current = setTimeout(async () => {
       if (!mountedRef.current) return;
       await playVO('Trace the letter!');
+      if (!mountedRef.current) return;
+      await delay(200);
+      if (!mountedRef.current) return;
+      const s = currentSoundRef.current;
+      if (s && s.length === 1) await playLetterVO(s).catch(() => {});
     }, 8000);
   }, []);
 
@@ -858,6 +885,11 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
     mountedRef.current = true;
     const run = async () => {
       await playVO('Trace the letter!');
+      if (cancelled) return;
+      await delay(200);
+      if (cancelled) return;
+      const s = currentSoundRef.current;
+      if (s && s.length === 1) await playLetterVO(s).catch(() => {});
       if (cancelled) return;
       startIdleReminder();
       if (!cancelled) setInstructionLock(false);
@@ -1148,7 +1180,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
       onPointerUp={handlePointerUp} onPointerLeave={handlePointerUp}
       style={{ touchAction: 'none' }}>
 
-      <img src={beachBg} alt="" className="absolute inset-0 w-full h-full object-cover pointer-events-none" style={{ zIndex: 0 }} />
+      <BeachBackground />
       <div className="absolute inset-0 bg-black/10 pointer-events-none" style={{ zIndex: 0 }} />
 
       {/* Nav */}
@@ -1201,17 +1233,13 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
         isIdle={isIdleForCrab}
       />
 
-      {/* Decorative beach stickers */}
-      <img src={STICKERS.swimRing} alt="" className="fixed pointer-events-none z-[5] opacity-85"
-        style={{ left: '0.5%', top: '28%', width: 'clamp(80px, 13vw, 150px)', transform: 'rotate(-10deg)' }} />
-      <img src={STICKERS.flower} alt="" className="fixed pointer-events-none z-[5] opacity-85"
-        style={{ right: '0.5%', top: '30%', width: 'clamp(80px, 13vw, 140px)', transform: 'rotate(-5deg)' }} />
+      {/* Decorative stickers now handled by BeachBackground */}
 
       {/* Tracing area */}
       <div className="flex-1 flex items-center justify-center p-2 relative z-10">
         <div className="flex flex-col items-center justify-center w-full h-full max-h-[95vh]">
           <div ref={containerRef} className="relative flex items-center justify-center"
-            style={{ width: '100%', height: '100%', maxWidth: 'min(95vw, 1200px)', maxHeight: 'min(92vmin, 850px)' }}>
+            style={{ width: '100%', height: '100%', maxWidth: 'min(90vw, 600px)', maxHeight: 'min(85vmin, 550px)' }}>
 
             {/* Frozen completed letters — slide to left edge, vertically centered */}
             {frozenLetters.map((frozen, idx) => {

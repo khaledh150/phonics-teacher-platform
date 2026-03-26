@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Maximize } from 'lucide-react';
 import { Application, Graphics, Text, TextStyle, Container, Sprite as PixiSprite, Texture, Assets } from 'pixi.js';
 import { playLetterSound, stopAllAudio } from '../../utils/letterSounds';
@@ -7,7 +7,7 @@ import { playVO, stopVO, delay } from '../../utils/audioPlayer';
 import { triggerCelebration, triggerSmallBurst } from '../../utils/confetti';
 import { playEncouragement } from '../../utils/encouragement';
 import confetti from 'canvas-confetti';
-import { createSkyBackground } from '../themes/SkyBackground';
+import { SkyFullBackground } from '../themes/SkyBackground';
 
 // Hot-air balloon + bubble sprites
 import hotairBalloonUrl from '../../assets/backgrounds/sky/hotair-balloon.png';
@@ -139,6 +139,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
   const [pixiReady, setPixiReady] = useState(false);
   const [targetSound, setTargetSound] = useState('');
   const [instructionLock, setInstructionLock] = useState(true);
+  const [countdown, setCountdown] = useState(null);
 
   const containerRef = useRef(null);
   const appRef = useRef(null);
@@ -157,7 +158,6 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
   const wagonRedRef = useRef(false);
   const wagonBodyRef = useRef(null);
   const speedMultRef = useRef(1);
-  const skyRef = useRef(null);
   const itemBubbleTexturesRef = useRef([]);
   const laneCountRef = useRef(3);
   const nextLaneRef = useRef(0);
@@ -217,7 +217,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
 
   // Helper: create a drop item container with bubble + text
   const createDropItem = useCallback((word, w) => {
-    const itemSize = Math.max(90, Math.min(150, w * 0.22));
+    const itemSize = Math.max(110, Math.min(180, w * 0.25));
     const itemContainer = new Container();
 
     const textures = itemBubbleTexturesRef.current;
@@ -235,15 +235,17 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
       itemContainer.addChild(bg);
     }
 
-    const fontSize = Math.max(20, Math.min(32, w * 0.045));
+    const fontSize = Math.max(32, Math.min(52, w * 0.07));
     const text = new Text({
       text: word,
       style: new TextStyle({
-        fontFamily: 'Arial, Helvetica, sans-serif',
+        fontFamily: '"Fredoka", "Baloo 2", "Nunito", "Segoe UI", sans-serif',
         fontSize,
-        fontWeight: 'bold',
+        fontWeight: '700',
         fill: '#ffffff',
-        dropShadow: { color: 0x000000, alpha: 0.3, blur: 3, distance: 1 },
+        stroke: { color: '#3e366b', width: 4 },
+        dropShadow: { color: '#00000044', blur: 4, distance: 2, angle: Math.PI / 4 },
+        letterSpacing: 1,
       }),
     });
     text.anchor.set(0.5);
@@ -252,7 +254,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
     return { itemContainer, itemSize };
   }, []);
 
-  // Tutorial: (1) sway balloon left-right, (2) drop items with target off-center, (3) move to catch
+  // Tutorial: simulates actual gameplay — one-at-a-time drops in lanes, balloon moves to catch correct ones
   const runTutorialAnimation = useCallback((sound) => {
     const app = appRef.current;
     const wagon = wagonRef.current;
@@ -266,21 +268,31 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
     const lanes = laneCountRef.current;
     const laneW = screenW / lanes;
     const centerX = screenW / 2;
-
-    // Phase 0: sway left-right to show movement ability
-    // Phase 1: drop items (correct NOT in center), move balloon to catch
-    let phase = 0;
-    let phaseT = 0;
-    let demoItems = [];
-    let targetX = centerX;
     const swayRange = screenW * 0.3;
 
-    // Pick correct lane — avoid center lane so balloon must visibly move
-    const centerLane = Math.floor(lanes / 2);
-    const nonCenterLanes = [];
-    for (let i = 0; i < lanes; i++) { if (i !== centerLane) nonCenterLanes.push(i); }
-    const correctLane = nonCenterLanes[Math.floor(Math.random() * nonCenterLanes.length)];
-    const correctWord = correctWords[Math.floor(Math.random() * correctWords.length)];
+    // Build demo word queue (like real game: mix of correct & distractor, one at a time)
+    const demoCount = 5;
+    const demoQueue = [];
+    // 2 correct + 3 distractors, shuffled
+    for (let i = 0; i < 2; i++) demoQueue.push({ word: correctWords[i % correctWords.length], isCorrect: true });
+    for (let i = 0; i < demoCount - 2; i++) {
+      const dw = distractorWords.length > 0
+        ? distractorWords[Math.floor(Math.random() * distractorWords.length)]
+        : 'no';
+      demoQueue.push({ word: dw, isCorrect: false });
+    }
+    for (let si = demoQueue.length - 1; si > 0; si--) {
+      const sj = Math.floor(Math.random() * (si + 1));
+      [demoQueue[si], demoQueue[sj]] = [demoQueue[sj], demoQueue[si]];
+    }
+
+    let phase = 0; // 0 = sway, 1 = gameplay simulation
+    let phaseT = 0;
+    let demoItems = [];
+    let nextSpawnIdx = 0;
+    let spawnTimer = 0;
+    let demoLane = 0;
+    const DEMO_SPAWN_INTERVAL = 55; // ticks between spawns (like SPAWN_INTERVAL_MS)
 
     return new Promise((resolve) => {
       const tutTicker = (ticker) => {
@@ -296,8 +308,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
         phaseT += dt;
 
         if (phase === 0) {
-          // Sway balloon left then right then back to center
-          // 0-25: move left, 25-75: move right, 75-100: back to center
+          // Sway balloon left-right to show movement
           if (phaseT < 25) {
             wagon.x = centerX - swayRange * (phaseT / 25);
           } else if (phaseT < 75) {
@@ -307,36 +318,46 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
             const t = (phaseT - 75) / 25;
             wagon.x = centerX + swayRange - swayRange * t;
           } else {
-            // Done swaying — spawn demo drops
             wagon.x = centerX;
             phase = 1;
             phaseT = 0;
-
-            for (let i = 0; i < lanes; i++) {
-              const word = i === correctLane
-                ? correctWord
-                : (distractorWords.length > 0
-                  ? distractorWords[Math.floor(Math.random() * distractorWords.length)]
-                  : 'no');
-              const { itemContainer, itemSize } = createDropItem(word, screenW);
-              itemContainer.x = laneW * i + laneW / 2;
-              itemContainer.y = -itemSize / 2;
-              app.stage.addChild(itemContainer);
-              demoItems.push({
-                container: itemContainer,
-                laneX: laneW * i + laneW / 2,
-                isCorrect: i === correctLane,
-                speed: 2.0,
-                caught: false,
-              });
-            }
-            targetX = demoItems[correctLane].laneX;
+            spawnTimer = DEMO_SPAWN_INTERVAL; // spawn first immediately
           }
         } else if (phase === 1) {
-          // Move balloon toward correct lane and drop items
-          wagon.x += (targetX - wagon.x) * 0.05 * dt;
+          // Spawn items one-at-a-time in lanes (like real game)
+          spawnTimer += dt;
+          if (spawnTimer >= DEMO_SPAWN_INTERVAL && nextSpawnIdx < demoQueue.length) {
+            spawnTimer = 0;
+            const entry = demoQueue[nextSpawnIdx];
+            const { itemContainer, itemSize } = createDropItem(entry.word, screenW);
+            const lane = demoLane % lanes;
+            demoLane++;
+            const spawnX = laneW * lane + laneW / 2;
+            itemContainer.x = spawnX;
+            itemContainer.y = -itemSize / 2;
+            app.stage.addChild(itemContainer);
+            demoItems.push({
+              container: itemContainer,
+              laneX: spawnX,
+              isCorrect: entry.isCorrect,
+              speed: 1.5 + Math.random() * 0.5,
+              caught: false,
+            });
+            nextSpawnIdx++;
+          }
 
-          let allDone = true;
+          // Find nearest correct uncaught item to move balloon toward
+          let targetX = wagon.x;
+          let nearestCorrectY = -Infinity;
+          for (const d of demoItems) {
+            if (!d.caught && d.isCorrect && d.container.y > nearestCorrectY) {
+              nearestCorrectY = d.container.y;
+              targetX = d.laneX;
+            }
+          }
+          wagon.x += (targetX - wagon.x) * 0.04 * dt;
+
+          // Move items down and check collision with balloon
           for (const d of demoItems) {
             if (d.caught) continue;
             d.container.y += d.speed * dt;
@@ -350,9 +371,11 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
                 d.container.alpha = 0.3;
               }
             }
-            if (!d.caught) allDone = false;
           }
 
+          // Done when all spawned and all caught/fallen
+          const allSpawned = nextSpawnIdx >= demoQueue.length;
+          const allDone = allSpawned && demoItems.every(d => d.caught || d.container.y > app.screen.height + 60);
           if (allDone) {
             app.ticker.remove(tutTicker);
             setTimeout(() => {
@@ -578,6 +601,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
     if (!containerRef.current) return;
     const el = containerRef.current;
     let destroyed = false;
+    let resizeObs = null;
     mountedRef.current = true;
     destroyedRef.current = false;
 
@@ -593,8 +617,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
         await app.init({
           width: w,
           height: h,
-          backgroundAlpha: 1,
-          backgroundColor: 0x87CEEB,
+          backgroundAlpha: 0,
           antialias: true,
           resolution: 1,
           autoDensity: true,
@@ -609,11 +632,19 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
         el.appendChild(app.canvas);
         appRef.current = app;
 
-        // Sky parallax background
-        try {
-          skyRef.current = await createSkyBackground(app);
-        } catch (e) { console.warn('Sky bg failed:', e); }
-        if (destroyed) { app.destroy(true); return; }
+        // Resize handler — keeps canvas resolution matched so sprites don't stretch
+        resizeObs = new ResizeObserver((entries) => {
+          if (destroyed || !appRef.current) return;
+          const entry = entries[0];
+          if (!entry) return;
+          const nW = Math.round(entry.contentRect.width);
+          const nH = Math.round(entry.contentRect.height);
+          if (nW > 0 && nH > 0) appRef.current.renderer.resize(nW, nH);
+        });
+        resizeObs.observe(el);
+
+        // Sky background handled by DOM (SkyFullBackground) behind transparent canvas
+        if (destroyed) { resizeObs.disconnect(); app.destroy(true); return; }
 
         // Load hot-air balloon + item bubble textures via Assets.load (PixiJS v8)
         try {
@@ -701,6 +732,8 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
           wagon.y = wagonY + shakeOffsetY;
 
           const wBounds = wagon.getBounds();
+          // Only the upper 60% of the balloon catches (envelope, not basket)
+          const catchZoneBottom = wBounds.y + wBounds.height * 0.6;
           const items = itemsRef.current;
 
           for (let i = items.length - 1; i >= 0; i--) {
@@ -709,13 +742,13 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
 
             item.graphics.y += item.speed * dt;
 
-            // Check collision with wagon
+            // Check collision with upper 60% of balloon only
             const iBounds = item.graphics.getBounds();
             if (
               iBounds.y + iBounds.height > wBounds.y &&
+              iBounds.y < catchZoneBottom &&
               iBounds.x + iBounds.width > wBounds.x &&
-              iBounds.x < wBounds.x + wBounds.width &&
-              iBounds.y < wBounds.y + wBounds.height
+              iBounds.x < wBounds.x + wBounds.width
             ) {
               item.caught = true;
               handleCatchRef.current?.(item, i);
@@ -753,8 +786,8 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
       stopVO();
       clearTimeout(idleRef.current);
       clearInterval(spawnIntervalRef.current);
-      // Clean up sky
-      if (skyRef.current) { skyRef.current.destroy(); skyRef.current = null; }
+      // Clean up resize observer
+      if (resizeObs) resizeObs.disconnect();
       // Clean up items
       itemsRef.current.forEach((item) => {
         try { item.graphics.destroy({ children: true }); } catch (e) { /* silent */ }
@@ -776,6 +809,24 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
     const run = async () => {
       await playRoundIntro(targetSound);
       if (cancelled || !mountedRef.current) return;
+
+      // 3-2-1 GO countdown
+      for (let c = 3; c >= 1; c--) {
+        setCountdown(c);
+        await delay(800);
+        if (cancelled) return;
+      }
+      setCountdown(0); // "GO!"
+      await delay(600);
+      if (cancelled) return;
+      setCountdown(null);
+
+      // Replay instruction VO after countdown
+      await playVO('Catch the items that start with the sound...');
+      if (cancelled || !mountedRef.current) return;
+      await playLetterSound(targetSoundRef.current).catch(() => {});
+      if (cancelled || !mountedRef.current) return;
+
       setInstructionLock(false);
       instructionLockRef.current = false;
       startSpawning();
@@ -883,6 +934,30 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
 
   return (
     <div className="h-screen w-screen overflow-hidden relative flex flex-col">
+      {/* Full sky background: blue sky + clouds + birds (behind transparent canvas) */}
+      <SkyFullBackground />
+      {/* 3-2-1 GO countdown overlay */}
+      <AnimatePresence>
+        {countdown !== null && (
+          <div className="fixed inset-0 z-[55] flex items-center justify-center pointer-events-none">
+            <motion.span
+              key={countdown}
+              initial={{ scale: 0.3, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 2.5, opacity: 0 }}
+              transition={{ duration: 0.4, ease: 'easeOut' }}
+              className="font-black"
+              style={{
+                fontSize: 'clamp(8rem, 30vw, 16rem)',
+                color: countdown === 0 ? '#22c55e' : '#ffffff',
+                textShadow: '0 4px 30px rgba(0,0,0,0.15)',
+              }}
+            >
+              {countdown === 0 ? 'GO!' : countdown}
+            </motion.span>
+          </div>
+        )}
+      </AnimatePresence>
       {/* Back + Fullscreen buttons */}
       <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
         <motion.button
@@ -938,8 +1013,8 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
         </div>
       </div>
 
-      {/* PixiJS canvas container */}
-      <div ref={containerRef} className="absolute inset-0 z-10" />
+      {/* PixiJS canvas container — transparent, above sky layers */}
+      <div ref={containerRef} className="absolute inset-0 z-[10]" />
     </div>
   );
 };
