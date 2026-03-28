@@ -6,20 +6,20 @@ import { Application, Graphics, Text, TextStyle, Container, Sprite as PixiSprite
 import { playLetterSound, getLetterSoundUrl } from '../utils/letterSounds';
 import { speakWithVoice } from '../utils/speech';
 import { playVO, stopVO, delay } from '../utils/audioPlayer';
-import { triggerCelebration, triggerSmallBurst } from '../utils/confetti';
+import { triggerCelebration, triggerSmallBurst, triggerBurstAt } from '../utils/confetti';
 import { createSkyBackground, SkyOverlay } from './themes/SkyBackground';
 
 // Balloon PNG sprites
-import balloonBlueUrl from '../assets/materials/ballons-bubbles/balloon-blue.png';
-import balloonGreenUrl from '../assets/materials/ballons-bubbles/balloon-green.png';
-import balloonPinkUrl from '../assets/materials/ballons-bubbles/balloon-pink.png';
-import balloonPurpleUrl from '../assets/materials/ballons-bubbles/balloon-purple.png';
-import balloonRedUrl from '../assets/materials/ballons-bubbles/balloon-red.png';
-import balloonYellowUrl from '../assets/materials/ballons-bubbles/balloon-yellow.png';
+import balloonBlueUrl from '../assets/materials/ballons-bubbles/balloon-blue.webp';
+import balloonGreenUrl from '../assets/materials/ballons-bubbles/balloon-green.webp';
+import balloonPinkUrl from '../assets/materials/ballons-bubbles/balloon-pink.webp';
+import balloonPurpleUrl from '../assets/materials/ballons-bubbles/balloon-purple.webp';
+import balloonRedUrl from '../assets/materials/ballons-bubbles/balloon-red.webp';
+import balloonYellowUrl from '../assets/materials/ballons-bubbles/balloon-yellow.webp';
 
 // Lottie + tutorial assets
 import cuteCatData from '../assets/materials/cute-cat.json';
-import tutorialArmUrl from '../assets/materials/tutorial-pointing-arm.png';
+import tutorialArmUrl from '../assets/materials/tutorial-pointing-arm.webp';
 
 // Cycling encouragement for balloon pops
 const POP_ENCOURAGEMENTS = [
@@ -126,9 +126,11 @@ const SoundBalloons = ({ group, onComplete }) => {
   const [showResults, setShowResults] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [gameStarted, setGameStarted] = useState(false);
+  const [resultCountdown, setResultCountdown] = useState(5);
 
   const [displayTargetIdx, setDisplayTargetIdx] = useState(0);
   const [displayTimeLeft, setDisplayTimeLeft] = useState(TIME_PER_SOUND);
+  const [pixiReady, setPixiReady] = useState(false);
 
   const containerRef = useRef(null);
   const canvasContainerRef = useRef(null);
@@ -201,7 +203,9 @@ const SoundBalloons = ({ group, onComplete }) => {
       playLetterSound(balloon.sound).catch(() => {});
       balloon.popped = true;
       balloon.popScale = 1;
-      // Remove pixi objects with pop animation handled in ticker
+      // Confetti burst at pop location
+      const app = pixiAppRef.current;
+      if (app) triggerBurstAt(balloon.currentX / app.screen.width, balloon.y / app.screen.height);
       soundScoresRef.current[currentTarget] = (soundScoresRef.current[currentTarget] || 0) + 1;
       const total = Object.values(soundScoresRef.current).reduce((a, b) => a + b, 0);
       // Cycling encouragement every 3rd pop
@@ -329,7 +333,7 @@ const SoundBalloons = ({ group, onComplete }) => {
         pixiAppRef.current._spawnBalloon = () => {
           if (destroyed || gameOverRef.current) return;
           const active = balloonsRef.current.filter(b => !b.popped);
-          if (active.length >= 20) return;
+          if (active.length >= 14) return;
 
           const currentTarget = targetSoundRef.current;
           const isTarget = Math.random() < 0.6;
@@ -435,6 +439,7 @@ const SoundBalloons = ({ group, onComplete }) => {
         window.addEventListener('resize', onResize);
         pixiAppRef.current._cleanupResize = () => window.removeEventListener('resize', onResize);
 
+        setPixiReady(true);
       } catch (err) {
         console.error('PixiJS init failed:', err);
       }
@@ -470,6 +475,7 @@ const SoundBalloons = ({ group, onComplete }) => {
       clearInterval(timerRef.current);
       clearInterval(spawnIntervalRef.current);
       clearTimeout(idleReminderRef.current);
+      if (helpCancelRef.current) helpCancelRef.current();
     };
   }, [sounds]);
 
@@ -477,177 +483,235 @@ const SoundBalloons = ({ group, onComplete }) => {
   const [tutorialHand, setTutorialHand] = useState(null); // { x, y, visible, popping }
   const [showCatLottie, setShowCatLottie] = useState(false);
   const [showCountdown, setShowCountdown] = useState(false);
+  const [showTutorialOverlay, setShowTutorialOverlay] = useState(false);
+  const [popFlash, setPopFlash] = useState(null); // { sound } — celebration flash on correct pop
   const hasPlayedOnceRef = useRef(false);
+  const tutorialRunningRef = useRef(false);
+  const helpCancelRef = useRef(null);
 
-  // Tutorial + 3-2-1-GO countdown
-  useEffect(() => {
-    if (gameStarted) return;
-    let cancelled = false;
-    const run = async () => {
-      // Step 1: Play VO instruction
-      await playVO('Pop the balloons that make the sound...');
-      if (cancelled) return;
-      announceSound(sounds[0]);
-      await delay(1200);
-      if (cancelled) return;
+  // Reusable tutorial runner — used by initial load AND the ? help button
+  const runBalloonTutorial = useCallback(async (isCancelled) => {
+    const app = pixiAppRef.current;
+    const canvasEl = canvasContainerRef.current;
+    if (!app || !canvasEl) return;
 
-      // Step 2: Tutorial — only on first play
-      if (!hasPlayedOnceRef.current) {
-        const app = pixiAppRef.current;
-        if (app && !cancelled) {
-          const stageW = app.screen.width;
-          const stageH = app.screen.height;
-          const balloonSize = Math.min(Math.max(110, stageW * 0.22), 180);
-          const bSize = balloonSize * 1.05;
-          const textures = balloonTexturesRef.current;
-          const targetSound = sounds[0];
+    tutorialRunningRef.current = true;
+    const stageW = app.screen.width;
+    const stageH = app.screen.height;
+    const balloonSize = Math.min(Math.max(110, stageW * 0.22), 180);
+    const bSize = balloonSize * 1.05;
+    const textures = balloonTexturesRef.current;
+    const targetSound = sounds[0];
 
-          // Pick 7 demo sounds: 3 targets + 4 distractors
-          const distractors = ALL_SOUNDS.filter(s => s !== targetSound && s.length === targetSound.length);
-          const demoSounds = [targetSound, targetSound, targetSound];
-          for (let i = 0; i < 4 && distractors.length > 0; i++) {
-            const idx = Math.floor(Math.random() * distractors.length);
-            demoSounds.push(distractors.splice(idx, 1)[0]);
+    setShowTutorialOverlay(true);
+
+    // Build demo sounds: 3 targets + 6 distractors — natural floating from bottom
+    const distractorList = ALL_SOUNDS.filter(s => s !== targetSound && s.length === targetSound.length);
+    const demoSounds = [targetSound, targetSound, targetSound];
+    for (let i = 0; i < 6 && distractorList.length > 0; i++) {
+      const idx = Math.floor(Math.random() * distractorList.length);
+      demoSounds.push(distractorList.splice(idx, 1)[0]);
+    }
+    // Shuffle
+    for (let i = demoSounds.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [demoSounds[i], demoSounds[j]] = [demoSounds[j], demoSounds[i]];
+    }
+
+    // Spawn tutorial balloons from bottom (like gameplay) — staggered across width
+    const demoBalloons = [];
+    const margin = balloonSize * 0.6;
+    const usableWidth = stageW - margin * 2;
+    // Evenly distribute starting X positions with jitter for natural look
+    const slotWidth = usableWidth / demoSounds.length;
+    for (let i = 0; i < demoSounds.length; i++) {
+      const container = new Container();
+      if (textures.length > 0) {
+        const tex = textures[Math.floor(Math.random() * textures.length)];
+        const spr = new PixiSprite(tex);
+        spr.anchor.set(0.5);
+        const aspect = tex.height / tex.width;
+        spr.width = bSize;
+        spr.height = bSize * aspect;
+        container.addChild(spr);
+      } else {
+        const gfx = new Graphics();
+        gfx.ellipse(0, 0, bSize * 0.45, bSize * 0.5);
+        gfx.fill({ color: 0xFF1E56, alpha: 0.92 });
+        container.addChild(gfx);
+      }
+      const txt = new Text({
+        text: demoSounds[i].toLowerCase(),
+        style: new TextStyle({
+          fontFamily: '"Fredoka", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif',
+          fontSize: Math.max(bSize * 0.55, 36),
+          fontWeight: '900',
+          fill: '#3e366b',
+          stroke: { color: '#ffffff', width: 3 },
+          dropShadow: { color: 0xffffff, alpha: 0.5, blur: 3, distance: 0 },
+        }),
+      });
+      txt.anchor.set(0.5, 0.5);
+      txt.y = -bSize * 0.5;
+      container.addChild(txt);
+
+      // Spread evenly across width with jitter, stagger spawn depths
+      const bx = margin + slotWidth * i + slotWidth * 0.5 + (Math.random() - 0.5) * slotWidth * 0.6;
+      const by = stageH + 50 + i * 40; // stagger so they don't all appear at once
+      container.x = bx;
+      container.y = by;
+      app.stage.addChild(container);
+      demoBalloons.push({
+        sound: demoSounds[i],
+        container,
+        x: bx,
+        y: by,
+        currentX: bx,
+        speed: 1.2 + Math.random() * 0.6, // faster so they reach center quickly
+        swayOffset: Math.random() * Math.PI * 2,
+        swayAmp: 18 + Math.random() * 25,
+        popped: false,
+        popScale: 1,
+      });
+    }
+
+    // Ticker: float tutorial balloons naturally (same physics as gameplay)
+    const tutTicker = (ticker) => {
+      if (isCancelled()) return;
+      const dt = Math.min(ticker.deltaTime, 4);
+      const elapsed = performance.now() / 1000;
+      for (const b of demoBalloons) {
+        if (b.popped) {
+          b.popScale -= dt * 0.08;
+          if (b.container) {
+            b.container.scale.set(Math.max(b.popScale, 0));
+            b.container.alpha = Math.max(b.popScale, 0);
           }
-          for (let i = demoSounds.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [demoSounds[i], demoSounds[j]] = [demoSounds[j], demoSounds[i]];
-          }
-
-          const targetIndices = [];
-          for (let i = 0; i < demoSounds.length; i++) {
-            if (demoSounds[i] === targetSound) targetIndices.push(i);
-          }
-
-          const demoBalloons = [];
-          const spacing = stageW / (demoSounds.length + 1);
-          for (let i = 0; i < demoSounds.length; i++) {
-            const container = new Container();
-            if (textures.length > 0) {
-              const tex = textures[Math.floor(Math.random() * textures.length)];
-              const spr = new PixiSprite(tex);
-              spr.anchor.set(0.5);
-              const aspect = tex.height / tex.width;
-              spr.width = bSize;
-              spr.height = bSize * aspect;
-              container.addChild(spr);
-            } else {
-              const gfx = new Graphics();
-              gfx.ellipse(0, 0, bSize * 0.45, bSize * 0.5);
-              gfx.fill({ color: 0xFF1E56, alpha: 0.92 });
-              container.addChild(gfx);
-            }
-            const txt = new Text({
-              text: demoSounds[i].toLowerCase(),
-              style: new TextStyle({
-                fontFamily: '"Fredoka", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif',
-                fontSize: Math.max(bSize * 0.55, 36),
-                fontWeight: '900',
-                fill: '#3e366b',
-                stroke: { color: '#ffffff', width: 3 },
-                dropShadow: { color: 0xffffff, alpha: 0.5, blur: 3, distance: 0 },
-              }),
-            });
-            txt.anchor.set(0.5, 0.5);
-            txt.y = -bSize * 0.5;
-            container.addChild(txt);
-
-            const bx = spacing * (i + 1);
-            const targetY = stageH * (0.2 + Math.random() * 0.4);
-            container.x = bx;
-            container.y = stageH + bSize;
-            app.stage.addChild(container);
-            demoBalloons.push({ container, targetX: bx, targetY, isTarget: demoSounds[i] === targetSound });
-          }
-
-          // Animate balloons floating up
-          await new Promise((resolve) => {
-            let t = 0;
-            const riseTicker = (ticker) => {
-              if (cancelled) { app.ticker.remove(riseTicker); resolve(); return; }
-              t += ticker.deltaTime;
-              let allDone = true;
-              for (const db of demoBalloons) {
-                db.container.y += (db.targetY - db.container.y) * 0.06 * ticker.deltaTime;
-                if (Math.abs(db.container.y - db.targetY) > 2) allDone = false;
-              }
-              if (allDone || t > 90) { app.ticker.remove(riseTicker); resolve(); }
-            };
-            app.ticker.add(riseTicker);
-          });
-          if (cancelled) { demoBalloons.forEach(db => { try { app.stage.removeChild(db.container); db.container.destroy({ children: true }); } catch(e){} }); return; }
-
-          await delay(400);
-          if (cancelled) { demoBalloons.forEach(db => { try { app.stage.removeChild(db.container); db.container.destroy({ children: true }); } catch(e){} }); return; }
-
-          // Pop 2 targets with hand coming from bottom of screen
-          const canvasEl = canvasContainerRef.current;
-          const targetsToPop = targetIndices.slice(0, 2);
-          for (const tIdx of targetsToPop) {
-            if (cancelled) break;
-            const targetBalloon = demoBalloons[tIdx];
-            if (!canvasEl || !targetBalloon || targetBalloon.container.alpha === 0) continue;
-
-            const rect = canvasEl.getBoundingClientRect();
-            // Hand starts from below the screen
-            const startX = rect.left + rect.width * 0.5;
-            const startY = rect.top + rect.height + 100;
-            const endX = rect.left + (targetBalloon.targetX / stageW) * rect.width;
-            const endY = rect.top + (targetBalloon.targetY / stageH) * rect.height;
-
-            setTutorialHand({ x: startX, y: startY, visible: true, popping: false });
-            await delay(250);
-            if (cancelled) break;
-
-            setTutorialHand({ x: endX, y: endY, visible: true, popping: false });
-            await delay(500);
-            if (cancelled) break;
-
-            setTutorialHand({ x: endX, y: endY, visible: true, popping: true });
-            playPopSound();
-            await new Promise((resolve) => {
-              let t = 0;
-              const popTicker = (ticker) => {
-                if (cancelled) { app.ticker.remove(popTicker); resolve(); return; }
-                t += ticker.deltaTime;
-                const s = Math.max(0, 1 - t * 0.08);
-                targetBalloon.container.scale.set(s);
-                targetBalloon.container.alpha = s;
-                if (s <= 0) { app.ticker.remove(popTicker); resolve(); }
-              };
-              app.ticker.add(popTicker);
-            });
-
-            await delay(300);
-            if (cancelled) break;
-            setTutorialHand(null);
-            await delay(200);
-          }
-          setTutorialHand(null);
-          if (cancelled) { demoBalloons.forEach(db => { try { app.stage.removeChild(db.container); db.container.destroy({ children: true }); } catch(e){} }); return; }
-
-          // Fade out remaining demo balloons
-          await new Promise((resolve) => {
-            let t = 0;
-            const fadeTicker = (ticker) => {
-              if (cancelled) { app.ticker.remove(fadeTicker); resolve(); return; }
-              t += ticker.deltaTime;
-              for (const db of demoBalloons) {
-                db.container.alpha = Math.max(0, db.container.alpha - 0.04 * ticker.deltaTime);
-              }
-              if (t > 30) { app.ticker.remove(fadeTicker); resolve(); }
-            };
-            app.ticker.add(fadeTicker);
-          });
-
-          demoBalloons.forEach(db => {
-            try { app.stage.removeChild(db.container); db.container.destroy({ children: true }); } catch(e) {}
-          });
+          continue;
         }
+        b.y -= b.speed * dt;
+        const sway = Math.sin(elapsed + b.swayOffset) * b.swayAmp;
+        b.currentX = b.x + sway;
+        b.container.x = b.currentX;
+        b.container.y = b.y;
+        // Recycle if off top
+        if (b.y < -balloonSize * 1.5) {
+          b.y = stageH + 50;
+          const rSlot = Math.floor(Math.random() * demoSounds.length);
+          b.x = margin + slotWidth * rSlot + slotWidth * 0.5 + (Math.random() - 0.5) * slotWidth * 0.6;
+        }
+      }
+    };
+    app.ticker.add(tutTicker);
+
+    const cleanup = () => {
+      app.ticker.remove(tutTicker);
+      demoBalloons.forEach(db => { try { app.stage.removeChild(db.container); db.container.destroy({ children: true }); } catch(e){} });
+    };
+
+    // VO plays while balloons rise into view
+    await playVO('Pop the balloons that make the sound...');
+    if (isCancelled()) { cleanup(); tutorialRunningRef.current = false; return; }
+    await playLetterSound(targetSound).catch(() => {});
+    if (isCancelled()) { cleanup(); tutorialRunningRef.current = false; return; }
+    // Extra wait so balloons float into center area
+    await delay(1200);
+    if (isCancelled()) { cleanup(); tutorialRunningRef.current = false; return; }
+
+    // Hand pops 2 target balloons
+    let popsRemaining = 2;
+    for (let pi = 0; pi < 10 && popsRemaining > 0; pi++) {
+      if (isCancelled()) break;
+      // Find a target balloon in center area (25%-65% of screen height)
+      let bestBalloon = null;
+      for (const b of demoBalloons) {
+        if (b.popped || b.sound !== targetSound) continue;
+        if (b.container.y > stageH * 0.65 || b.container.y < stageH * 0.2) continue;
+        bestBalloon = b;
+        break;
+      }
+      if (!bestBalloon) { await delay(400); continue; }
+
+      // Freeze balloon
+      const savedSpeed = bestBalloon.speed;
+      bestBalloon.speed = 0;
+
+      const rect = canvasEl.getBoundingClientRect();
+      const startX = rect.left + rect.width * 0.5;
+      const startY = rect.top + rect.height + 100;
+
+      setTutorialHand({ x: startX, y: startY, visible: true, popping: false });
+      await delay(300);
+      if (isCancelled()) { bestBalloon.speed = savedSpeed; break; }
+
+      // Hand to slightly left of balloon center-bottom
+      const endX = rect.left + (bestBalloon.currentX / stageW) * rect.width - (balloonSize * 0.15 * rect.width / stageW);
+      const endY = rect.top + (bestBalloon.container.y / stageH) * rect.height + (balloonSize * 0.1 * rect.height / stageH);
+      setTutorialHand({ x: endX, y: endY, visible: true, popping: false });
+      await delay(500);
+      if (isCancelled()) { bestBalloon.speed = savedSpeed; break; }
+
+      // Pop!
+      setTutorialHand({ x: endX, y: endY, visible: true, popping: true });
+      playPopSound();
+      bestBalloon.popped = true;
+      bestBalloon.popScale = 1;
+      triggerBurstAt(bestBalloon.currentX / stageW, bestBalloon.container.y / stageH);
+      await playLetterSound(targetSound).catch(() => {});
+      popsRemaining--;
+
+      await delay(400);
+      if (isCancelled()) break;
+      setTutorialHand(null);
+      await delay(300);
+    }
+    setTutorialHand(null);
+    if (isCancelled()) { cleanup(); tutorialRunningRef.current = false; return; }
+
+    // Brief celebration
+    triggerSmallBurst();
+    await delay(800);
+    if (isCancelled()) { cleanup(); tutorialRunningRef.current = false; return; }
+
+    // Fade out tutorial balloons
+    app.ticker.remove(tutTicker);
+    await new Promise((resolve) => {
+      let t = 0;
+      const fadeTicker = (ticker) => {
+        if (isCancelled()) { app.ticker.remove(fadeTicker); resolve(); return; }
+        t += ticker.deltaTime;
+        for (const db of demoBalloons) db.container.alpha = Math.max(0, db.container.alpha - 0.04 * ticker.deltaTime);
+        if (t > 30) { app.ticker.remove(fadeTicker); resolve(); }
+      };
+      app.ticker.add(fadeTicker);
+    });
+    demoBalloons.forEach(db => { try { app.stage.removeChild(db.container); db.container.destroy({ children: true }); } catch(e){} });
+    if (isCancelled()) { tutorialRunningRef.current = false; return; }
+
+    setShowTutorialOverlay(false);
+    tutorialRunningRef.current = false;
+  }, [sounds]);
+
+  // Tutorial + 3-2-1-GO countdown (waits for pixi to be ready)
+  useEffect(() => {
+    if (gameStarted || !pixiReady) return;
+    let cancelled = false;
+    const isCancelled = () => cancelled;
+    const run = async () => {
+      // Step 1: Tutorial with natural floating balloons (first play only)
+      if (!hasPlayedOnceRef.current) {
+        await runBalloonTutorial(isCancelled);
+        if (cancelled) return;
+      } else {
+        // Replay: just announce
+        await playVO('Pop the balloons that make the sound...');
+        if (cancelled) return;
+        announceSound(sounds[0]);
+        await delay(1200);
         if (cancelled) return;
       }
 
-      // Step 3: 3-2-1-GO countdown (shown AFTER tutorial)
+      // Step 2: 3-2-1-GO countdown
       setShowCountdown(true);
       setCountdown(3);
       await delay(200);
@@ -672,8 +736,8 @@ const SoundBalloons = ({ group, onComplete }) => {
       startIdleReminder(true);
     };
     run();
-    return () => { cancelled = true; stopVO(); clearIdleReminder(); setTutorialHand(null); setShowCatLottie(false); setShowCountdown(false); };
-  }, [gameStarted, sounds, announceSound]);
+    return () => { cancelled = true; stopVO(); clearIdleReminder(); setTutorialHand(null); setShowCatLottie(false); setShowCountdown(false); setShowTutorialOverlay(false); };
+  }, [gameStarted, pixiReady, sounds, announceSound]);
 
   // Game timer
   useEffect(() => {
@@ -708,9 +772,14 @@ const SoundBalloons = ({ group, onComplete }) => {
           showFinal();
         } else {
           const handleTransition = async () => {
-            triggerSmallBurst();
+            // Show completion flash for this sound
+            const completedSound = targetSoundRef.current;
+            const poppedCount = soundScoresRef.current[completedSound] || 0;
+            triggerCelebration();
+            setPopFlash({ sound: completedSound, count: poppedCount });
             await playVO("Time's up!");
-            await delay(1000);
+            await delay(1500);
+            setPopFlash(null);
             if (gameOverRef.current) { transitioningRef.current = false; return; }
             targetIdxRef.current = nextIdx;
             targetSoundRef.current = sounds[nextIdx];
@@ -747,16 +816,32 @@ const SoundBalloons = ({ group, onComplete }) => {
 
     const spawn = () => pixiAppRef.current?._spawnBalloon?.();
 
-    // Spawn 3 immediately, then steady rate
-    for (let i = 0; i < 3; i++) setTimeout(spawn, i * 100);
-    spawnIntervalRef.current = setInterval(spawn, 200);
+    // Spawn 4 staggered, then continuous at a relaxed rate
+    for (let i = 0; i < 4; i++) setTimeout(spawn, i * 300);
+    spawnIntervalRef.current = setInterval(spawn, 700);
     return () => clearInterval(spawnIntervalRef.current);
   }, [gameStarted, displayTargetIdx]);
 
   const handleReplaySound = () => announceSound(targetSoundRef.current);
 
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
   useEffect(() => {
-    if (showResults) playVO('Great job!');
+    if (!showResults) return;
+    playVO('Great job!');
+    setResultCountdown(5);
+    let cancelled = false;
+    const countdownInterval = setInterval(() => {
+      setResultCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          if (!cancelled) { stopVO(); onCompleteRef.current(); }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => { cancelled = true; clearInterval(countdownInterval); };
   }, [showResults]);
 
   const handleFinish = () => {
@@ -903,6 +988,63 @@ const SoundBalloons = ({ group, onComplete }) => {
         )}
       </AnimatePresence>
 
+      {/* "How to Play!" tutorial overlay */}
+      <AnimatePresence>
+        {showTutorialOverlay && (
+          <motion.div
+            className="fixed inset-0 z-[53] pointer-events-none flex items-center justify-start pt-16 md:pt-20 flex-col"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <div className="absolute inset-0 bg-black/30" />
+            <motion.div
+              className="relative z-10 bg-[#FFD000] px-8 py-3 rounded-full shadow-lg"
+              style={{ borderBottom: '4px solid #E0B800' }}
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <span className="text-[#3e366b] font-black text-2xl md:text-3xl">How to Play!</span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Correct pop celebration flash */}
+      <AnimatePresence>
+        {popFlash && (
+          <motion.div
+            className="fixed inset-0 z-[55] flex items-center justify-center pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              className="bg-[#2d1b69]/80 backdrop-blur-sm px-10 py-6 md:px-14 md:py-8 rounded-3xl flex flex-col items-center gap-2"
+              initial={{ scale: 0.4, y: 30 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            >
+              <motion.span
+                className="text-5xl md:text-6xl"
+                animate={{ scale: [1, 1.3, 1], rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 0.6 }}
+              >
+                🎈
+              </motion.span>
+              <span className="text-3xl md:text-4xl font-black text-[#4ECDC4] uppercase">{popFlash.sound}</span>
+              {popFlash.count > 0 && (
+                <span className="text-white font-bold text-lg md:text-xl">{popFlash.count} popped!</span>
+              )}
+              <span className="text-white/70 text-sm md:text-base font-bold">Great job!</span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Results screen */}
       <AnimatePresence>
         {showResults && (
@@ -986,7 +1128,7 @@ const SoundBalloons = ({ group, onComplete }) => {
                   balloons popped!
                 </span>
               </motion.div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col items-center gap-3">
                 <motion.button
                   onClick={handlePlayAgain}
                   className="px-6 py-3 bg-[#22c55e] text-white font-bold text-base md:text-lg"
@@ -999,18 +1141,17 @@ const SoundBalloons = ({ group, onComplete }) => {
                 >
                   Play Again &#8635;
                 </motion.button>
-                <motion.button
-                  onClick={handleFinish}
-                  className="px-6 py-3 bg-[#22c55e] text-white font-bold text-base md:text-lg"
-                  style={{ borderRadius: '1.6rem', borderBottom: '5px solid #16a34a', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
-                  whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95, y: 4 }}
-                  initial={{ opacity: 0, scale: 0.5 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 1, type: 'spring', stiffness: 400, damping: 15 }}
+                <motion.div
+                  className="flex items-center gap-2 text-white/50 text-sm font-medium"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1 }}
                 >
-                  Next Step &rarr;
-                </motion.button>
+                  <span>Next step in</span>
+                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white font-bold text-base">
+                    {resultCountdown}
+                  </span>
+                </motion.div>
               </div>
             </motion.div>
           </motion.div>

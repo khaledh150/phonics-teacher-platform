@@ -17,10 +17,10 @@ import React, { useEffect, useRef } from 'react';
 import Lottie from 'lottie-react';
 import { Container, Sprite, Assets } from 'pixi.js';
 
-import blueSkyUrl from '../../assets/backgrounds/sky/blue-sky.png';
-import cloud1Url from '../../assets/backgrounds/sky/cloud-1.png';
-import cloud2Url from '../../assets/backgrounds/sky/cloude-2.png';
-import cloudSmallUrl from '../../assets/backgrounds/sky/cloud-small.png';
+import blueSkyUrl from '../../assets/backgrounds/sky/blue-sky.webp';
+import cloud1Url from '../../assets/backgrounds/sky/cloud-1.webp';
+import cloud2Url from '../../assets/backgrounds/sky/cloude-2.webp';
+import cloudSmallUrl from '../../assets/backgrounds/sky/cloud-small.webp';
 
 import bird1 from '../../assets/materials/flying-birds/bird-flying-1.json';
 import bird2 from '../../assets/materials/flying-birds/bird-flying-2.json';
@@ -219,7 +219,7 @@ const SkyClouds = React.memo(SkyCloudsInner);
 
 /**
  * SkyFullBackground — Drop-in full sky background for any sky-themed game.
- * Renders blue-sky.png (z-0), scrolling clouds (z-2), and flying birds (z-3).
+ * Renders blue-sky.webp (z-0), scrolling clouds (z-2), and flying birds (z-3).
  * Place behind a transparent PixiJS canvas (z-10+) so game elements sit on top.
  */
 const SkyFullBackgroundInner = () => (

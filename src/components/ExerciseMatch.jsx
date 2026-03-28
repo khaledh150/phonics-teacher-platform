@@ -259,7 +259,10 @@ const ExerciseMatch = ({ group, onComplete }) => {
   const [matchBurst, setMatchBurst] = useState(false);
   const [roundBurst, setRoundBurst] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [resultCountdown, setResultCountdown] = useState(5);
   const checkTimeoutRef = useRef(null);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   const currentRoundWords = roundsRef.current[round] || [];
 
@@ -311,18 +314,30 @@ const ExerciseMatch = ({ group, onComplete }) => {
     return () => { cancelled = true; stopVO(); clearIdleReminder(); };
   }, [buildRounds]);
 
-  // VO + confetti on all rounds complete
+  // VO + confetti + 5-second auto-advance on all rounds complete
   useEffect(() => {
     if (!allComplete) return;
     clearIdleReminder();
     triggerCelebration();
+    setResultCountdown(5);
     let cancelled = false;
     const run = async () => {
       await delay(500);
       if (!cancelled) await playVO('You did it!');
     };
     run();
-    return () => { cancelled = true; clearIdleReminder(); };
+    // 5-second countdown to auto-advance (use ref to avoid re-triggering on onComplete identity change)
+    const countdownInterval = setInterval(() => {
+      setResultCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          if (!cancelled) onCompleteRef.current();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => { cancelled = true; clearInterval(countdownInterval); clearIdleReminder(); };
   }, [allComplete, clearIdleReminder]);
 
   const handleNextRound = useCallback(() => {
@@ -494,7 +509,6 @@ const ExerciseMatch = ({ group, onComplete }) => {
             return (
               <motion.button
                 key={word + '-pic'}
-                layout
                 onClick={() => handlePicClick(word)}
                 className={`rounded-2xl shadow-lg transition-all flex items-center justify-center w-full aspect-square ${
                   isSelected
@@ -647,18 +661,17 @@ const ExerciseMatch = ({ group, onComplete }) => {
                 You matched {TOTAL_ROUNDS * WORDS_PER_ROUND} pairs!
               </motion.p>
 
-              <motion.button
-                onClick={onComplete}
-                className="px-8 py-3 bg-[#22c55e] text-white font-bold text-base md:text-lg"
-                style={{ borderRadius: '1.6rem', borderBottom: '5px solid #16a34a', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95, y: 4 }}
-                initial={{ opacity: 0, scale: 0.5 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 1, type: 'spring', stiffness: 400, damping: 15 }}
+              <motion.div
+                className="flex items-center justify-center gap-2 text-white/50 text-sm font-medium"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 1 }}
               >
-                Next Step &rarr;
-              </motion.button>
+                <span>Next step in</span>
+                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white font-bold text-base">
+                  {resultCountdown}
+                </span>
+              </motion.div>
             </motion.div>
           </motion.div>
         )}

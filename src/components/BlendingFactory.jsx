@@ -133,6 +133,7 @@ const BlendingFactory = ({ group, onComplete }) => {
   const [blending, setBlending] = useState(false);
   const [wordDone, setWordDone] = useState(false);
   const [allDone, setAllDone] = useState(false);
+  const [resultCountdown, setResultCountdown] = useState(5);
   const [shakeAll, setShakeAll] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [showHint, setShowHint] = useState(true);
@@ -303,6 +304,26 @@ const BlendingFactory = ({ group, onComplete }) => {
     }
   };
 
+  // 5-second auto-advance when all done (use ref to avoid re-triggering on onComplete identity change)
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  useEffect(() => {
+    if (!allDone) return;
+    setResultCountdown(5);
+    let cancelled = false;
+    const countdownInterval = setInterval(() => {
+      setResultCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          if (!cancelled) onCompleteRef.current();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => { cancelled = true; clearInterval(countdownInterval); };
+  }, [allDone]);
+
   const findSlotAtPoint = useCallback((x, y) => {
     const els = document.elementsFromPoint(x, y);
     for (const el of els) {
@@ -365,15 +386,17 @@ const BlendingFactory = ({ group, onComplete }) => {
           >🏭⭐</motion.span>
           <h2 className="text-2xl md:text-3xl font-bold text-[#6B3FA0] mb-2">Word Builder!</h2>
           <p className="text-[#ae90fd] font-semibold text-lg mb-8">You built {words.length} words!</p>
-          <motion.button
-            onClick={() => onComplete()}
-            className="px-8 py-3 bg-[#22c55e] text-white font-bold text-base md:text-lg"
-            style={{ borderRadius: '1.6rem', borderBottom: '5px solid #16a34a', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.95, y: 4 }}
+          <motion.div
+            className="flex items-center justify-center gap-2 text-white/50 text-sm font-medium"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
           >
-            Next Step &rarr;
-          </motion.button>
+            <span>Next step in</span>
+            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white font-bold text-base">
+              {resultCountdown}
+            </span>
+          </motion.div>
         </motion.div>
       </div>
     );

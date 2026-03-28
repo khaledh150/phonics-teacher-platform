@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion, useAnimation } from 'framer-motion';
 
-import crab1 from '../../assets/characters/crab/crab-1.png';
-import crab2 from '../../assets/characters/crab/crab-2.png';
-import crab3 from '../../assets/characters/crab/crab-3.png';
-import crab4 from '../../assets/characters/crab/crab-4.png';
+import crab1 from '../../assets/characters/crab/crab-1.webp';
+import crab2 from '../../assets/characters/crab/crab-2.webp';
+import crab3 from '../../assets/characters/crab/crab-3.webp';
+import crab4 from '../../assets/characters/crab/crab-4.webp';
 
 // Pose mapping:
 // crab-1: Actively tracing (mouth open, leaning in)

@@ -18,20 +18,20 @@ import { motion } from 'framer-motion';
 import Lottie from 'lottie-react';
 
 // Beach layers
-import sandBeachImg from '../../assets/backgrounds/beach/sand-beach-sidewalk.png';
-import boat1Img from '../../assets/backgrounds/beach/boat-1.png';
-import boat2Img from '../../assets/backgrounds/beach/boat-2.png';
+import sandBeachImg from '../../assets/backgrounds/beach/sand-beach-sidewalk.webp';
+import boat1Img from '../../assets/backgrounds/beach/boat-1.webp';
+import boat2Img from '../../assets/backgrounds/beach/boat-2.webp';
 
 // Sea layers (3-layer parallax tide)
-import seaLayer1 from '../../assets/backgrounds/beach/sea-layers/sea-layer-1.png';
-import seaLayer2 from '../../assets/backgrounds/beach/sea-layers/sea-layer-2.png';
-import seaLayer3 from '../../assets/backgrounds/beach/sea-layers/sea-layer-3.png';
+import seaLayer1 from '../../assets/backgrounds/beach/sea-layers/sea-layer-1.webp';
+import seaLayer2 from '../../assets/backgrounds/beach/sea-layers/sea-layer-2.webp';
+import seaLayer3 from '../../assets/backgrounds/beach/sea-layers/sea-layer-3.webp';
 
 // Summer stickers
-import surfingBoardImg from '../../assets/materials/summer-sticker-collection/surfing-board.png';
-import shellImg from '../../assets/materials/summer-sticker-collection/shell.png';
-import sticker2Img from '../../assets/materials/summer-sticker-collection/sticker-2.png';
-import beachBallImg from '../../assets/materials/summer-sticker-collection/beach-ball.png';
+import surfingBoardImg from '../../assets/materials/summer-sticker-collection/surfing-board.webp';
+import shellImg from '../../assets/materials/summer-sticker-collection/shell.webp';
+import sticker2Img from '../../assets/materials/summer-sticker-collection/sticker-2.webp';
+import beachBallImg from '../../assets/materials/summer-sticker-collection/beach-ball.webp';
 import starfishData from '../../assets/materials/summer-sticker-collection/star-fish.json';
 
 // ─── Sticker placements ──────────────────────────────────────────────────────

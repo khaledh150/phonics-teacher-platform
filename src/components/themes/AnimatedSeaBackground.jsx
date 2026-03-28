@@ -2,26 +2,26 @@ import React from 'react';
 import { motion } from 'framer-motion';
 
 // Sea aerial view layers
-import sandLineLowerImg from '../../assets/backgrounds/beach/sea-aerial-view/sand-line-lower.png';
-import waterLineImg from '../../assets/backgrounds/beach/sea-aerial-view/water-line.png';
-import foamImg from '../../assets/backgrounds/beach/sea-aerial-view/foam.png';
-import seaImg from '../../assets/backgrounds/beach/sea-aerial-view/sea.png';
-import wave1 from '../../assets/backgrounds/beach/sea-aerial-view/wave-1.png';
-import wave2 from '../../assets/backgrounds/beach/sea-aerial-view/wave-2.png';
-import wave3 from '../../assets/backgrounds/beach/sea-aerial-view/wave-3.png';
-import wave4 from '../../assets/backgrounds/beach/sea-aerial-view/wave-4.png';
-import wave5 from '../../assets/backgrounds/beach/sea-aerial-view/wave-5.png';
-import wave6 from '../../assets/backgrounds/beach/sea-aerial-view/wave-6.png';
-import wave7 from '../../assets/backgrounds/beach/sea-aerial-view/wave-7.png';
-import wave8 from '../../assets/backgrounds/beach/sea-aerial-view/wave-8.png';
-import wave9 from '../../assets/backgrounds/beach/sea-aerial-view/wave-9.png';
-import wave10 from '../../assets/backgrounds/beach/sea-aerial-view/wave-10.png';
-import wave11 from '../../assets/backgrounds/beach/sea-aerial-view/wave-11.png';
-import wave12 from '../../assets/backgrounds/beach/sea-aerial-view/wave-12.png';
-import wave13 from '../../assets/backgrounds/beach/sea-aerial-view/wave-13.png';
-import wave14 from '../../assets/backgrounds/beach/sea-aerial-view/wave-14.png';
-import wave15 from '../../assets/backgrounds/beach/sea-aerial-view/wave-15.png';
-import wave16 from '../../assets/backgrounds/beach/sea-aerial-view/wave-16.png';
+import sandLineLowerImg from '../../assets/backgrounds/beach/sea-aerial-view/sand-line-lower.webp';
+import waterLineImg from '../../assets/backgrounds/beach/sea-aerial-view/water-line.webp';
+import foamImg from '../../assets/backgrounds/beach/sea-aerial-view/foam.webp';
+import seaImg from '../../assets/backgrounds/beach/sea-aerial-view/sea.webp';
+import wave1 from '../../assets/backgrounds/beach/sea-aerial-view/wave-1.webp';
+import wave2 from '../../assets/backgrounds/beach/sea-aerial-view/wave-2.webp';
+import wave3 from '../../assets/backgrounds/beach/sea-aerial-view/wave-3.webp';
+import wave4 from '../../assets/backgrounds/beach/sea-aerial-view/wave-4.webp';
+import wave5 from '../../assets/backgrounds/beach/sea-aerial-view/wave-5.webp';
+import wave6 from '../../assets/backgrounds/beach/sea-aerial-view/wave-6.webp';
+import wave7 from '../../assets/backgrounds/beach/sea-aerial-view/wave-7.webp';
+import wave8 from '../../assets/backgrounds/beach/sea-aerial-view/wave-8.webp';
+import wave9 from '../../assets/backgrounds/beach/sea-aerial-view/wave-9.webp';
+import wave10 from '../../assets/backgrounds/beach/sea-aerial-view/wave-10.webp';
+import wave11 from '../../assets/backgrounds/beach/sea-aerial-view/wave-11.webp';
+import wave12 from '../../assets/backgrounds/beach/sea-aerial-view/wave-12.webp';
+import wave13 from '../../assets/backgrounds/beach/sea-aerial-view/wave-13.webp';
+import wave14 from '../../assets/backgrounds/beach/sea-aerial-view/wave-14.webp';
+import wave15 from '../../assets/backgrounds/beach/sea-aerial-view/wave-15.webp';
+import wave16 from '../../assets/backgrounds/beach/sea-aerial-view/wave-16.webp';
 
 const WAVES = [
   wave1, wave2, wave3, wave4, wave5, wave6, wave7, wave8,

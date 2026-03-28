@@ -625,7 +625,7 @@ PHONICS_GROUPS.forEach((group) => {
 });
 
 // Auto-generate sentence data for ALL groups from sentences-pics images.
-// Sentence pic filenames ARE the sentence text (e.g. "He is a tall man.png").
+// Sentence pic filenames ARE the sentence text (e.g. "He is a tall man.webp").
 // If a group has no sentence-pics folder yet, it keeps its hardcoded sentences.
 // When pics are added, the app will auto-pick them up on next build.
 PHONICS_GROUPS.forEach((group) => {

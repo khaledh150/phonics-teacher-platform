@@ -10,15 +10,15 @@ import confetti from 'canvas-confetti';
 import { SkyFullBackground } from '../themes/SkyBackground';
 
 // Hot-air balloon + bubble sprites
-import hotairBalloonUrl from '../../assets/backgrounds/sky/hotair-balloon.png';
-import bubble1Url from '../../assets/materials/ballons-bubbles/bubble-1.png';
-import bubble2Url from '../../assets/materials/ballons-bubbles/bubble-2.png';
-import bubble3Url from '../../assets/materials/ballons-bubbles/bubble-3.png';
-import bubble4Url from '../../assets/materials/ballons-bubbles/bubble-4.png';
-import bubble5Url from '../../assets/materials/ballons-bubbles/bubble-5.png';
-import bubble6Url from '../../assets/materials/ballons-bubbles/bubble-6.png';
-import bubble7Url from '../../assets/materials/ballons-bubbles/bubble-7.png';
-import bubble8Url from '../../assets/materials/ballons-bubbles/bubble-8.png';
+import hotairBalloonUrl from '../../assets/backgrounds/sky/hotair-balloon.webp';
+import bubble1Url from '../../assets/materials/ballons-bubbles/bubble-1.webp';
+import bubble2Url from '../../assets/materials/ballons-bubbles/bubble-2.webp';
+import bubble3Url from '../../assets/materials/ballons-bubbles/bubble-3.webp';
+import bubble4Url from '../../assets/materials/ballons-bubbles/bubble-4.webp';
+import bubble5Url from '../../assets/materials/ballons-bubbles/bubble-5.webp';
+import bubble6Url from '../../assets/materials/ballons-bubbles/bubble-6.webp';
+import bubble7Url from '../../assets/materials/ballons-bubbles/bubble-7.webp';
+import bubble8Url from '../../assets/materials/ballons-bubbles/bubble-8.webp';
 
 const ITEM_BUBBLE_URLS = [
   bubble1Url, bubble2Url, bubble3Url, bubble4Url,
@@ -162,14 +162,29 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
   const laneCountRef = useRef(3);
   const nextLaneRef = useRef(0);
 
-  // Build round sounds from group
+  // Build round sounds from group — only use sounds that have matching words (startsWith)
   const [roundSounds] = useState(() => {
-    const sounds = group.sounds || [];
-    if (sounds.length >= TOTAL_ROUNDS) return pickRandom(sounds, TOTAL_ROUNDS);
-    // If fewer sounds than rounds, cycle through them
+    const allSounds = group.sounds || [];
+    const words = (group.words || []).map(w => w.word.toLowerCase());
+
+    // Filter sounds to only those that have at least one word starting with them
+    const viableSounds = allSounds.filter(s =>
+      words.some(w => w.startsWith(s.toLowerCase()))
+    );
+
+    // Fallback: if no sounds match via startsWith, use unique first letters of words
+    let soundsToUse = viableSounds.length > 0 ? viableSounds : [];
+    if (soundsToUse.length === 0) {
+      const firstLetters = [...new Set(words.map(w => w[0]).filter(Boolean))];
+      soundsToUse = firstLetters.length > 0 ? firstLetters : allSounds;
+    }
+
+    if (soundsToUse.length === 0) return allSounds.slice(0, TOTAL_ROUNDS);
+    if (soundsToUse.length >= TOTAL_ROUNDS) return pickRandom(soundsToUse, TOTAL_ROUNDS);
+    // Cycle through available sounds to fill rounds
     const result = [];
     for (let i = 0; i < TOTAL_ROUNDS; i++) {
-      result.push(sounds[i % sounds.length]);
+      result.push(soundsToUse[i % soundsToUse.length]);
     }
     return result;
   });

@@ -82,11 +82,17 @@ const GroupSong = ({ group, onComplete }) => {
     speakWithVoice(sound, { rate: 0.7 });
   };
 
-  // VO on mount - async sequenced
+  // VO on mount + auto-start sing-along
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
       await playVO('Sing along time!');
+      if (cancelled) return;
+      await delay(400);
+      if (cancelled) return;
+      // Auto-start the sing-along so user doesn't need to click "Sing All"
+      setCurrentSoundIdx(0);
+      setPlayMode('playing-all');
     };
     run();
     return () => { cancelled = true; stopVO(); };

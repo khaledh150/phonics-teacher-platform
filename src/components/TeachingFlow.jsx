@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Home, ChevronRight, ChevronLeft, SkipForward, Maximize } from 'lucide-react';
 import SoundLearning from './SoundLearning';
@@ -75,11 +75,17 @@ const TeachingFlow = ({ group, onExit }) => {
     return () => { cancelled = true; clearTimeout(timer); stopVO(); };
   }, [stepIndex]);
 
-  const handleStepComplete = useCallback(() => {
-    setStepComplete(true);
-  }, []);
+  const autoAdvanceTimerRef = useRef(null);
+  const advancingRef = useRef(false);
+
+  // Reset advancing guard whenever stepIndex changes (re-render complete)
+  useEffect(() => {
+    advancingRef.current = false;
+  }, [stepIndex]);
 
   const handleNextStep = useCallback(() => {
+    if (advancingRef.current) return; // prevent double-advance
+    advancingRef.current = true;
     window.speechSynthesis.cancel();
     stopAllAudio();
     stopVO();
@@ -91,6 +97,19 @@ const TeachingFlow = ({ group, onExit }) => {
     } else {
       setShowGroupFinish(true);
     }
+  }, [stepIndex]);
+
+  // Auto-advance after a brief delay when a step completes
+  const handleStepComplete = useCallback(() => {
+    clearTimeout(autoAdvanceTimerRef.current);
+    autoAdvanceTimerRef.current = setTimeout(() => {
+      handleNextStep();
+    }, 1200);
+  }, [handleNextStep]);
+
+  // Clear auto-advance timer on unmount or step change
+  useEffect(() => {
+    return () => clearTimeout(autoAdvanceTimerRef.current);
   }, [stepIndex]);
 
   const handlePrevStep = useCallback(() => {
@@ -286,46 +305,7 @@ const TeachingFlow = ({ group, onExit }) => {
         </div>
       </div>
 
-      {/* Next Step Button */}
-      <AnimatePresence>
-        {stepComplete && (
-          <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-            className="fixed bottom-12 lg:bottom-16 right-4 md:right-6 lg:right-10 z-50"
-          >
-            <motion.button
-              onClick={handleNextStep}
-              className="px-7 py-3 md:px-10 md:py-4 lg:px-14 lg:py-5 bg-[#22c55e] text-white font-bold text-base md:text-xl lg:text-2xl flex items-center gap-2"
-              style={{ borderRadius: '1.6rem', borderBottom: '6px solid #16a34a', boxShadow: '0px 8px 0px rgba(0,0,0,0.12)' }}
-              whileHover={{ scale: 1.05, y: -3 }}
-              whileTap={{ scale: 0.95, y: 4 }}
-              animate={{
-                boxShadow: [
-                  '0px 8px 0px rgba(0,0,0,0.12)',
-                  '0px 8px 0px rgba(0,0,0,0.12), 0 0 20px rgba(34,197,94,0.5)',
-                  '0px 8px 0px rgba(0,0,0,0.12)',
-                ],
-              }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
-              {stepIndex < STEPS.length - 1 ? (
-                <>
-                  Next Step
-                  <ChevronRight size={22} />
-                </>
-              ) : (
-                <>
-                  Complete!
-                  <span className="text-xl">&#10003;</span>
-                </>
-              )}
-            </motion.button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Next Step button removed — steps auto-advance via handleStepComplete */}
 
       {/* Group Finish celebration */}
       <AnimatePresence>

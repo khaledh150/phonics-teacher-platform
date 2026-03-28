@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Volume2, Film, Music } from 'lucide-react';
+import { ChevronLeft, Volume2, Film, Music } from 'lucide-react';
 import { getSoundVideo, getSoundMusic, getSoundYouTube } from '../utils/assetHelpers';
 import { speakWithVoice } from '../utils/speech';
 import { playLetterSound, getLetterSoundUrl } from '../utils/letterSounds';
@@ -41,6 +41,7 @@ const SoundLearning = ({ group, onComplete }) => {
 
   const reminderRef = useRef(null);
   const [showReminder, setShowReminder] = useState(false);
+  const autoAdvanceRef = useRef(null);
 
   // Start idle reminder timer — plays "Tap the speaker" VO after 6s of no interaction
   const startReminderTimer = useCallback(() => {
@@ -58,6 +59,7 @@ const SoundLearning = ({ group, onComplete }) => {
   }, []);
 
   const cancelledRef = useRef(false);
+  const goNextRef = useRef(null);
 
   // Play a single letter sound and return a promise
   const playOnce = useCallback((sound) => {
@@ -122,8 +124,12 @@ const SoundLearning = ({ group, onComplete }) => {
     if (cancelledRef.current) return;
     await playOnce(sound);
     if (cancelledRef.current) return;
-    startReminderTimer();
-  }, [playOnce, startReminderTimer]);
+    // Auto-advance to next letter after a brief pause
+    clearTimeout(autoAdvanceRef.current);
+    autoAdvanceRef.current = setTimeout(() => {
+      if (!cancelledRef.current) goNextRef.current?.();
+    }, 1500);
+  }, [playOnce]);
 
   useEffect(() => {
     setVideoError(false);
@@ -156,6 +162,7 @@ const SoundLearning = ({ group, onComplete }) => {
       cancelledRef.current = true;
       stopVO();
       clearReminder();
+      clearTimeout(autoAdvanceRef.current);
       window.speechSynthesis.cancel();
     };
   }, [currentSound, speakSound, clearReminder]);
@@ -163,6 +170,7 @@ const SoundLearning = ({ group, onComplete }) => {
   const goNext = () => {
     cancelledRef.current = true;
     clearReminder();
+    clearTimeout(autoAdvanceRef.current);
     stopVO();
     window.speechSynthesis.cancel();
     if (isLastSound) {
@@ -171,10 +179,12 @@ const SoundLearning = ({ group, onComplete }) => {
       setSoundIndex((prev) => prev + 1);
     }
   };
+  goNextRef.current = goNext;
 
   const goPrev = () => {
     cancelledRef.current = true;
     clearReminder();
+    clearTimeout(autoAdvanceRef.current);
     stopVO();
     window.speechSynthesis.cancel();
     if (soundIndex > 0) {
@@ -350,15 +360,6 @@ const SoundLearning = ({ group, onComplete }) => {
         </motion.button>
       )}
 
-      <motion.button
-        onClick={goNext}
-        className="fixed right-2 md:right-6 lg:right-10 top-1/2 -translate-y-1/2 z-40 p-3 md:p-4 lg:p-5 bg-[#FFD000] transition-all"
-        style={{ borderRadius: '1.6rem', borderBottom: '5px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-        whileHover={{ scale: 1.15, x: 5 }}
-        whileTap={{ scale: 0.9, y: 4 }}
-      >
-        <ChevronRight className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-[#3e366b]" />
-      </motion.button>
     </div>
   );
 };

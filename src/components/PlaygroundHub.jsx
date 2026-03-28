@@ -4,7 +4,7 @@ import { ArrowLeft, Lock, Maximize } from 'lucide-react';
 import { playVO, stopVO, delay } from '../utils/audioPlayer';
 import { stopAllAudio } from '../utils/letterSounds';
 import frogSheet from '../assets/characters/set-cute-drawing-frogs.svg';
-import hotairBalloonImg from '../assets/backgrounds/sky/hotair-balloon.png';
+import hotairBalloonImg from '../assets/backgrounds/sky/hotair-balloon.webp';
 
 // Inline frog sprite component (same pattern as LilyPadHop)
 const FrogSprite = ({ size = 60 }) => (

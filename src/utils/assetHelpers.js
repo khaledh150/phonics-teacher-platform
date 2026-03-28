@@ -2,7 +2,7 @@
 // Folder structure: src/assets/lvl1/group-{N}/sounds-pics/ and sentences-pics/
 
 // Import all images from lvl1 asset folders using Vite glob
-// Matches: group-1/sounds-pics/*.png, group-1/sentences-pics/*.png, etc.
+// Matches: group-1/sounds-pics/*.webp, group-1/sentences-pics/*.webp, etc.
 const wordImageModules = import.meta.glob(
   '../assets/lvl1/group-*/**/*.{webp,png,jpg,jpeg,svg}',
   { eager: true }
@@ -97,7 +97,7 @@ export const getSentenceImage = (groupId, wordName) => {
 
 /**
  * Build a map of all sentence-pic filenames available for a group.
- * Returns { picName: url, ... } e.g. { "cat": "/assets/cat-abc.png", "dip": "..." }
+ * Returns { picName: url, ... } e.g. { "cat": "/assets/cat-abc.webp", "dip": "..." }
  */
 export const getSentencePicMap = (groupId) => {
   const groupPrefix = `../assets/lvl1/group-${groupId}/`;
@@ -130,12 +130,12 @@ export const findSentenceImage = (groupId, keyword, sentenceText) => {
     if (!path.toLowerCase().includes('sentences-pics')) continue;
     const fileName = normalize(path.split('/').pop());
 
-    // Try keyword match (old-style: "man.png")
+    // Try keyword match (old-style: "man.webp")
     if (fileName === normalizedKeyword || fileName === `${normalizedKeyword}_`) {
       return url;
     }
 
-    // Try full sentence match (new-style: "He is a tall man.png")
+    // Try full sentence match (new-style: "He is a tall man.webp")
     if (sentenceClean && stripPunctuation(fileName) === sentenceClean) {
       return url;
     }
@@ -169,7 +169,7 @@ export const getGroupWordNames = (groupId) => {
 
 /**
  * Get all sentence pics for a group with their sentence text derived from filename.
- * For groups with sentence-titled pics (e.g. "He is a tall man.png"), the filename IS the sentence.
+ * For groups with sentence-titled pics (e.g. "He is a tall man.webp"), the filename IS the sentence.
  * Returns: [{ sentence: "He is a tall man", url: "..." }, ...]
  */
 export const getGroupSentencePics = (groupId) => {
@@ -180,7 +180,7 @@ export const getGroupSentencePics = (groupId) => {
     if (!path.startsWith(groupPrefix)) continue;
     if (!path.toLowerCase().includes('sentences-pics')) continue;
     const raw = path.split('/').pop();
-    // Strip image extension — must not leak .png/.jpg etc. into sentence text
+    // Strip image extension — must not leak .webp/.jpg etc. into sentence text
     const sentence = raw
       .replace(/\.(webp|png|jpe?g|svg)$/i, '')  // strip known image extensions
       .replace(/\.\w{2,4}$/, '')                 // fallback: strip any remaining .ext

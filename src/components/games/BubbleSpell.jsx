@@ -6,21 +6,22 @@ import { Application, Graphics, Text, TextStyle, Container, Sprite as PixiSprite
 import { playLetterSound, stopAllAudio } from '../../utils/letterSounds';
 import { speakAsync } from '../../utils/speech';
 import { playVO, stopVO, delay } from '../../utils/audioPlayer';
-import { triggerCelebration, triggerSmallBurst } from '../../utils/confetti';
+import { triggerCelebration, triggerSmallBurst, triggerBurstAt } from '../../utils/confetti';
 import { playEncouragement } from '../../utils/encouragement';
 import { SkyFullBackground } from '../themes/SkyBackground';
 
 import dogBathingData from '../../assets/materials/dog-bathing-in-bathtub.json';
+import tutorialArmUrl from '../../assets/materials/tutorial-pointing-arm.webp';
 
 // Bubble PNG sprites
-import bubble1Url from '../../assets/materials/ballons-bubbles/bubble-1.png';
-import bubble2Url from '../../assets/materials/ballons-bubbles/bubble-2.png';
-import bubble3Url from '../../assets/materials/ballons-bubbles/bubble-3.png';
-import bubble4Url from '../../assets/materials/ballons-bubbles/bubble-4.png';
-import bubble5Url from '../../assets/materials/ballons-bubbles/bubble-5.png';
-import bubble6Url from '../../assets/materials/ballons-bubbles/bubble-6.png';
-import bubble7Url from '../../assets/materials/ballons-bubbles/bubble-7.png';
-import bubble8Url from '../../assets/materials/ballons-bubbles/bubble-8.png';
+import bubble1Url from '../../assets/materials/ballons-bubbles/bubble-1.webp';
+import bubble2Url from '../../assets/materials/ballons-bubbles/bubble-2.webp';
+import bubble3Url from '../../assets/materials/ballons-bubbles/bubble-3.webp';
+import bubble4Url from '../../assets/materials/ballons-bubbles/bubble-4.webp';
+import bubble5Url from '../../assets/materials/ballons-bubbles/bubble-5.webp';
+import bubble6Url from '../../assets/materials/ballons-bubbles/bubble-6.webp';
+import bubble7Url from '../../assets/materials/ballons-bubbles/bubble-7.webp';
+import bubble8Url from '../../assets/materials/ballons-bubbles/bubble-8.webp';
 
 const WORDS_PER_ROUND = 5;
 const BUBBLE_PNG_URLS = [
@@ -69,6 +70,20 @@ const playPopSfx = () => {
     noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
     osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.15);
     noise.start(ctx.currentTime); noise.stop(ctx.currentTime + 0.1);
+  } catch (e) { /* silent */ }
+};
+
+const playCountdownTick = (isGo) => {
+  try {
+    const ctx = getCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(isGo ? 880 : 600, ctx.currentTime);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + (isGo ? 0.4 : 0.2));
+    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + (isGo ? 0.4 : 0.2));
   } catch (e) { /* silent */ }
 };
 
@@ -135,6 +150,13 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [pixiReady, setPixiReady] = useState(false);
   const [instructionLock, setInstructionLock] = useState(true);
+  const [tutorialHand, setTutorialHand] = useState(null);
+  const [showCountdown, setShowCountdown] = useState(false);
+  const [countdown, setCountdown] = useState(3);
+  const [tutorialDone, setTutorialDone] = useState(false);
+  const [showTutorialOverlay, setShowTutorialOverlay] = useState(false);
+  const [tutorialSpelled, setTutorialSpelled] = useState([]);
+  const [tutorialWord, setTutorialWord] = useState('');
 
   const canvasContainerRef = useRef(null);
   const pixiAppRef = useRef(null);
@@ -150,7 +172,10 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
   const wrongTapCountRef = useRef(0);
   const bubbleTexturesRef = useRef([]);
   const skyRef = useRef(null);
+  const hasPlayedOnceRef = useRef(false);
   const [transitioning, setTransitioning] = useState(false);
+  const [wordCompleteFlash, setWordCompleteFlash] = useState(null); // holds the completed word string
+  const helpCancelRef = useRef(null);
 
   const [roundWords] = useState(() => pickRandom(group.words, WORDS_PER_ROUND));
   const currentWord = roundWords[wordIndex];
@@ -186,31 +211,295 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
     startIdleReminder();
   }, [roundWords, startIdleReminder]);
 
-  // VO on mount
+  // Mount/unmount lifecycle
   useEffect(() => {
     mountedRef.current = true;
     destroyedRef.current = false;
-    let cancelled = false;
-    const run = async () => {
-      await playVO('Pop the bubbles to spell the word!');
-      if (cancelled) return;
-      await delay(100);
-      if (cancelled) return;
-      if (currentWord) await speakAsync(currentWord.word, { rate: 0.85 });
-      if (cancelled) return;
-      setInstructionLock(false);
-      startIdleReminder();
-    };
-    run();
     return () => {
-      cancelled = true;
       mountedRef.current = false;
       window.speechSynthesis.cancel();
       stopAllAudio();
       stopVO();
       clearTimeout(idleRef.current);
+      if (helpCancelRef.current) helpCancelRef.current();
     };
   }, []);
+
+  // Reusable tutorial runner — used by initial load AND the ? help button
+  const tutorialRunningRef = useRef(false);
+  const runTutorial = useCallback(async (cancelled, { isHelpReplay = false } = {}) => {
+    const app = pixiAppRef.current;
+    const canvasEl = canvasContainerRef.current;
+    if (!app || !canvasEl) return;
+
+    tutorialRunningRef.current = true;
+    if (!isHelpReplay) {
+      setInstructionLock(true);
+    }
+
+    const stageW = app.screen.width;
+    const stageH = app.screen.height;
+    const R = bubbleRadiusRef.current;
+
+    // Pick a tutorial word NOT in the gameplay round
+    const roundWordStrs = roundWords.map(w => w.word);
+    const tutorialCandidates = group.words.filter(w => !roundWordStrs.includes(w.word));
+    const tutWord = tutorialCandidates.length > 0
+      ? tutorialCandidates[Math.floor(Math.random() * tutorialCandidates.length)]
+      : group.words[Math.floor(Math.random() * group.words.length)];
+    const tutLetters = tutWord.word.split('');
+    setTutorialWord(tutWord.word);
+    setShowTutorialOverlay(true);
+    setTutorialSpelled([]);
+
+    // Spawn tutorial bubbles IMMEDIATELY
+    const allTutLetters = [...tutLetters];
+    const distractorPool = group.sounds.filter(s => s.length === 1 && !tutLetters.includes(s));
+    const fallbackPool = 'abcdefghijklmnopqrstuvwxyz'.split('').filter(c => !tutLetters.includes(c));
+    const pool = [...distractorPool, ...fallbackPool.filter(c => !distractorPool.includes(c))];
+    const numDistractors = Math.max(6, tutLetters.length * 2);
+    for (let d = 0; d < numDistractors; d++) allTutLetters.push(pool[d % pool.length]);
+    for (let i = allTutLetters.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [allTutLetters[i], allTutLetters[j]] = [allTutLetters[j], allTutLetters[i]];
+    }
+
+    const tutBubbles = [];
+    const textures = bubbleTexturesRef.current;
+    for (let i = 0; i < allTutLetters.length; i++) {
+      const container = new Container();
+      let sprite = null;
+      if (textures.length > 0) {
+        const tex = textures[i % textures.length];
+        sprite = new PixiSprite(tex);
+        sprite.anchor.set(0.5);
+        sprite.width = R * 2;
+        sprite.height = R * 2;
+        container.addChild(sprite);
+      } else {
+        const circle = new Graphics();
+        circle.circle(0, 0, R);
+        circle.fill({ color: 0x4ECDC4, alpha: 0.7 });
+        container.addChild(circle);
+      }
+      const txt = new Text({
+        text: allTutLetters[i].toLowerCase(),
+        style: new TextStyle({
+          fontFamily: '"Fredoka", "Segoe UI", -apple-system, BlinkMacSystemFont, sans-serif',
+          fontSize: Math.max(R * 0.85, 24),
+          fontWeight: '900',
+          fill: '#3e366b',
+          stroke: { color: '#ffffff', width: 3 },
+        }),
+      });
+      txt.anchor.set(0.5);
+      container.addChild(txt);
+
+      // Spawn from behind the dog — wide horizontal spread
+      const startX = stageW * 0.1 + Math.random() * (stageW * 0.8);
+      const startY = stageH * 0.78 + Math.random() * (stageH * 0.05);
+      container.x = startX;
+      container.y = startY;
+      app.stage.addChild(container);
+      tutBubbles.push({
+        letter: allTutLetters[i],
+        container,
+        sprite,
+        x: startX,
+        y: startY,
+        vx: (Math.random() - 0.5) * 1.4, // wider lateral drift for more spread
+        vy: -(0.35 + Math.random() * 0.5), // same speed as gameplay
+        shimmerPhase: Math.random() * Math.PI * 2,
+        popped: false,
+        popScale: 1,
+      });
+    }
+
+    // Ticker: move tutorial bubbles
+    const tutTicker = (ticker) => {
+      if (cancelled()) return;
+      const dt = ticker.deltaTime;
+      for (const b of tutBubbles) {
+        if (b.popped) {
+          b.popScale -= 0.08 * dt;
+          if (b.popScale <= 0) { b.container.alpha = 0; continue; }
+          b.container.scale.set(b.popScale);
+          b.container.alpha = b.popScale;
+          continue;
+        }
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        if (b.x < R) { b.x = R; b.vx = Math.abs(b.vx); }
+        if (b.x > stageW - R) { b.x = stageW - R; b.vx = -Math.abs(b.vx); }
+        // Recycle if off top — respawn from dog area with wide spread
+        if (b.y < -R * 2) { b.y = stageH * 0.78 + Math.random() * (stageH * 0.05); b.x = stageW * 0.1 + Math.random() * (stageW * 0.8); b.vy = -(0.35 + Math.random() * 0.5); }
+        b.shimmerPhase += 0.025 * dt;
+        b.container.x = b.x;
+        b.container.y = b.y;
+      }
+    };
+    app.ticker.add(tutTicker);
+
+    const cleanup = () => {
+      app.ticker.remove(tutTicker);
+      tutBubbles.forEach(b => { try { app.stage.removeChild(b.container); b.container.destroy({ children: true }); } catch(e){} });
+    };
+
+    // VO plays while bubbles are already rising
+    await playVO('Pop the bubbles to spell the word!');
+    if (cancelled()) { cleanup(); tutorialRunningRef.current = false; return; }
+    await delay(200);
+    if (cancelled()) { cleanup(); tutorialRunningRef.current = false; return; }
+    await speakAsync(tutWord.word, { rate: 0.75 });
+    if (cancelled()) { cleanup(); tutorialRunningRef.current = false; return; }
+    await delay(400);
+    if (cancelled()) { cleanup(); tutorialRunningRef.current = false; return; }
+
+    // Hand pops each letter in order to spell the full word
+    let spelledSoFar = [];
+    for (let li = 0; li < tutLetters.length; li++) {
+      if (cancelled()) break;
+      const targetLetter = tutLetters[li];
+
+      // Find closest non-popped bubble with this letter in the visible area
+      let bestBubble = null;
+      let bestDist = Infinity;
+      for (const b of tutBubbles) {
+        if (b.popped || b.letter !== targetLetter) continue;
+        if (b.container.y > stageH * 0.7 || b.container.y < R) continue;
+        const distFromCenter = Math.abs(b.container.x - stageW / 2) + Math.abs(b.container.y - stageH * 0.4);
+        if (distFromCenter < bestDist) { bestDist = distFromCenter; bestBubble = b; }
+      }
+      if (!bestBubble) continue;
+
+      // Freeze this bubble so hand can reach it
+      const savedVx = bestBubble.vx;
+      const savedVy = bestBubble.vy;
+      bestBubble.vx = 0;
+      bestBubble.vy = 0;
+
+      const rect = canvasEl.getBoundingClientRect();
+      const startX = rect.left + rect.width * 0.5;
+      const startY = rect.top + rect.height + 80;
+
+      // Hand appears from bottom
+      setTutorialHand({ x: startX, y: startY, visible: true, popping: false });
+      await delay(300);
+      if (cancelled()) { bestBubble.vx = savedVx; bestBubble.vy = savedVy; break; }
+
+      // Hand moves to slightly left of bubble center-bottom (finger touches lower-left area)
+      const bubbleScreenX = rect.left + (bestBubble.container.x / stageW) * rect.width - (R * 0.35 * rect.width / stageW);
+      const bubbleScreenY = rect.top + (bestBubble.container.y / stageH) * rect.height + (R * 0.2 * rect.height / stageH);
+      setTutorialHand({ x: bubbleScreenX, y: bubbleScreenY, visible: true, popping: false });
+      await delay(500);
+      if (cancelled()) { bestBubble.vx = savedVx; bestBubble.vy = savedVy; break; }
+
+      // Pop!
+      setTutorialHand({ x: bubbleScreenX, y: bubbleScreenY, visible: true, popping: true });
+      playPopSfx();
+      bestBubble.popped = true;
+      bestBubble.popScale = 1;
+      triggerBurstAt(bestBubble.container.x / stageW, bestBubble.container.y / stageH);
+      await playLetterSound(bestBubble.letter).catch(() => {});
+
+      spelledSoFar = [...spelledSoFar, bestBubble.letter];
+      setTutorialSpelled([...spelledSoFar]);
+
+      await delay(400);
+      if (cancelled()) break;
+      setTutorialHand(null);
+      await delay(300);
+    }
+    setTutorialHand(null);
+    if (cancelled()) { cleanup(); tutorialRunningRef.current = false; return; }
+
+    // Big celebration for completed tutorial word
+    if (spelledSoFar.length === tutLetters.length) {
+      triggerCelebration();
+      await speakAsync(tutWord.word, { rate: 0.85 });
+      if (cancelled()) { cleanup(); tutorialRunningRef.current = false; return; }
+      await delay(1000);
+    }
+
+    // Fade out tutorial bubbles
+    app.ticker.remove(tutTicker);
+    await new Promise((resolve) => {
+      let t = 0;
+      const fadeTicker = (ticker) => {
+        if (cancelled()) { app.ticker.remove(fadeTicker); resolve(); return; }
+        t += ticker.deltaTime;
+        for (const b of tutBubbles) b.container.alpha = Math.max(0, b.container.alpha - 0.06 * ticker.deltaTime);
+        if (t > 20) { app.ticker.remove(fadeTicker); resolve(); }
+      };
+      app.ticker.add(fadeTicker);
+    });
+    tutBubbles.forEach(b => { try { app.stage.removeChild(b.container); b.container.destroy({ children: true }); } catch(e){} });
+    if (cancelled()) { tutorialRunningRef.current = false; return; }
+
+    setShowTutorialOverlay(false);
+    setTutorialSpelled([]);
+    setTutorialWord('');
+    tutorialRunningRef.current = false;
+  }, [roundWords, group]);
+
+  // Tutorial + 3-2-1 countdown (runs once when pixi is ready)
+  const tutorialRanRef = useRef(false);
+  useEffect(() => {
+    if (!pixiReady || tutorialRanRef.current) return;
+    tutorialRanRef.current = true;
+    let cancelled = false;
+    const isCancelled = () => cancelled;
+
+    const run = async () => {
+      // Skip tutorial on replay — go straight to countdown
+      if (hasPlayedOnceRef.current) {
+        await playVO('Pop the bubbles to spell the word!');
+        if (cancelled) return;
+        if (currentWord) await speakAsync(currentWord.word, { rate: 0.85 });
+        if (cancelled) return;
+
+        setShowCountdown(true);
+        setCountdown(3); await delay(200); if (cancelled) return;
+        playCountdownTick(false); await delay(1000); if (cancelled) return;
+        setCountdown(2); playCountdownTick(false); await delay(1000); if (cancelled) return;
+        setCountdown(1); playCountdownTick(false); await delay(1000); if (cancelled) return;
+        setCountdown(0); playCountdownTick(true); await delay(700); if (cancelled) return;
+        setShowCountdown(false);
+        setTutorialDone(true);
+        setInstructionLock(false);
+        startIdleReminder();
+        return;
+      }
+
+      // --- FULL TUTORIAL ---
+      await runTutorial(isCancelled);
+      if (cancelled) return;
+
+      // 3-2-1-GO countdown
+      setShowCountdown(true);
+      setCountdown(3); await delay(200); if (cancelled) return;
+      playCountdownTick(false); await delay(1000); if (cancelled) return;
+      setCountdown(2); playCountdownTick(false); await delay(1000); if (cancelled) return;
+      setCountdown(1); playCountdownTick(false); await delay(1000); if (cancelled) return;
+      setCountdown(0); playCountdownTick(true); await delay(700); if (cancelled) return;
+      setShowCountdown(false);
+
+      // Now start real game
+      hasPlayedOnceRef.current = true;
+      setTutorialDone(true);
+      setInstructionLock(false);
+
+      // Announce the actual first word
+      await playVO('Pop the bubbles to spell the word!');
+      if (cancelled) return;
+      if (currentWord) await speakAsync(currentWord.word, { rate: 0.85 });
+      if (cancelled) return;
+      startIdleReminder();
+    };
+    run();
+    return () => { cancelled = true; stopVO(); setTutorialHand(null); setShowCountdown(false); setShowTutorialOverlay(false); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pixiReady]);
 
   // Initialize PixiJS
   useEffect(() => {
@@ -243,6 +532,29 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         app.canvas.style.left = '0';
         el.appendChild(app.canvas);
         pixiAppRef.current = app;
+
+        // Stage-level tap handler: find nearest bubble to tap point (fixes hard-to-tap back bubbles)
+        app.canvas.addEventListener('pointerdown', (e) => {
+          if (!handleBubbleTapRef.current) return;
+          const rect = app.canvas.getBoundingClientRect();
+          const tapX = ((e.clientX - rect.left) / rect.width) * app.screen.width;
+          const tapY = ((e.clientY - rect.top) / rect.height) * app.screen.height;
+          let closest = null;
+          let closestDist = Infinity;
+          for (const b of bubblesRef.current) {
+            if (b.popped) continue;
+            const dx = b.container.x - tapX;
+            const dy = b.container.y - tapY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const scale = b.container.scale?.x ?? 1;
+            const hitRadius = bubbleRadiusRef.current * Math.max(scale, 0.5) * 1.3;
+            if (dist < hitRadius && dist < closestDist) {
+              closest = b;
+              closestDist = dist;
+            }
+          }
+          if (closest) handleBubbleTapRef.current(closest);
+        });
 
         // Resize handler — keeps canvas resolution matched to container so bubbles don't stretch
         const resizeObserver = new ResizeObserver((entries) => {
@@ -380,9 +692,9 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
     };
   }, []);
 
-  // Spawn bubbles when word changes AND pixi is ready
+  // Spawn bubbles when word changes AND pixi is ready AND tutorial is done
   useEffect(() => {
-    if (!pixiReady || !pixiAppRef.current || !currentWord) return;
+    if (!pixiReady || !pixiAppRef.current || !currentWord || !tutorialDone) return;
     const app = pixiAppRef.current;
     const w = app.screen.width;
     const h = app.screen.height;
@@ -409,7 +721,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
     const distractorPool = group.sounds.filter((s) => s.length === 1 && !wordLetters.includes(s));
     const fallbackPool = 'abcdefghijklmnopqrstuvwxyz'.split('').filter((c) => !wordLetters.includes(c));
     const pool = [...distractorPool, ...fallbackPool.filter((c) => !distractorPool.includes(c))];
-    const numDistractors = Math.max(12, wordLetters.length * 3);
+    const numDistractors = Math.max(8, wordLetters.length * 2);
     const distractors = [];
     for (let d = 0; d < numDistractors; d++) {
       distractors.push(pool[d % pool.length]);
@@ -422,22 +734,17 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       [allLetters[i], allLetters[j]] = [allLetters[j], allLetters[i]];
     }
 
-    // Spawn bubbles one-by-one with stagger
     const R = bubbleRadiusRef.current;
-    const spawnTimers = [];
+    let spawnIdx = 0;
 
-    const spawnBubble = (letter, idx) => {
+    const spawnBubble = (letter) => {
       if (destroyedRef.current || !pixiAppRef.current) return;
       const container = new Container();
-      container.interactive = true;
-      container.eventMode = 'static';
-      container.cursor = 'pointer';
 
-      // SVG bubble sprite
       let bubbleSprite = null;
       const textures = bubbleTexturesRef.current;
       if (textures.length > 0) {
-        const tex = textures[idx % textures.length];
+        const tex = textures[spawnIdx % textures.length];
         bubbleSprite = new PixiSprite(tex);
         bubbleSprite.anchor.set(0.5);
         bubbleSprite.width = R * 2;
@@ -449,12 +756,6 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         circle.fill({ color: 0x4ECDC4, alpha: 0.7 });
         container.addChild(circle);
       }
-
-      // Hit area in local coords — must be large enough to compensate for scale-down during growth.
-      // At minimum scale 0.3, pointer coords are divided by 0.3 (amplified ~3.3x),
-      // so a tap at visual radius R maps to local ~R/0.3 = R*3.3. Use R*4 to be safe.
-      const hitR = R * 4;
-      container.hitArea = { contains: (x, y) => (x * x + y * y) <= hitR * hitR };
 
       const text = new Text({
         text: letter.toLowerCase(),
@@ -470,8 +771,8 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       text.anchor.set(0.5);
       container.addChild(text);
 
-      // Spawn from behind the dog (bottom ~80% of canvas height)
-      const startX = w * 0.3 + Math.random() * (w * 0.4);
+      // Spawn from behind the dog, spread across full width
+      const startX = w * 0.1 + Math.random() * (w * 0.8);
       const startY = h * 0.78 + Math.random() * (h * 0.05);
 
       container.x = startX;
@@ -479,12 +780,12 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       app.stage.addChild(container);
 
       const bubble = {
-        id: idx,
+        id: spawnIdx++,
         letter,
         x: startX,
         y: startY,
         vx: (Math.random() - 0.5) * 1.2,
-        vy: -(0.15 + Math.random() * 0.35),
+        vy: -(0.35 + Math.random() * 0.5),
         shimmerPhase: Math.random() * Math.PI * 2,
         popped: false,
         popScale: 1,
@@ -495,21 +796,36 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         container,
       };
 
-      container.on('pointertap', () => {
-        handleBubbleTapRef.current?.(bubble);
-      });
-
       bubblesRef.current.push(bubble);
     };
 
-    // Stagger spawn: one bubble every 150ms
-    allLetters.forEach((letter, idx) => {
-      const timer = setTimeout(() => spawnBubble(letter, idx), idx * 150);
-      spawnTimers.push(timer);
-    });
+    // Continuous spawning: one bubble every 600ms, cycling through the letter pool
+    let letterIdx = 0;
+    const MAX_ALIVE = allLetters.length; // cap on-screen bubbles
+    const spawnInterval = setInterval(() => {
+      if (destroyedRef.current || !pixiAppRef.current) return;
+      // Only spawn if below the cap (exclude popped bubbles still animating)
+      const alive = bubblesRef.current.filter(b => !b.popped).length;
+      if (alive >= MAX_ALIVE) return;
+      spawnBubble(allLetters[letterIdx % allLetters.length]);
+      letterIdx++;
+    }, 600);
 
-    // Store timers for cleanup
-    const cleanupTimers = () => spawnTimers.forEach(t => clearTimeout(t));
+    // Spawn initial small batch (6 bubbles staggered quickly) so screen isn't empty
+    const initialTimers = [];
+    const initialCount = Math.min(6, allLetters.length);
+    for (let i = 0; i < initialCount; i++) {
+      const timer = setTimeout(() => {
+        spawnBubble(allLetters[letterIdx % allLetters.length]);
+        letterIdx++;
+      }, i * 200);
+      initialTimers.push(timer);
+    }
+
+    const cleanupTimers = () => {
+      clearInterval(spawnInterval);
+      initialTimers.forEach(t => clearTimeout(t));
+    };
     bubblesRef.current._cleanupSpawnTimers = cleanupTimers;
 
     // Announce word
@@ -527,7 +843,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       };
       announceWord();
     }
-  }, [pixiReady, wordIndex, currentWord, group.sounds, startIdleReminder]);
+  }, [pixiReady, wordIndex, currentWord, group.sounds, startIdleReminder, tutorialDone]);
 
   // Bubble tap handler
   handleBubbleTapRef.current = async (bubble) => {
@@ -544,6 +860,9 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       bubble.popped = true;
       bubble.popScale = 1;
       playPopSfx();
+      // Confetti burst at bubble pop location
+      const app = pixiAppRef.current;
+      if (app) triggerBurstAt(bubble.container.x / app.screen.width, bubble.container.y / app.screen.height);
       await playLetterSound(bubble.letter).catch(() => {});
 
       const newSpelled = [...spelledLettersRef.current, bubble.letter];
@@ -552,16 +871,20 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
 
       if (nextLetterIdxRef.current >= currentLetters.length) {
         wrongTapCountRef.current = 0;
-        await delay(400);
+        await delay(300);
         if (!mountedRef.current) return;
-        triggerSmallBurst();
+
+        // Big celebration for completing a word
         const w = roundWords[wordIndexRef.current];
+        triggerCelebration();
+        setWordCompleteFlash(w ? w.word : '');
         if (w) await speakAsync(w.word, { rate: 0.85 });
         if (!mountedRef.current) return;
         await playEncouragement();
         if (!mountedRef.current) return;
-        await delay(800);
+        await delay(1200);
         if (!mountedRef.current) return;
+        setWordCompleteFlash(null);
 
         if (wordIndexRef.current < roundWords.length - 1) {
           setTransitioning(true);
@@ -607,6 +930,33 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       startIdleReminder();
     }
   };
+
+  const handleShowHelp = useCallback(async () => {
+    if (tutorialRunningRef.current || showTutorialOverlay || showCountdown) return;
+    // Cancel any previous help replay
+    if (helpCancelRef.current) helpCancelRef.current();
+    let cancelled = false;
+    helpCancelRef.current = () => { cancelled = true; };
+
+    // Pause gameplay — lock input during tutorial replay
+    setInstructionLock(true);
+    clearTimeout(idleRef.current);
+    window.speechSynthesis.cancel();
+    stopVO();
+
+    await runTutorial(() => cancelled, { isHelpReplay: true });
+    if (cancelled || !mountedRef.current) return;
+
+    // Resume gameplay
+    setInstructionLock(false);
+    const w = roundWords[wordIndexRef.current];
+    if (w) {
+      await playVO('Pop the bubbles to spell the word!');
+      if (!mountedRef.current || cancelled) return;
+      await speakAsync(w.word, { rate: 0.85 });
+    }
+    startIdleReminder();
+  }, [showTutorialOverlay, showCountdown, runTutorial, roundWords, startIdleReminder]);
 
   const handleBack = () => {
     window.speechSynthesis.cancel();
@@ -725,6 +1075,142 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         ))}
       </div>
 
+      {/* Tutorial pointing arm — fingertip centered on target */}
+      <AnimatePresence>
+        {tutorialHand && tutorialHand.visible && (
+          <motion.img
+            src={tutorialArmUrl}
+            alt=""
+            className="fixed z-[56] pointer-events-none select-none"
+            style={{
+              width: 'clamp(120px, 22vw, 220px)',
+              transformOrigin: 'top center',
+              left: tutorialHand.x,
+              top: tutorialHand.y,
+              // Rotate so finger points up; translate so fingertip sits at left/top
+              transform: 'rotate(-90deg) scaleX(-1) translate(50%, -50%)',
+            }}
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{
+              opacity: 1,
+              scale: tutorialHand.popping ? 1.15 : 1,
+            }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            transition={{ duration: 0.35 }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* 3-2-1-GO Countdown */}
+      <AnimatePresence mode="wait">
+        {showCountdown && (
+          <motion.div className="fixed inset-0 z-[55] flex items-center justify-center pointer-events-none">
+            <motion.span
+              key={countdown}
+              initial={{ scale: 0.3, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 2.5, opacity: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="font-black"
+              style={{
+                fontSize: 'clamp(8rem, 30vw, 16rem)',
+                color: countdown === 0 ? '#22c55e' : '#ffffff',
+                textShadow: '0 4px 30px rgba(0,0,0,0.15)',
+              }}
+            >
+              {countdown === 0 ? 'GO!' : countdown}
+            </motion.span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Word complete celebration flash */}
+      <AnimatePresence>
+        {wordCompleteFlash !== null && (
+          <motion.div
+            className="fixed inset-0 z-[55] flex items-center justify-center pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <motion.div
+              className="bg-[#2d1b69]/80 backdrop-blur-sm px-10 py-6 md:px-14 md:py-8 rounded-3xl flex flex-col items-center gap-3"
+              initial={{ scale: 0.4, y: 30 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            >
+              <motion.span
+                className="text-5xl md:text-6xl"
+                animate={{ scale: [1, 1.3, 1], rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 0.6 }}
+              >
+                ⭐
+              </motion.span>
+              <span className="text-3xl md:text-4xl lg:text-5xl font-black text-[#4ECDC4] uppercase tracking-wider">
+                {wordCompleteFlash}
+              </span>
+              <span className="text-white/70 text-base md:text-lg font-bold">Great spelling!</span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Tutorial "How to Play!" overlay — dims background, shows tutorial word tray */}
+      <AnimatePresence>
+        {showTutorialOverlay && (
+          <motion.div
+            className="fixed inset-0 z-[15] pointer-events-none flex flex-col items-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            {/* Dim backdrop */}
+            <div className="absolute inset-0 bg-black/30" />
+            {/* "How to Play!" badge at top */}
+            <motion.div
+              className="relative z-10 mt-16 md:mt-20 bg-[#FFD000] px-8 py-3 rounded-full shadow-lg"
+              style={{ borderBottom: '4px solid #E0B800' }}
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <span className="text-[#3e366b] font-black text-2xl md:text-3xl">How to Play!</span>
+            </motion.div>
+            {/* Tutorial spelling tray */}
+            {tutorialWord && (
+              <motion.div
+                className="relative z-10 mt-auto mb-20 flex items-center justify-center gap-2 md:gap-3 bg-white/20 backdrop-blur-md rounded-2xl px-6 py-4"
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+              >
+                {tutorialWord.split('').map((letter, idx) => {
+                  const isSpelled = idx < tutorialSpelled.length;
+                  return (
+                    <motion.div
+                      key={idx}
+                      className={`w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-xl flex items-center justify-center text-xl md:text-2xl lg:text-3xl font-black uppercase ${
+                        isSpelled
+                          ? 'bg-[#4ECDC4] text-white'
+                          : 'bg-white/40 text-[#3e366b]/50 border-2 border-dashed border-[#3e366b]/40'
+                      }`}
+                      style={isSpelled ? { borderBottom: '4px solid #38B2AC', boxShadow: '0px 4px 0px rgba(0,0,0,0.12)' } : {}}
+                      initial={isSpelled ? { scale: 0, rotate: -20 } : {}}
+                      animate={isSpelled ? { scale: 1, rotate: 0 } : {}}
+                      transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                    >
+                      {isSpelled ? tutorialSpelled[idx] : '?'}
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* PixiJS canvas area — transparent, bubbles only */}
       <div ref={canvasContainerRef} className="absolute inset-0 z-[10]" style={{ maxWidth: '100vw', maxHeight: '100vh' }} />
 
@@ -748,41 +1234,56 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         />
       </div>
 
-      {/* Spelling tray at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 bg-white/20 backdrop-blur-md border-t border-white/30 py-4 md:py-5 px-4">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={wordIndex}
-            className="flex items-center justify-center gap-2 md:gap-3"
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-          >
-            {letters.map((letter, idx) => {
-              const isSpelled = idx < spelledLetters.length;
-              return (
-                <motion.div
-                  key={idx}
-                  className={`w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-xl flex items-center justify-center text-xl md:text-2xl lg:text-3xl font-black uppercase ${
-                    isSpelled
-                      ? 'bg-[#4ECDC4] text-white'
-                      : 'bg-white/40 text-[#3e366b]/50 border-2 border-dashed border-[#3e366b]/40'
-                  }`}
-                  style={isSpelled ? {
-                    borderBottom: '4px solid #38B2AC',
-                    boxShadow: '0px 4px 0px rgba(0,0,0,0.12)',
-                  } : {}}
-                  initial={isSpelled ? { scale: 0, rotate: -20 } : {}}
-                  animate={isSpelled ? { scale: 1, rotate: 0 } : {}}
-                  transition={{ type: 'spring', stiffness: 500, damping: 20 }}
-                >
-                  {isSpelled ? spelledLetters[idx] : '?'}
-                </motion.div>
-              );
-            })}
-          </motion.div>
-        </AnimatePresence>
+      {/* Spelling tray at bottom — hidden during tutorial */}
+      <div className={`absolute bottom-0 left-0 right-0 z-30 bg-white/20 backdrop-blur-md border-t border-white/30 py-4 md:py-5 px-4 ${showTutorialOverlay ? 'opacity-0 pointer-events-none' : ''}`}>
+        <div className="relative flex items-center justify-center">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={wordIndex}
+              className="flex items-center justify-center gap-2 md:gap-3"
+              initial={{ opacity: 0, y: 20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.9 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            >
+              {letters.map((letter, idx) => {
+                const isSpelled = idx < spelledLetters.length;
+                return (
+                  <motion.div
+                    key={idx}
+                    className={`w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-xl flex items-center justify-center text-xl md:text-2xl lg:text-3xl font-black uppercase ${
+                      isSpelled
+                        ? 'bg-[#4ECDC4] text-white'
+                        : 'bg-white/40 text-[#3e366b]/50 border-2 border-dashed border-[#3e366b]/40'
+                    }`}
+                    style={isSpelled ? {
+                      borderBottom: '4px solid #38B2AC',
+                      boxShadow: '0px 4px 0px rgba(0,0,0,0.12)',
+                    } : {}}
+                    initial={isSpelled ? { scale: 0, rotate: -20 } : {}}
+                    animate={isSpelled ? { scale: 1, rotate: 0 } : {}}
+                    transition={{ type: 'spring', stiffness: 500, damping: 20 }}
+                  >
+                    {isSpelled ? spelledLetters[idx] : '?'}
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          </AnimatePresence>
+
+          {/* Help "?" button — right side, aligned with answer boxes */}
+          {tutorialDone && !showTutorialOverlay && (
+            <motion.button
+              onClick={handleShowHelp}
+              className="absolute right-2 md:right-4 w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#FFD000] flex items-center justify-center"
+              style={{ borderBottom: '3px solid #E0B800', boxShadow: '0px 4px 0px rgba(0,0,0,0.1)' }}
+              whileTap={{ scale: 0.9, y: 2 }}
+              whileHover={{ scale: 1.1 }}
+            >
+              <span className="text-[#3e366b] font-black text-lg md:text-xl">?</span>
+            </motion.button>
+          )}
+        </div>
       </div>
     </div>
   );
