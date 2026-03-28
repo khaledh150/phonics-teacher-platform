@@ -91,17 +91,55 @@ const DIGRAPHS = ['th', 'sh', 'ch', 'ng', 'qu', 'ck', 'ai', 'ay', 'ee', 'ea', 'o
 const TRIGRAPHS = ['igh', 'ooo', 'thh'];
 
 /**
+ * Detect split digraph (magic e) pattern in a word.
+ * Returns { sound, vowelPos, ePos } or null.
+ * Only detects if groupSounds contains a matching split digraph (e.g. "a-e").
+ * If groupSounds is empty/omitted, detects any valid VCe pattern.
+ */
+const detectSplitDigraph = (w, groupSounds) => {
+  if (w.length < 3 || w[w.length - 1] !== 'e') return null;
+  const consonant = w[w.length - 2];
+  const vowel = w[w.length - 3];
+  if ('aeiou'.includes(consonant) || !'aeiou'.includes(vowel)) return null;
+  const candidate = vowel + '-e';
+  // If groupSounds provided, only match if group has this split digraph
+  if (groupSounds && groupSounds.length > 0) {
+    if (!groupSounds.some(s => s.toLowerCase() === candidate)) return null;
+  }
+  return { sound: candidate, vowelPos: w.length - 3, ePos: w.length - 1 };
+};
+
+/**
  * Split a word into phonemes for blending.
  * e.g. "cat" -> ["c", "a", "t"]
  * e.g. "rain" -> ["r", "ai", "n"]
  * e.g. "ship" -> ["sh", "i", "p"]
+ * e.g. "bake" (with groupSounds including "a-e") -> ["b", "a-e", "k"]
+ *
+ * @param {string} word
+ * @param {string[]} [groupSounds] - Optional group sounds to enable split digraph detection
  */
-export const wordToPhonemes = (word) => {
+export const wordToPhonemes = (word, groupSounds) => {
   const w = word.toLowerCase();
   const phonemes = [];
   let i = 0;
 
+  // Detect split digraph if group supports it
+  const sd = detectSplitDigraph(w, groupSounds);
+
   while (i < w.length) {
+    // Split digraph vowel position — emit the split digraph sound
+    if (sd && i === sd.vowelPos) {
+      phonemes.push(sd.sound);
+      i++;
+      continue;
+    }
+    // Split digraph final e — skip (already part of the split digraph)
+    if (sd && i === sd.ePos) {
+      i++;
+      continue;
+    }
+
     // Check trigraphs first
     if (i + 3 <= w.length) {
       const tri = w.slice(i, i + 3);
@@ -120,13 +158,11 @@ export const wordToPhonemes = (word) => {
         continue;
       }
     }
-    // Skip silent 'e' at end after consonant (a-e, i-e, o-e, u-e pattern)
-    if (w[i] === 'e' && i === w.length - 1 && i >= 2) {
-      // Check if previous pattern was consonant + vowel (magic e)
+    // Skip silent 'e' at end after consonant (fallback for words without groupSounds)
+    if (!sd && w[i] === 'e' && i === w.length - 1 && i >= 2) {
       const prev = w[i - 1];
       const prevPrev = w[i - 2];
       if (!'aeiou'.includes(prev) && 'aeiou'.includes(prevPrev)) {
-        // Silent e - skip it, the vowel was already captured
         i++;
         continue;
       }
@@ -140,14 +176,85 @@ export const wordToPhonemes = (word) => {
 };
 
 /**
+ * Build a per-character phoneme index map for a word.
+ * Handles split digraphs: the vowel and final 'e' share the same phoneme index.
+ * Returns { phonemes: string[], charMap: number[] } where charMap[i] = phoneme index for char i.
+ *
+ * @param {string} word
+ * @param {string[]} [groupSounds]
+ */
+export const wordToCharPhonemeMap = (word, groupSounds) => {
+  const w = word.toLowerCase();
+  const phonemes = [];
+  const charMap = new Array(w.length).fill(-1);
+  let phonemeIdx = 0;
+  let i = 0;
+
+  const sd = detectSplitDigraph(w, groupSounds);
+
+  while (i < w.length) {
+    if (sd && i === sd.vowelPos) {
+      phonemes.push(sd.sound);
+      charMap[sd.vowelPos] = phonemeIdx;
+      charMap[sd.ePos] = phonemeIdx; // link final e to same phoneme
+      phonemeIdx++;
+      i++;
+      continue;
+    }
+    if (sd && i === sd.ePos) {
+      i++;
+      continue;
+    }
+
+    if (i + 3 <= w.length) {
+      const tri = w.slice(i, i + 3);
+      if (TRIGRAPHS.includes(tri)) {
+        phonemes.push(tri);
+        for (let j = i; j < i + 3; j++) charMap[j] = phonemeIdx;
+        phonemeIdx++;
+        i += 3;
+        continue;
+      }
+    }
+    if (i + 2 <= w.length) {
+      const di = w.slice(i, i + 2);
+      if (DIGRAPHS.includes(di)) {
+        phonemes.push(di);
+        charMap[i] = phonemeIdx;
+        charMap[i + 1] = phonemeIdx;
+        phonemeIdx++;
+        i += 2;
+        continue;
+      }
+    }
+    if (!sd && w[i] === 'e' && i === w.length - 1 && i >= 2) {
+      const prev = w[i - 1];
+      const prevPrev = w[i - 2];
+      if (!'aeiou'.includes(prev) && 'aeiou'.includes(prevPrev)) {
+        charMap[i] = -2; // silent e
+        i++;
+        continue;
+      }
+    }
+    phonemes.push(w[i]);
+    charMap[i] = phonemeIdx;
+    phonemeIdx++;
+    i++;
+  }
+
+  return { phonemes, charMap };
+};
+
+/**
  * Play blending sequence for a word: each phoneme sound, then the full word via TTS.
  * @param {string} word - The word to blend
  * @param {function} speakFullWord - Callback to speak the full word via TTS
  * @param {function} [onPhoneme] - Optional callback(phonemeIndex) called before each phoneme plays, -1 for full word
+ * @param {string[]} [groupSounds] - Optional group sounds to enable split digraph detection
  * Returns a promise that resolves when the full sequence is done.
  */
-export const playBlendingSequence = async (word, speakFullWord, onPhoneme) => {
-  const phonemes = wordToPhonemes(word);
+export const playBlendingSequence = async (word, speakFullWord, onPhoneme, groupSounds) => {
+  const phonemes = wordToPhonemes(word, groupSounds);
 
   for (let idx = 0; idx < phonemes.length; idx++) {
     if (onPhoneme) onPhoneme(idx);

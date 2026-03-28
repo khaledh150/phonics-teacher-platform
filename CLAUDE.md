@@ -3,7 +3,7 @@
 ## App Versioning (CRITICAL)
 - `APP_VERSION` is defined in `src/App.jsx` — controls cache-busting for deployed PWA
 - **You MUST increment `APP_VERSION`** whenever you make any code changes that will be deployed (bug fixes, new features, UI changes, game modifications, config changes, etc.)
-- Use semver: patch (`x.x.+1`) for fixes, minor (`x.+1.0`) for features/modifications, major (`+1.0.0`) for breaking changes
+- **Always bump by patch** (`x.x.+1`) — e.g. `2.7.0` → `2.7.1`. Do NOT bump minor/major unless explicitly asked.
 - The version triggers `localStorage` clear + page reload on cached browsers, ensuring users get the latest code
 - **Never forget this step** — skipping it means users with cached PWA won't see your changes
 

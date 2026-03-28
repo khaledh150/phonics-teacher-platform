@@ -8,6 +8,8 @@ import { triggerCelebration, triggerSmallBurst } from '../../utils/confetti';
 import { playEncouragement } from '../../utils/encouragement';
 import confetti from 'canvas-confetti';
 import { SkyFullBackground } from '../themes/SkyBackground';
+import tutorialArmUrl from '../../assets/materials/tutorial-pointing-arm.webp';
+import { runCatchTheDropTutorial } from '../tutorials/catchTheDropTutorial';
 
 // Hot-air balloon + bubble sprites
 import hotairBalloonUrl from '../../assets/backgrounds/sky/hotair-balloon.webp';
@@ -140,6 +142,9 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
   const [targetSound, setTargetSound] = useState('');
   const [instructionLock, setInstructionLock] = useState(true);
   const [countdown, setCountdown] = useState(null);
+  const [showTutorialOverlay, setShowTutorialOverlay] = useState(false);
+  const [tutorialHand, setTutorialHand] = useState(null);
+  const [tutorialDone, setTutorialDone] = useState(false);
 
   const containerRef = useRef(null);
   const appRef = useRef(null);
@@ -161,6 +166,9 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
   const itemBubbleTexturesRef = useRef([]);
   const laneCountRef = useRef(3);
   const nextLaneRef = useRef(0);
+  const tutorialRunningRef = useRef(false);
+  const hasPlayedOnceRef = useRef(false);
+  const helpCancelRef = useRef(null);
 
   // Build round sounds from group — only use sounds that have matching words (startsWith)
   const [roundSounds] = useState(() => {
@@ -269,179 +277,45 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
     return { itemContainer, itemSize };
   }, []);
 
-  // Tutorial: simulates actual gameplay — one-at-a-time drops in lanes, balloon moves to catch correct ones
-  const runTutorialAnimation = useCallback((sound) => {
-    const app = appRef.current;
-    const wagon = wagonRef.current;
-    if (!app || !wagon || !mountedRef.current) return Promise.resolve();
+  // Reusable tutorial runner — delegates to extracted tutorial module
+  const runTutorial = useCallback(async (cancelled, { isHelpReplay = false } = {}) => {
+    tutorialRunningRef.current = true;
+    const sound = roundSounds[0] || (group.sounds && group.sounds[0]) || '';
+    await runCatchTheDropTutorial(cancelled, {
+      app: appRef.current,
+      canvasEl: containerRef.current,
+      wagon: wagonRef.current,
+      laneCount: laneCountRef.current,
+      targetSound: sound,
+      getWordsForSound,
+      getDistractorWords,
+      createDropItem,
+      setTutorialHand,
+      setShowTutorialOverlay,
+      setInstructionLock,
+      playCatchSfx,
+    }, { isHelpReplay });
+    tutorialRunningRef.current = false;
+  }, [roundSounds, group, getWordsForSound, getDistractorWords, createDropItem]);
 
-    const screenW = app.screen.width;
-    const correctWords = getWordsForSound(sound);
-    const distractorWords = getDistractorWords(sound);
-    if (correctWords.length === 0) return Promise.resolve();
-
-    const lanes = laneCountRef.current;
-    const laneW = screenW / lanes;
-    const centerX = screenW / 2;
-    const swayRange = screenW * 0.3;
-
-    // Build demo word queue (like real game: mix of correct & distractor, one at a time)
-    const demoCount = 5;
-    const demoQueue = [];
-    // 2 correct + 3 distractors, shuffled
-    for (let i = 0; i < 2; i++) demoQueue.push({ word: correctWords[i % correctWords.length], isCorrect: true });
-    for (let i = 0; i < demoCount - 2; i++) {
-      const dw = distractorWords.length > 0
-        ? distractorWords[Math.floor(Math.random() * distractorWords.length)]
-        : 'no';
-      demoQueue.push({ word: dw, isCorrect: false });
-    }
-    for (let si = demoQueue.length - 1; si > 0; si--) {
-      const sj = Math.floor(Math.random() * (si + 1));
-      [demoQueue[si], demoQueue[sj]] = [demoQueue[sj], demoQueue[si]];
-    }
-
-    let phase = 0; // 0 = sway, 1 = gameplay simulation
-    let phaseT = 0;
-    let demoItems = [];
-    let nextSpawnIdx = 0;
-    let spawnTimer = 0;
-    let demoLane = 0;
-    const DEMO_SPAWN_INTERVAL = 55; // ticks between spawns (like SPAWN_INTERVAL_MS)
-
-    return new Promise((resolve) => {
-      const tutTicker = (ticker) => {
-        if (!mountedRef.current) {
-          demoItems.forEach(d => {
-            try { if (d.container.parent) app.stage.removeChild(d.container); d.container.destroy({ children: true }); } catch(e) {}
-          });
-          app.ticker.remove(tutTicker);
-          resolve();
-          return;
-        }
-        const dt = ticker.deltaTime;
-        phaseT += dt;
-
-        if (phase === 0) {
-          // Sway balloon left-right to show movement
-          if (phaseT < 25) {
-            wagon.x = centerX - swayRange * (phaseT / 25);
-          } else if (phaseT < 75) {
-            const t = (phaseT - 25) / 50;
-            wagon.x = centerX - swayRange + swayRange * 2 * t;
-          } else if (phaseT < 100) {
-            const t = (phaseT - 75) / 25;
-            wagon.x = centerX + swayRange - swayRange * t;
-          } else {
-            wagon.x = centerX;
-            phase = 1;
-            phaseT = 0;
-            spawnTimer = DEMO_SPAWN_INTERVAL; // spawn first immediately
-          }
-        } else if (phase === 1) {
-          // Spawn items one-at-a-time in lanes (like real game)
-          spawnTimer += dt;
-          if (spawnTimer >= DEMO_SPAWN_INTERVAL && nextSpawnIdx < demoQueue.length) {
-            spawnTimer = 0;
-            const entry = demoQueue[nextSpawnIdx];
-            const { itemContainer, itemSize } = createDropItem(entry.word, screenW);
-            const lane = demoLane % lanes;
-            demoLane++;
-            const spawnX = laneW * lane + laneW / 2;
-            itemContainer.x = spawnX;
-            itemContainer.y = -itemSize / 2;
-            app.stage.addChild(itemContainer);
-            demoItems.push({
-              container: itemContainer,
-              laneX: spawnX,
-              isCorrect: entry.isCorrect,
-              speed: 1.5 + Math.random() * 0.5,
-              caught: false,
-            });
-            nextSpawnIdx++;
-          }
-
-          // Find nearest correct uncaught item to move balloon toward
-          let targetX = wagon.x;
-          let nearestCorrectY = -Infinity;
-          for (const d of demoItems) {
-            if (!d.caught && d.isCorrect && d.container.y > nearestCorrectY) {
-              nearestCorrectY = d.container.y;
-              targetX = d.laneX;
-            }
-          }
-          wagon.x += (targetX - wagon.x) * 0.04 * dt;
-
-          // Move items down and check collision with balloon
-          for (const d of demoItems) {
-            if (d.caught) continue;
-            d.container.y += d.speed * dt;
-
-            if (d.container.y >= wagon.y - 50) {
-              d.caught = true;
-              if (d.isCorrect) {
-                d.container.alpha = 0;
-                playCatchSfx();
-              } else {
-                d.container.alpha = 0.3;
-              }
-            }
-          }
-
-          // Done when all spawned and all caught/fallen
-          const allSpawned = nextSpawnIdx >= demoQueue.length;
-          const allDone = allSpawned && demoItems.every(d => d.caught || d.container.y > app.screen.height + 60);
-          if (allDone) {
-            app.ticker.remove(tutTicker);
-            setTimeout(() => {
-              demoItems.forEach(d => {
-                try { if (d.container.parent) app.stage.removeChild(d.container); d.container.destroy({ children: true }); } catch(e) {}
-              });
-              wagon.x = centerX;
-              resolve();
-            }, 300);
-          }
-        }
-      };
-      app.ticker.add(tutTicker);
-    });
-  }, [getWordsForSound, getDistractorWords, createDropItem]);
-
-  // Play round intro VO — tutorial runs simultaneously with VO on first round
+  // Play round intro VO (for subsequent rounds after the first)
   const playRoundIntro = useCallback(async (sound) => {
     pausedRef.current = true;
 
-    if (roundIndexRef.current === 0) {
-      // Run tutorial animation and VO at the same time
-      const voSequence = (async () => {
-        await playVO('Catch the items that start with the sound...');
-        if (!mountedRef.current) return;
-        await delay(300);
-        if (!mountedRef.current) return;
-        await playLetterSound(sound).catch(() => {});
-        if (!mountedRef.current) return;
-        await delay(500);
-        if (!mountedRef.current) return;
-        await playVO('Move the wagon to catch them!');
-      })();
-      const tutorialAnim = runTutorialAnimation(sound);
-      await Promise.all([voSequence, tutorialAnim]);
-    } else {
-      await playVO('Catch the items that start with the sound...');
-      if (!mountedRef.current) return;
-      await delay(300);
-      if (!mountedRef.current) return;
-      await playLetterSound(sound).catch(() => {});
-      if (!mountedRef.current) return;
-      await delay(500);
-      if (!mountedRef.current) return;
-      await playVO('Move the wagon to catch them!');
-    }
+    await playVO('Catch the items that start with the sound...');
+    if (!mountedRef.current) return;
+    await delay(300);
+    if (!mountedRef.current) return;
+    await playLetterSound(sound).catch(() => {});
+    if (!mountedRef.current) return;
+    await delay(500);
+    if (!mountedRef.current) return;
+    await playVO('Move the balloon to catch them!');
 
     if (!mountedRef.current) return;
     pausedRef.current = false;
     startIdleReminder();
-  }, [startIdleReminder, runTutorialAnimation]);
+  }, [startIdleReminder]);
 
   // Handle catching an item (called from ticker context via ref)
   const handleCatchRef = useRef(null);
@@ -816,14 +690,84 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
     };
   }, []);
 
-  // Start game when pixi is ready
-  useEffect(() => {
-    if (!pixiReady || !targetSound) return;
+  // Help "?" button handler — replay tutorial then resume gameplay
+  const handleShowHelp = useCallback(async () => {
+    if (tutorialRunningRef.current || showTutorialOverlay) return;
+    if (helpCancelRef.current) helpCancelRef.current();
     let cancelled = false;
+    helpCancelRef.current = () => { cancelled = true; };
+
+    // Pause gameplay
+    pausedRef.current = true;
+    setInstructionLock(true);
+    instructionLockRef.current = true;
+    clearTimeout(idleRef.current);
+    clearInterval(spawnIntervalRef.current);
+    window.speechSynthesis.cancel();
+    stopVO();
+
+    // Clear existing items from stage
+    itemsRef.current.forEach((it) => {
+      if (appRef.current && it.graphics.parent) appRef.current.stage.removeChild(it.graphics);
+      try { it.graphics.destroy({ children: true }); } catch(e){}
+    });
+    itemsRef.current = [];
+
+    await runTutorial(() => cancelled, { isHelpReplay: true });
+    if (cancelled || !mountedRef.current) return;
+
+    // Resume gameplay
+    pausedRef.current = false;
+    setInstructionLock(false);
+    instructionLockRef.current = false;
+
+    await playVO('Catch the items that start with the sound...');
+    if (!mountedRef.current || cancelled) return;
+    await playLetterSound(targetSoundRef.current).catch(() => {});
+    if (!mountedRef.current || cancelled) return;
+
+    startSpawning();
+    startIdleReminder();
+  }, [showTutorialOverlay, runTutorial, startSpawning, startIdleReminder]);
+
+  // Start game when pixi is ready — full tutorial on first play, skip on replay
+  const tutorialRanRef = useRef(false);
+  useEffect(() => {
+    if (!pixiReady || !targetSound || tutorialRanRef.current) return;
+    tutorialRanRef.current = true;
+    let cancelled = false;
+    const isCancelled = () => cancelled;
 
     const run = async () => {
-      await playRoundIntro(targetSound);
-      if (cancelled || !mountedRef.current) return;
+      if (hasPlayedOnceRef.current) {
+        // Skip tutorial on replay — just VO + countdown
+        await playVO('Catch the items that start with the sound...');
+        if (cancelled) return;
+        await playLetterSound(targetSoundRef.current).catch(() => {});
+        if (cancelled) return;
+
+        // 3-2-1 GO countdown
+        for (let c = 3; c >= 1; c--) {
+          setCountdown(c);
+          await delay(800);
+          if (cancelled) return;
+        }
+        setCountdown(0);
+        await delay(600);
+        if (cancelled) return;
+        setCountdown(null);
+
+        setTutorialDone(true);
+        setInstructionLock(false);
+        instructionLockRef.current = false;
+        startSpawning();
+        startIdleReminder();
+        return;
+      }
+
+      // --- FULL TUTORIAL ---
+      await runTutorial(isCancelled);
+      if (cancelled) return;
 
       // 3-2-1 GO countdown
       for (let c = 3; c >= 1; c--) {
@@ -831,25 +775,29 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
         await delay(800);
         if (cancelled) return;
       }
-      setCountdown(0); // "GO!"
+      setCountdown(0);
       await delay(600);
       if (cancelled) return;
       setCountdown(null);
 
-      // Replay instruction VO after countdown
+      // Start real game
+      hasPlayedOnceRef.current = true;
+      setTutorialDone(true);
+      setInstructionLock(false);
+      instructionLockRef.current = false;
+
+      // Replay instruction + target sound after countdown
       await playVO('Catch the items that start with the sound...');
       if (cancelled || !mountedRef.current) return;
       await playLetterSound(targetSoundRef.current).catch(() => {});
       if (cancelled || !mountedRef.current) return;
 
-      setInstructionLock(false);
-      instructionLockRef.current = false;
       startSpawning();
+      startIdleReminder();
     };
     run();
 
-    return () => { cancelled = true; };
-    // Only run on initial pixi ready
+    return () => { cancelled = true; stopVO(); setTutorialHand(null); setShowTutorialOverlay(false); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pixiReady]);
 
@@ -1027,6 +975,67 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
           ))}
         </div>
       </div>
+
+      {/* Tutorial pointing arm */}
+      <AnimatePresence>
+        {tutorialHand && tutorialHand.visible && (
+          <motion.img
+            src={tutorialArmUrl}
+            alt=""
+            className="fixed z-[56] pointer-events-none select-none"
+            style={{
+              width: 'clamp(120px, 22vw, 220px)',
+              transformOrigin: 'top center',
+              left: tutorialHand.x,
+              top: tutorialHand.y,
+              transform: 'rotate(-90deg) scaleX(-1) translate(50%, -50%)',
+            }}
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{
+              opacity: 1,
+              scale: tutorialHand.catching ? 1.15 : 1,
+            }}
+            exit={{ opacity: 0, scale: 0.5 }}
+            transition={{ duration: 0.35 }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Tutorial "How to Play!" overlay */}
+      <AnimatePresence>
+        {showTutorialOverlay && (
+          <motion.div
+            className="fixed inset-0 z-[15] pointer-events-none flex flex-col items-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <div className="absolute inset-0 bg-black/30" />
+            <motion.div
+              className="relative z-10 mt-16 md:mt-20 bg-[#FFD000] px-8 py-3 rounded-full shadow-lg"
+              style={{ borderBottom: '4px solid #E0B800' }}
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <span className="text-[#3e366b] font-black text-2xl md:text-3xl">How to Play!</span>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Help "?" button — bottom right */}
+      {tutorialDone && !showTutorialOverlay && (
+        <motion.button
+          onClick={handleShowHelp}
+          className="fixed bottom-5 right-4 z-[70] w-10 h-10 md:w-12 md:h-12 rounded-full bg-[#FFD000] flex items-center justify-center"
+          style={{ borderBottom: '3px solid #E0B800', boxShadow: '0px 4px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.9, y: 2 }}
+          whileHover={{ scale: 1.1 }}
+        >
+          <span className="text-[#3e366b] font-black text-lg md:text-xl">?</span>
+        </motion.button>
+      )}
 
       {/* PixiJS canvas container — transparent, above sky layers */}
       <div ref={containerRef} className="absolute inset-0 z-[10]" />

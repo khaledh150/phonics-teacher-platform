@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Volume2 } from 'lucide-react';
 import { getWordImage } from '../utils/assetHelpers';
 import { speakWithVoice } from '../utils/speech';
-import { playBlendingSequence, wordToPhonemes } from '../utils/letterSounds';
+import { playBlendingSequence, wordToPhonemes, wordToCharPhonemeMap } from '../utils/letterSounds';
 import { playVO, stopVO, delay } from '../utils/audioPlayer';
 
 // Whoosh sound for transitions
@@ -51,52 +51,36 @@ const wordVariants = {
   exit: (dir) => ({ y: dir < 0 ? 60 : -60, opacity: 0, scale: 0.8, transition: { duration: 0.2 } }),
 };
 
-// Render word with per-phoneme highlighting
-const HighlightedWord = ({ word, activePhonemeIndex, highlightAll }) => {
-  const phonemes = useMemo(() => wordToPhonemes(word), [word]);
-
-  // Map phonemes back to character ranges in the original word
-  const segments = useMemo(() => {
-    const result = [];
-    let charIdx = 0;
-    for (let i = 0; i < phonemes.length; i++) {
-      const len = phonemes[i].length;
-      result.push({
-        text: word.slice(charIdx, charIdx + len),
-        phonemeIdx: i,
-      });
-      charIdx += len;
-    }
-    // Handle any remaining chars (e.g. silent e)
-    if (charIdx < word.length) {
-      result.push({ text: word.slice(charIdx), phonemeIdx: -2 });
-    }
-    return result;
-  }, [word, phonemes]);
+// Render word with per-phoneme highlighting (supports split digraphs — e.g. "bake" highlights a+e together)
+const HighlightedWord = ({ word, activePhonemeIndex, highlightAll, groupSounds }) => {
+  // Per-character phoneme index map — handles split digraphs where vowel and final e share same index
+  const charMap = useMemo(() => wordToCharPhonemeMap(word, groupSounds).charMap, [word, groupSounds]);
 
   return (
     <span className="inline-flex">
-      {segments.map((seg, i) => {
-        const isActive = highlightAll || seg.phonemeIdx === activePhonemeIndex;
+      {word.split('').map((char, i) => {
+        const phonemeIdx = charMap[i];
+        const isActive = highlightAll || phonemeIdx === activePhonemeIndex;
+        const isSilent = phonemeIdx === -2;
         return (
           <motion.span
             key={i}
-            animate={isActive ? {
+            animate={isActive && !isSilent ? {
               scale: [1, 1.15, 1],
               color: highlightAll ? '#22c55e' : '#E60023',
             } : {
               scale: 1,
-              color: '#ffffff',
+              color: isSilent ? '#ffffff60' : '#ffffff',
             }}
             transition={{ duration: 0.3 }}
             style={{
               display: 'inline-block',
-              textShadow: isActive
+              textShadow: isActive && !isSilent
                 ? (highlightAll ? '0 0 20px rgba(34,197,94,0.5)' : '0 0 20px rgba(230,0,35,0.5)')
                 : '0 4px 12px rgba(0, 0, 0, 0.3)',
             }}
           >
-            {seg.text}
+            {char}
           </motion.span>
         );
       })}
@@ -179,7 +163,8 @@ const FlashcardViewer = ({ group, onComplete }) => {
           },
           (phonemeIdx) => {
             setActivePhoneme(phonemeIdx);
-          }
+          },
+          group.sounds
         );
       } catch {
         clearTimeout(safetyTimer);
@@ -426,6 +411,7 @@ const FlashcardViewer = ({ group, onComplete }) => {
                   word={currentItem.word}
                   activePhonemeIndex={activePhoneme}
                   highlightAll={activePhoneme === -1}
+                  groupSounds={group.sounds}
                 />
               </h1>
             </motion.div>
@@ -520,6 +506,7 @@ const FlashcardViewer = ({ group, onComplete }) => {
                   word={currentItem.word}
                   activePhonemeIndex={activePhoneme}
                   highlightAll={activePhoneme === -1}
+                  groupSounds={group.sounds}
                 />
               </h1>
             </motion.div>
