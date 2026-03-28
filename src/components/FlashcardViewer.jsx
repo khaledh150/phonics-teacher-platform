@@ -115,6 +115,7 @@ const FlashcardViewer = ({ group, onComplete }) => {
 
   const words = group.words;
   const currentItem = words[currentIndex];
+  const goToNextRef = useRef(null);
 
   const imagePath = getWordImage(group.id, currentItem.image);
   const displayText = currentItem.word;
@@ -140,6 +141,17 @@ const FlashcardViewer = ({ group, onComplete }) => {
   // Single blend+speak cycle, returns promise that resolves when the final word is spoken
   const runOneBlendCycle = useCallback(() => {
     return new Promise(async (resolve) => {
+      let resolved = false;
+      const safeResolve = () => { if (!resolved) { resolved = true; resolve(); } };
+
+      // Safety timeout — TTS onEnd/onError may never fire on some devices
+      const safetyTimer = setTimeout(() => {
+        setIsSpeaking(false);
+        setIsBlending(false);
+        setActivePhoneme(null);
+        safeResolve();
+      }, 8000);
+
       setIsBlending(true);
       setIsSpeaking(true);
       setActivePhoneme(null);
@@ -150,16 +162,18 @@ const FlashcardViewer = ({ group, onComplete }) => {
             speakWithVoice(word, {
               rate: 0.85,
               onEnd: () => {
+                clearTimeout(safetyTimer);
                 setIsSpeaking(false);
                 setIsBlending(false);
                 setTimeout(() => setActivePhoneme(null), 600);
-                resolve();
+                safeResolve();
               },
               onError: () => {
+                clearTimeout(safetyTimer);
                 setIsSpeaking(false);
                 setIsBlending(false);
                 setActivePhoneme(null);
-                resolve();
+                safeResolve();
               },
             });
           },
@@ -168,10 +182,11 @@ const FlashcardViewer = ({ group, onComplete }) => {
           }
         );
       } catch {
+        clearTimeout(safetyTimer);
         setIsSpeaking(false);
         setIsBlending(false);
         setActivePhoneme(null);
-        resolve();
+        safeResolve();
       }
     });
   }, [displayText]);
@@ -190,52 +205,57 @@ const FlashcardViewer = ({ group, onComplete }) => {
     if (!cancelledRef.current) startReminderTimer();
   }, [runOneBlendCycle, startReminderTimer]);
 
-  // Full 3x sequence: play → "Say it with me!" → play → "Listen closely..." → play → reminder
+  const autoAdvanceTimerRef = useRef(null);
+
+  // Full 3x sequence: play → "Say it with me!" → play → "Listen closely..." → play → auto-advance
+  // Matches SoundLearning's speakSound pattern exactly — no blendingRef guard
   const handleBlendAndSpeak = useCallback(async () => {
-    if (blendingRef.current) return;
-    clearTimeout(reminderRef.current);
     stopVO();
-    window.speechSynthesis.cancel();
-    blendingRef.current = true;
+    clearTimeout(reminderRef.current);
+    clearTimeout(autoAdvanceTimerRef.current);
     cancelledRef.current = false;
 
     // 1st play
     await runOneBlendCycle();
-    if (cancelledRef.current) { blendingRef.current = false; return; }
+    if (cancelledRef.current) return;
     await delay(800);
-    if (cancelledRef.current) { blendingRef.current = false; return; }
+    if (cancelledRef.current) return;
     // "Say it with me!" + 2nd play
     await playVO('Say it with me!');
-    if (cancelledRef.current) { blendingRef.current = false; return; }
+    if (cancelledRef.current) return;
     await delay(600);
-    if (cancelledRef.current) { blendingRef.current = false; return; }
+    if (cancelledRef.current) return;
     await runOneBlendCycle();
-    if (cancelledRef.current) { blendingRef.current = false; return; }
+    if (cancelledRef.current) return;
     await delay(1000);
-    if (cancelledRef.current) { blendingRef.current = false; return; }
+    if (cancelledRef.current) return;
     // "Listen closely..." + 3rd play
     await playVO('Listen closely...');
-    if (cancelledRef.current) { blendingRef.current = false; return; }
+    if (cancelledRef.current) return;
     await delay(600);
-    if (cancelledRef.current) { blendingRef.current = false; return; }
+    if (cancelledRef.current) return;
     await runOneBlendCycle();
-    blendingRef.current = false;
-    if (!cancelledRef.current) startReminderTimer();
-  }, [runOneBlendCycle, startReminderTimer]);
+    if (cancelledRef.current) return;
+    // Auto-advance to next word after a brief pause
+    clearTimeout(autoAdvanceTimerRef.current);
+    autoAdvanceTimerRef.current = setTimeout(() => {
+      if (!cancelledRef.current) goToNextRef.current?.();
+    }, 1500);
+  }, [runOneBlendCycle]);
 
   useEffect(() => {
-    window.speechSynthesis.cancel();
     setImageError(false);
     setActivePhoneme(null);
-    blendingRef.current = false;
     setIsBlending(false);
     setIsSpeaking(false);
     clearReminder();
 
     let cancelled = false;
     const run = async () => {
-      await delay(currentIndex > 0 ? 400 : 100);
-      if (cancelled) return;
+      if (currentIndex > 0) {
+        await delay(400);
+        if (cancelled) return;
+      }
       await playVO('Look at the picture.');
       if (cancelled) return;
       await delay(300);
@@ -250,7 +270,7 @@ const FlashcardViewer = ({ group, onComplete }) => {
     return () => {
       cancelled = true;
       cancelledRef.current = true;
-      blendingRef.current = false;
+      clearTimeout(autoAdvanceTimerRef.current);
       stopVO();
       clearReminder();
       window.speechSynthesis.cancel();
@@ -260,19 +280,17 @@ const FlashcardViewer = ({ group, onComplete }) => {
   useEffect(() => {
     return () => {
       window.speechSynthesis.cancel();
+      clearTimeout(autoAdvanceTimerRef.current);
       if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
     };
   }, []);
 
   const goToNext = () => {
     cancelledRef.current = true;
-    window.speechSynthesis.cancel();
     clearReminder();
+    clearTimeout(autoAdvanceTimerRef.current);
     stopVO();
-    blendingRef.current = false;
-    setIsSpeaking(false);
-    setIsBlending(false);
-    setActivePhoneme(null);
+    window.speechSynthesis.cancel();
     playWhoosh();
     if (currentIndex === words.length - 1) {
       onComplete();
@@ -280,16 +298,14 @@ const FlashcardViewer = ({ group, onComplete }) => {
       setCurrentIndex([currentIndex + 1, 1]);
     }
   };
+  goToNextRef.current = goToNext;
 
   const goToPrev = () => {
     cancelledRef.current = true;
-    window.speechSynthesis.cancel();
     clearReminder();
+    clearTimeout(autoAdvanceTimerRef.current);
     stopVO();
-    blendingRef.current = false;
-    setIsSpeaking(false);
-    setIsBlending(false);
-    setActivePhoneme(null);
+    window.speechSynthesis.cancel();
     playWhoosh();
     if (currentIndex > 0) {
       setCurrentIndex([currentIndex - 1, -1]);

@@ -18,7 +18,7 @@ import CarnivalWheel from './components/games/CarnivalWheel';
 import ScratchDiscover from './components/games/ScratchDiscover';
 
 // Increment this manually when you want to force a cache reset on deployed versions
-const APP_VERSION = "2.4.2";
+const APP_VERSION = "2.5.4";
 
 function App() {
   // Force refresh mechanism: clear cache when a new version is deployed

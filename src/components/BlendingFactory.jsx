@@ -306,20 +306,21 @@ const BlendingFactory = ({ group, onComplete }) => {
 
   // 5-second auto-advance when all done (use ref to avoid re-triggering on onComplete identity change)
   const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
+  useEffect(() => { onCompleteRef.current = onComplete; });
   useEffect(() => {
     if (!allDone) return;
     setResultCountdown(5);
     let cancelled = false;
+    let count = 5;
     const countdownInterval = setInterval(() => {
-      setResultCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval);
-          if (!cancelled) onCompleteRef.current();
-          return 0;
-        }
-        return prev - 1;
-      });
+      count -= 1;
+      if (count <= 0) {
+        clearInterval(countdownInterval);
+        setResultCountdown(0);
+        if (!cancelled) setTimeout(() => onCompleteRef.current(), 0);
+      } else {
+        setResultCountdown(count);
+      }
     }, 1000);
     return () => { cancelled = true; clearInterval(countdownInterval); };
   }, [allDone]);

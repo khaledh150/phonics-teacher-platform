@@ -262,7 +262,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
   const [resultCountdown, setResultCountdown] = useState(5);
   const checkTimeoutRef = useRef(null);
   const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
+  useEffect(() => { onCompleteRef.current = onComplete; });
 
   const currentRoundWords = roundsRef.current[round] || [];
 
@@ -326,16 +326,17 @@ const ExerciseMatch = ({ group, onComplete }) => {
       if (!cancelled) await playVO('You did it!');
     };
     run();
-    // 5-second countdown to auto-advance (use ref to avoid re-triggering on onComplete identity change)
+    // 5-second countdown to auto-advance
+    let count = 5;
     const countdownInterval = setInterval(() => {
-      setResultCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval);
-          if (!cancelled) onCompleteRef.current();
-          return 0;
-        }
-        return prev - 1;
-      });
+      count -= 1;
+      if (count <= 0) {
+        clearInterval(countdownInterval);
+        setResultCountdown(0);
+        if (!cancelled) setTimeout(() => onCompleteRef.current(), 0);
+      } else {
+        setResultCountdown(count);
+      }
     }, 1000);
     return () => { cancelled = true; clearInterval(countdownInterval); clearIdleReminder(); };
   }, [allComplete, clearIdleReminder]);

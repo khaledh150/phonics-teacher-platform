@@ -126,7 +126,7 @@ const SoundBalloons = ({ group, onComplete }) => {
   const [showResults, setShowResults] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [gameStarted, setGameStarted] = useState(false);
-  const [resultCountdown, setResultCountdown] = useState(5);
+  const [resultCountdown, setResultCountdown] = useState(10);
 
   const [displayTargetIdx, setDisplayTargetIdx] = useState(0);
   const [displayTimeLeft, setDisplayTimeLeft] = useState(TIME_PER_SOUND);
@@ -213,6 +213,12 @@ const SoundBalloons = ({ group, onComplete }) => {
     } else {
       playBoing();
       balloon.shakeStart = performance.now();
+      // Turn balloon red briefly
+      balloon.wrongFlashStart = performance.now();
+      if (balloon.container) {
+        const sprite = balloon.container.children[0];
+        if (sprite && sprite.tint !== undefined) sprite.tint = 0xFF0000;
+      }
     }
   };
 
@@ -312,6 +318,15 @@ const SoundBalloons = ({ group, onComplete }) => {
               }
             }
 
+            // Reset red tint after wrong flash (600ms)
+            if (b.wrongFlashStart) {
+              if (now - b.wrongFlashStart > 600) {
+                b.wrongFlashStart = null;
+                const sprite = b.container?.children[0];
+                if (sprite && sprite.tint !== undefined) sprite.tint = 0xFFFFFF;
+              }
+            }
+
             // Update pixi container position
             if (b.container) {
               b.container.x = b.currentX + shakeOffset;
@@ -333,7 +348,7 @@ const SoundBalloons = ({ group, onComplete }) => {
         pixiAppRef.current._spawnBalloon = () => {
           if (destroyed || gameOverRef.current) return;
           const active = balloonsRef.current.filter(b => !b.popped);
-          if (active.length >= 14) return;
+          if (active.length >= 20) return;
 
           const currentTarget = targetSoundRef.current;
           const isTarget = Math.random() < 0.6;
@@ -417,6 +432,7 @@ const SoundBalloons = ({ group, onComplete }) => {
             popped: false,
             popScale: 1,
             shakeStart: null,
+            wrongFlashStart: null,
             container,
           };
 
@@ -481,7 +497,7 @@ const SoundBalloons = ({ group, onComplete }) => {
 
   // Tutorial hand + cat Lottie state
   const [tutorialHand, setTutorialHand] = useState(null); // { x, y, visible, popping }
-  const [showCatLottie, setShowCatLottie] = useState(false);
+  const [showCatFloat, setShowCatFloat] = useState(false); // cat floats up like a balloon after GO!
   const [showCountdown, setShowCountdown] = useState(false);
   const [showTutorialOverlay, setShowTutorialOverlay] = useState(false);
   const [popFlash, setPopFlash] = useState(null); // { sound } — celebration flash on correct pop
@@ -614,8 +630,8 @@ const SoundBalloons = ({ group, onComplete }) => {
     if (isCancelled()) { cleanup(); tutorialRunningRef.current = false; return; }
     await playLetterSound(targetSound).catch(() => {});
     if (isCancelled()) { cleanup(); tutorialRunningRef.current = false; return; }
-    // Extra wait so balloons float into center area
-    await delay(1200);
+    // Brief wait so balloons float into center area
+    await delay(600);
     if (isCancelled()) { cleanup(); tutorialRunningRef.current = false; return; }
 
     // Hand pops 2 target balloons
@@ -729,14 +745,19 @@ const SoundBalloons = ({ group, onComplete }) => {
       await delay(700);
       if (cancelled) return;
       setShowCountdown(false);
+      // Show cat Lottie floating up from center
+      setShowCatFloat(true);
       setGameStarted(true);
       gameStartedRef.current = true;
       hasPlayedOnceRef.current = true;
-      setShowCatLottie(true);
+      // Replay instruction VO + target sound right after GO!
+      await playVO('Pop the balloons that make the sound...');
+      if (cancelled) return;
+      announceSound(sounds[0]);
       startIdleReminder(true);
     };
     run();
-    return () => { cancelled = true; stopVO(); clearIdleReminder(); setTutorialHand(null); setShowCatLottie(false); setShowCountdown(false); setShowTutorialOverlay(false); };
+    return () => { cancelled = true; stopVO(); clearIdleReminder(); setTutorialHand(null); setShowCatFloat(false); setShowCountdown(false); setShowTutorialOverlay(false); };
   }, [gameStarted, pixiReady, sounds, announceSound]);
 
   // Game timer
@@ -816,30 +837,36 @@ const SoundBalloons = ({ group, onComplete }) => {
 
     const spawn = () => pixiAppRef.current?._spawnBalloon?.();
 
-    // Spawn 4 staggered, then continuous at a relaxed rate
-    for (let i = 0; i < 4; i++) setTimeout(spawn, i * 300);
-    spawnIntervalRef.current = setInterval(spawn, 700);
+    // Pure continuous spawning — no initial batch to avoid gap
+    spawn(); // first one immediately
+    spawnIntervalRef.current = setInterval(spawn, 350);
     return () => clearInterval(spawnIntervalRef.current);
   }, [gameStarted, displayTargetIdx]);
 
   const handleReplaySound = () => announceSound(targetSoundRef.current);
 
   const onCompleteRef = useRef(onComplete);
-  onCompleteRef.current = onComplete;
+  useEffect(() => { onCompleteRef.current = onComplete; });
+
   useEffect(() => {
     if (!showResults) return;
     playVO('Great job!');
     setResultCountdown(5);
     let cancelled = false;
+    let count = 5;
     const countdownInterval = setInterval(() => {
-      setResultCountdown(prev => {
-        if (prev <= 1) {
-          clearInterval(countdownInterval);
-          if (!cancelled) { stopVO(); onCompleteRef.current(); }
-          return 0;
+      count -= 1;
+      if (count <= 0) {
+        clearInterval(countdownInterval);
+        setResultCountdown(0);
+        if (!cancelled) {
+          stopVO();
+          // Use setTimeout to avoid calling parent setState during React batch
+          setTimeout(() => onCompleteRef.current(), 0);
         }
-        return prev - 1;
-      });
+      } else {
+        setResultCountdown(count);
+      }
     }, 1000);
     return () => { cancelled = true; clearInterval(countdownInterval); };
   }, [showResults]);
@@ -889,16 +916,16 @@ const SoundBalloons = ({ group, onComplete }) => {
       {/* Background flying birds */}
       <SkyOverlay />
 
-      {/* Cat Lottie — floats in during game */}
+      {/* Cat Lottie — floats up like a balloon from center after GO! Big, no scale, no transparency */}
       <AnimatePresence>
-        {showCatLottie && (
+        {showCatFloat && (
           <motion.div
-            className="fixed z-[52] pointer-events-none"
-            style={{ bottom: '2%', right: '3%', width: 'clamp(200px, 35vw, 400px)' }}
-            initial={{ y: 200, opacity: 0 }}
-            animate={{ y: [0, -15, 0], opacity: 1 }}
-            exit={{ y: 200, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 120, damping: 14, y: { duration: 3, repeat: Infinity, ease: 'easeInOut' } }}
+            className="fixed z-[55] pointer-events-none"
+            style={{ left: '50%', marginLeft: 'clamp(-150px, -27.5vw, -300px)', width: 'clamp(300px, 55vw, 600px)' }}
+            initial={{ y: '100vh' }}
+            animate={{ y: '-140vh' }}
+            transition={{ duration: 8, ease: 'linear' }}
+            onAnimationComplete={() => setShowCatFloat(false)}
           >
             <Lottie animationData={cuteCatData} loop autoplay style={{ width: '100%', height: '100%' }} />
           </motion.div>
