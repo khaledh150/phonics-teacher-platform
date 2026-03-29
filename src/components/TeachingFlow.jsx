@@ -1,6 +1,6 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Home, ChevronRight, ChevronLeft, SkipForward, Maximize } from 'lucide-react';
+import { Home, ChevronLeft, SkipForward, Maximize, Music, BookOpen, Target, Sparkles, Puzzle, Factory, MessageSquare } from 'lucide-react';
 import SoundLearning from './SoundLearning';
 import GroupSong from './GroupSong';
 import FlashcardViewer from './FlashcardViewer';
@@ -36,6 +36,16 @@ const toggleFullscreen = () => {
 
 const STEPS = ['sounds', 'song', 'words', 'balloons', 'exercise', 'blending', 'sentences'];
 
+const STEP_META = {
+  sounds:    { label: 'Sounds',    icon: Sparkles,      emoji: '🔤' },
+  song:      { label: 'Song',      icon: Music,         emoji: '🎵' },
+  words:     { label: 'Words',     icon: BookOpen,       emoji: '📖' },
+  balloons:  { label: 'Balloons',  icon: Target,        emoji: '🎈' },
+  exercise:  { label: 'Match',     icon: Puzzle,        emoji: '🧩' },
+  blending:  { label: 'Blend',     icon: Factory,       emoji: '🏭' },
+  sentences: { label: 'Sentences', icon: MessageSquare, emoji: '💬' },
+};
+
 const STEP_MESSAGES = {
   sounds: ["Let's learn new sounds!", "Listen carefully...", "Get ready!"],
   song: ["Song time!", "Let's sing along...", "Here we go!"],
@@ -55,6 +65,9 @@ const TeachingFlow = ({ group, onExit }) => {
   const [showGroupFinish, setShowGroupFinish] = useState(false);
   const [showPlayground, setShowPlayground] = useState(false);
   const [activeGame, setActiveGame] = useState(null);
+  const [showStepNav, setShowStepNav] = useState(false);
+  const longPressTimerRef = useRef(null);
+  const longPressTriggeredRef = useRef(false);
 
   const currentStep = STEPS[stepIndex];
 
@@ -140,6 +153,63 @@ const TeachingFlow = ({ group, onExit }) => {
       onExit();
     }
   }, [stepIndex, currentStep, onExit]);
+
+  const handleJumpToStep = useCallback((targetIdx) => {
+    if (targetIdx === stepIndex) {
+      setShowStepNav(false);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    stopAllAudio();
+    stopVO();
+    setShowStepNav(false);
+    setStepComplete(false);
+    setStepReady(false);
+    setShowPreloader(true);
+    setStepIndex(targetIdx);
+  }, [stepIndex]);
+
+  // Generic long-press factory: short tap → action, long press → open step nav
+  const makeLongPressHandlers = useCallback((shortTapAction) => ({
+    onTouchStart: () => {
+      longPressTriggeredRef.current = false;
+      longPressTimerRef.current = setTimeout(() => {
+        longPressTriggeredRef.current = true;
+        setShowStepNav(true);
+      }, 500);
+    },
+    onTouchEnd: (e) => {
+      clearTimeout(longPressTimerRef.current);
+      if (longPressTriggeredRef.current) {
+        e.preventDefault();
+        longPressTriggeredRef.current = false;
+      } else {
+        shortTapAction();
+      }
+    },
+    onMouseDown: () => {
+      longPressTriggeredRef.current = false;
+      longPressTimerRef.current = setTimeout(() => {
+        longPressTriggeredRef.current = true;
+        setShowStepNav(true);
+      }, 500);
+    },
+    onMouseUp: () => {
+      clearTimeout(longPressTimerRef.current);
+      if (!longPressTriggeredRef.current) {
+        shortTapAction();
+      }
+      longPressTriggeredRef.current = false;
+    },
+    onMouseLeave: () => {
+      clearTimeout(longPressTimerRef.current);
+      longPressTriggeredRef.current = false;
+    },
+    onContextMenu: (e) => e.preventDefault(),
+  }), []);
+
+  const skipLongPress = useMemo(() => makeLongPressHandlers(handleSkipStep), [makeLongPressHandlers, handleSkipStep]);
+  const backLongPress = useMemo(() => makeLongPressHandlers(handlePrevStep), [makeLongPressHandlers, handlePrevStep]);
 
   const handleHomeClick = () => {
     setShowExitConfirm(true);
@@ -256,28 +326,28 @@ const TeachingFlow = ({ group, onExit }) => {
         </div>
       </div>
 
-      {/* Skip Step button — z-[70] to stay above results panels (z-[60]) */}
+      {/* Skip Step button — tap to skip, long-press to show step navigator */}
       <button
-        onClick={handleSkipStep}
-        className="fixed bottom-3 right-3 z-[70] flex items-center gap-1 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-white/10 hover:bg-white/20 text-white/50 hover:text-white/80 text-xs lg:text-sm font-medium transition-all backdrop-blur-sm"
+        {...skipLongPress}
+        className="fixed bottom-3 right-3 z-[70] flex items-center gap-1 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-white/10 hover:bg-white/20 text-white/50 hover:text-white/80 text-xs lg:text-sm font-medium transition-all backdrop-blur-sm select-none"
       >
         Skip
         <SkipForward className="w-3 h-3 lg:w-4 lg:h-4" />
       </button>
 
-      {/* Back one step button — z-[70] to stay above results panels */}
+      {/* Back one step button — tap to go back, long-press to show step navigator */}
       {stepIndex > 0 && (
         <button
-          onClick={handlePrevStep}
-          className="fixed bottom-3 left-3 z-[70] flex items-center gap-1 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-white/10 hover:bg-white/20 text-white/50 hover:text-white/80 text-xs lg:text-sm font-medium transition-all backdrop-blur-sm"
+          {...backLongPress}
+          className="fixed bottom-3 left-3 z-[70] flex items-center gap-1 px-3 py-1.5 lg:px-4 lg:py-2 rounded-full bg-white/10 hover:bg-white/20 text-white/50 hover:text-white/80 text-xs lg:text-sm font-medium transition-all backdrop-blur-sm select-none"
         >
           <ChevronLeft className="w-3 h-3 lg:w-4 lg:h-4" />
           Back
         </button>
       )}
 
-      {/* Floating step progress */}
-      <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 pointer-events-none">
+      {/* Floating step progress — tap to open step navigator */}
+      <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 cursor-pointer" onClick={() => setShowStepNav(true)}>
         <div className="flex items-center gap-1.5">
           {STEPS.map((step, idx) => (
             <div key={step} className="flex items-center">
@@ -304,6 +374,81 @@ const TeachingFlow = ({ group, onExit }) => {
           ))}
         </div>
       </div>
+
+      {/* Step navigator — long-press skip to open */}
+      <AnimatePresence>
+        {showStepNav && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[75]"
+              onClick={() => setShowStepNav(false)}
+            />
+            {/* Step nav panel */}
+            <motion.div
+              initial={{ opacity: 0, y: 40, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 30, scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+              className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[76]"
+            >
+              <div
+                className="flex items-center gap-1.5 md:gap-2 px-3 py-2.5 md:px-4 md:py-3"
+                style={{
+                  borderRadius: '1.5rem',
+                  background: 'linear-gradient(135deg, rgba(45,27,105,0.95) 0%, rgba(62,54,107,0.95) 100%)',
+                  backdropFilter: 'blur(12px)',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1) inset',
+                }}
+              >
+                {STEPS.map((step, idx) => {
+                  const meta = STEP_META[step];
+                  const isActive = idx === stepIndex;
+                  const isCompleted = idx < stepIndex;
+                  return (
+                    <motion.button
+                      key={step}
+                      onClick={() => handleJumpToStep(idx)}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.04 }}
+                      className={`flex flex-col items-center gap-0.5 px-2 py-1.5 md:px-3 md:py-2 rounded-xl transition-all relative ${
+                        isActive
+                          ? 'bg-[#4d79ff]/30 ring-1 ring-[#4d79ff]/50'
+                          : isCompleted
+                          ? 'bg-[#22c55e]/15 hover:bg-[#22c55e]/25'
+                          : 'hover:bg-white/10'
+                      }`}
+                      whileTap={{ scale: 0.92 }}
+                    >
+                      <span className="text-base md:text-lg">{meta.emoji}</span>
+                      <span className={`text-[9px] md:text-[10px] font-semibold leading-tight ${
+                        isActive ? 'text-[#4d79ff]' : isCompleted ? 'text-[#22c55e]' : 'text-white/50'
+                      }`}>
+                        {meta.label}
+                      </span>
+                      {isActive && (
+                        <motion.div
+                          layoutId="stepNavIndicator"
+                          className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#4d79ff]"
+                        />
+                      )}
+                      {isCompleted && (
+                        <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#22c55e] flex items-center justify-center">
+                          <span className="text-[6px] text-white font-bold">✓</span>
+                        </div>
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Next Step button removed — steps auto-advance via handleStepComplete */}
 

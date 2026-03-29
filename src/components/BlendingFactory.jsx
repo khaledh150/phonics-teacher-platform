@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2 } from 'lucide-react';
-import { playLetterSound, getLetterSoundUrl } from '../utils/letterSounds';
+import { playLetterSound, getLetterSoundUrl, wordToPhonemes, wordToCharPhonemeMap } from '../utils/letterSounds';
 import { speakWithVoice } from '../utils/speech';
 import { getWordImage } from '../utils/assetHelpers';
 import { playVO, stopVO, delay } from '../utils/audioPlayer';
@@ -138,6 +138,7 @@ const BlendingFactory = ({ group, onComplete }) => {
   const [imageError, setImageError] = useState(false);
   const [showHint, setShowHint] = useState(true);
   const [instructionLock, setInstructionLock] = useState(true);
+  const [activePhonemeIdx, setActivePhonemeIdx] = useState(-1);
   const containerRef = useRef(null);
   const blendingRef = useRef(false);
   const idleReminderRef = useRef(null);
@@ -147,6 +148,11 @@ const BlendingFactory = ({ group, onComplete }) => {
   const currentWord = words[wordIdx];
   const wordLetters = splitIntoBlocks(currentWord.word, group.sounds || []);
   const imageSrc = getWordImage(group.id, currentWord.image);
+  // Phoneme map for split digraph-aware blend playback highlighting
+  const { phonemes: blendPhonemes, charMap: blendCharMap } = useMemo(
+    () => wordToCharPhonemeMap(currentWord.word, group.sounds),
+    [currentWord.word, group.sounds]
+  );
 
   // Clear idle reminders
   const clearIdleReminder = useCallback(() => {
@@ -204,6 +210,7 @@ const BlendingFactory = ({ group, onComplete }) => {
     setImageError(false);
     setBlending(false);
     setShakeAll(false);
+    setActivePhonemeIdx(-1);
     blendingRef.current = false;
 
     if (wordIdx > 0) setShowHint(false);
@@ -253,22 +260,25 @@ const BlendingFactory = ({ group, onComplete }) => {
     if (blendingRef.current) return;
     blendingRef.current = true;
     setBlending(true);
+    setActivePhonemeIdx(-1);
     triggerSmallBurst();
     playSuccessSound();
 
-    for (let i = 0; i < wordLetters.length; i++) {
+    // Use split digraph-aware phonemes for sound playback
+    const phonemes = wordToPhonemes(currentWord.word, group.sounds);
+
+    for (let idx = 0; idx < phonemes.length; idx++) {
       if (!blendingRef.current) return;
-      await new Promise(resolve => {
-        const url = getLetterSoundUrl(wordLetters[i]);
-        if (url) {
-          playLetterSound(wordLetters[i]).then(resolve).catch(resolve);
-        } else {
-          setTimeout(resolve, 300);
-        }
-      });
+      setActivePhonemeIdx(idx);
+      try {
+        await playLetterSound(phonemes[idx]);
+      } catch {
+        await new Promise(r => setTimeout(r, 300));
+      }
       await new Promise(r => setTimeout(r, 150));
     }
 
+    setActivePhonemeIdx(-1);
     await new Promise(r => setTimeout(r, 150));
     if (!blendingRef.current) return;
 
@@ -485,17 +495,25 @@ const BlendingFactory = ({ group, onComplete }) => {
               animate={slots[idx] ? { opacity: 1, y: 0 } : { opacity: 1, y: 0, scale: [1, 1.03, 1] }}
               transition={slots[idx] ? { delay: idx * 0.08 } : { delay: idx * 0.08, scale: { duration: 2, repeat: Infinity, ease: 'easeInOut' } }}
             >
-              {slots[idx] ? (
+              {slots[idx] ? (() => {
+                // Map slot index to character position for phoneme highlighting
+                // wordLetters from splitIntoBlocks may group digraphs, so compute char position
+                let charPos = 0;
+                for (let si = 0; si < idx; si++) charPos += wordLetters[si].length;
+                const phonemeIdx = blendCharMap[charPos];
+                const isActivePhoneme = activePhonemeIdx >= 0 && phonemeIdx === activePhonemeIdx;
+                return (
                 <motion.span
                   initial={{ scale: 0 }}
-                  animate={blending ? { scale: [1, 1.2, 1] } : { scale: 1 }}
-                  transition={blending ? { duration: 0.3, delay: idx * 0.15 } : { type: 'spring' }}
+                  animate={isActivePhoneme ? { scale: [1, 1.35, 1], color: ['#ffffff', '#FFD000', '#ffffff'] } : blending ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+                  transition={isActivePhoneme ? { duration: 0.4 } : blending ? { duration: 0.3, delay: idx * 0.15 } : { type: 'spring' }}
                   className="font-bold text-white pointer-events-none"
                   style={{ fontSize: 'clamp(2.6rem, 12vw, 5rem)' }}
                 >
                   {slots[idx].letter}
                 </motion.span>
-              ) : (
+                );
+              })() : (
                 <span className="text-white/15 font-bold pointer-events-none" style={{ fontSize: 'clamp(1.5rem, 7vw, 2.5rem)' }}>
                   ?
                 </span>

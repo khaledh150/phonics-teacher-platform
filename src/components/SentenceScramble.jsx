@@ -76,8 +76,9 @@ function shuffle(arr) {
 
 const SentenceScramble = ({ group, onComplete }) => {
   const { sentenceData, sentences } = useMemo(() => {
+    // Only include sentences that have a matching picture
     const data = group.words
-      .filter(w => w.sentence)
+      .filter(w => w.sentence && findSentenceImage(group.id, w.word, w.sentence) !== null)
       .map(w => ({ sentence: w.sentence, keyword: w.word }));
     for (let i = data.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));

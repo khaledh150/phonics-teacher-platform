@@ -563,15 +563,26 @@ const SoundBalloons = ({ group, onComplete }) => {
       setGameStarted(true);
       gameStartedRef.current = true;
       hasPlayedOnceRef.current = true;
-      // Replay instruction VO + target sound right after GO!
-      await playVO('Pop the balloons that make the sound...');
-      if (cancelled) return;
-      announceSound(sounds[0]);
-      startIdleReminder(true);
     };
     run();
     return () => { cancelled = true; stopVO(); clearIdleReminder(); setTutorialHand(null); setShowCountdown(false); setShowTutorialOverlay(false); };
   }, [gameStarted, pixiReady, sounds, announceSound]);
+
+  // Play instruction VO + target sound once game starts (separate effect so it isn't cancelled by gameStarted state change)
+  useEffect(() => {
+    if (!gameStarted) return;
+    let cancelled = false;
+    const run = async () => {
+      await delay(200);
+      if (cancelled) return;
+      await playVO('Pop the balloons that make the sound...');
+      if (cancelled) return;
+      announceSound(sounds[targetIdxRef.current]);
+      startIdleReminder(true);
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [gameStarted]);
 
   // Game timer
   useEffect(() => {
