@@ -68,6 +68,15 @@ Reusable, self-contained background components in `src/components/themes/`:
 - **`MagicSandTracing.jsx`** — Canvas2D letter tracing, uses `BeachBackground`, SVG stroke extraction with smart ordering (document order + connectivity chaining fallback)
 - **`MagicFlashlight.jsx`**, **`LilyPadHop.jsx`**, **`ScratchDiscover.jsx`** — Additional mini-games
 
+## Primary Target Device
+- **Android Tablet (Landscape)** is the primary design target
+- All layouts must use `h-screen` and `w-screen` to fill the viewport
+- Optimized for **touch targets** (big buttons, fat tap zones) rather than mouse clicks
+- Use `landscape:` Tailwind variant for landscape-specific overrides
+- In landscape, prefer side-by-side layouts (`landscape:flex-row`) over stacked layouts
+- Reduce vertical spacing in landscape (`landscape:mb-1`, `landscape:gap-2`) to prevent overflow
+- Use `min(vw, vh)` sizing for elements that must fit both orientations
+
 ## Key Conventions
 - Responsive design: must work on phone, tablet, AND projector/LED screens
 - Use `clamp()`, `min()`, and `lg:`/`xl:` breakpoints for scaling

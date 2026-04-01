@@ -28,7 +28,22 @@
       "Bash(for f:*)",
       "Read(//c/Apps and Games Dev/wonder-phonics-platform/src/components/games/**)",
       "Bash(cat:*)",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Bash(python3:*)",
+      "Bash(rm -f src/components/LearnScreen.jsx src/components/PhonicsGame.jsx src/components/themes/AnimatedSeaBackground.jsx)",
+      "Bash(rm -rf src/components/games/tracinggame)",
+      "Bash(grep -n \"from ''''\\\\.\\\\.\\\\/\" src/components/teaching/steps/SoundLearning.jsx)",
+      "Bash(do sed:*)",
+      "Bash(sed -i \"s|from ''\\\\.\\\\./assets/|from ''../../../assets/|g\" \"$f\")",
+      "Bash(sed -i \"s|from ''\\\\.\\\\./data/|from ''../../../data/|g\" \"$f\")",
+      "Bash(sed -i \"s|from ''\\\\.\\\\./contexts/|from ''../../../contexts/|g\" \"$f\")",
+      "Bash(echo \"Updated $f\")",
+      "Bash(grep -n \"from ''''\\\\.\\\\.\" src/components/playground/PlaygroundHub.jsx)",
+      "Bash(rmdir src/components/games/hungryFrogs)",
+      "Bash(rmdir src/components/games)",
+      "Bash(rmdir src/components/tutorials)",
+      "Bash(wc:*)",
+      "Bash(npx vitest:*)"
     ]
   }
 }

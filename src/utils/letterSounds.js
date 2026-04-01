@@ -40,6 +40,16 @@ const SOUND_TO_FILE = {
   ar: 'ar',
 };
 
+// Display overrides: sounds that should show differently in the UI
+const SOUND_DISPLAY = {
+  ooo: 'oo', // Long oo — same display as short oo, differentiated by sound only
+};
+
+/**
+ * Get the display text for a sound (e.g. "ooo" → "oo").
+ */
+export const getDisplaySound = (sound) => SOUND_DISPLAY[sound] || sound;
+
 /**
  * Get the MP3 URL for a phonics sound.
  * Returns null if no matching file exists.

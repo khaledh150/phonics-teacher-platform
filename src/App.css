@@ -285,6 +285,15 @@ h1, h2, h3 {
    CUSTOM SCROLLBAR - Invisible until hover
    ============================================ */
 
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Default scrollbar - mostly invisible */
 ::-webkit-scrollbar {
   width: 8px;

@@ -61,12 +61,12 @@ const CLOUD_SRC_MAP = { cloud1: cloud1Url, cloud2: cloud2Url, small: cloudSmallU
 // ─── Bird lane definitions ───────────────────────────────────────────────────
 
 const BIRD_LANES = [
-  { birdIdx: 0, yPct: 6,  speed: 28, size: 65, goRight: true,  startPct: 0.1 },
-  { birdIdx: 2, yPct: 22, speed: 35, size: 55, goRight: false, startPct: 0.6 },
-  { birdIdx: 4, yPct: 42, speed: 22, size: 70, goRight: true,  startPct: 0.4 },
-  { birdIdx: 1, yPct: 14, speed: 40, size: 50, goRight: true,  startPct: 0.75 },
-  { birdIdx: 3, yPct: 55, speed: 30, size: 58, goRight: false, startPct: 0.3 },
-  { birdIdx: 5, yPct: 68, speed: 26, size: 52, goRight: true,  startPct: 0.8 },
+  { birdIdx: 0, yPct: 6,  speed: 28, size: 110, goRight: true,  startPct: 0.1 },
+  { birdIdx: 2, yPct: 22, speed: 35, size: 95,  goRight: false, startPct: 0.6 },
+  { birdIdx: 4, yPct: 42, speed: 22, size: 120, goRight: true,  startPct: 0.4 },
+  { birdIdx: 1, yPct: 14, speed: 40, size: 85,  goRight: true,  startPct: 0.75 },
+  { birdIdx: 3, yPct: 55, speed: 30, size: 100, goRight: false, startPct: 0.3 },
+  { birdIdx: 5, yPct: 68, speed: 26, size: 90,  goRight: true,  startPct: 0.8 },
 ];
 
 // ─── DOM Birds (requestAnimationFrame driven) ───────────────────────────────

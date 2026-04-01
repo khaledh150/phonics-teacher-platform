@@ -1,24 +1,39 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, Suspense, lazy } from 'react';
 import './App.css';
-import InAppBrowserGuard from './components/InAppBrowserGuard';
+import InAppBrowserGuard from './components/shared/InAppBrowserGuard';
 import { MuteProvider } from './contexts/MuteContext';
-import CurriculumMap from './components/CurriculumMap';
-import TeachingFlow from './components/TeachingFlow';
-import PlaygroundHub from './components/PlaygroundHub';
-import MagicFlashlight from './components/games/MagicFlashlight';
-import BubbleSpell from './components/games/BubbleSpell';
-import MonsterFeeder from './components/games/MonsterFeeder';
-import WhackASound from './components/games/WhackASound';
-import CatchTheDrop from './components/games/CatchTheDrop';
-import BouncyMemory from './components/games/BouncyMemory';
-import ShadowMatch from './components/games/ShadowMatch';
-import LilyPadHop from './components/games/LilyPadHop';
-import MagicSandTracing from './components/games/MagicSandTracing';
-import CarnivalWheel from './components/games/CarnivalWheel';
-import ScratchDiscover from './components/games/ScratchDiscover';
+import CurriculumMap from './components/curriculum/CurriculumMap';
+import TeachingFlow from './components/teaching/TeachingFlow';
+import LandscapePrompt from './components/shared/LandscapePrompt';
+import { preloadGroup } from './utils/assetHelpers';
+
+// Lazy-loaded game components — only fetched when user enters a game
+const PlaygroundHub = lazy(() => import('./components/playground/PlaygroundHub'));
+const MagicFlashlight = lazy(() => import('./components/playground/games/MagicFlashlight'));
+const BubbleSpell = lazy(() => import('./components/playground/games/BubbleSpell'));
+const MonsterFeeder = lazy(() => import('./components/playground/games/MonsterFeeder'));
+const WhackASound = lazy(() => import('./components/playground/games/WhackASound'));
+const CatchTheDrop = lazy(() => import('./components/playground/games/CatchTheDrop'));
+const BouncyMemory = lazy(() => import('./components/playground/games/BouncyMemory'));
+const ShadowMatch = lazy(() => import('./components/playground/games/ShadowMatch'));
+const LilyPadHop = lazy(() => import('./components/playground/games/LilyPadHop'));
+const MagicSandTracing = lazy(() => import('./components/playground/games/MagicSandTracing'));
+const CarnivalWheel = lazy(() => import('./components/playground/games/CarnivalWheel'));
+const ScratchDiscover = lazy(() => import('./components/playground/games/ScratchDiscover'));
+const HungryFrogs = lazy(() => import('./components/playground/games/HungryFrogs'));
 
 // Increment this manually when you want to force a cache reset on deployed versions
-const APP_VERSION = "2.5.10";
+const APP_VERSION = "2.5.30";
+
+// Keys to preserve across version upgrades (progress data survives cache busts)
+const PRESERVED_KEYS = ['last_installed_version', 'wp_progress'];
+
+// Loading fallback for lazy-loaded components
+const GameLoader = () => (
+  <div className="fixed inset-0 bg-[#1a1147] flex items-center justify-center z-50">
+    <div className="text-white text-2xl animate-pulse">Loading...</div>
+  </div>
+);
 
 function App() {
   // Force refresh mechanism: clear cache when a new version is deployed
@@ -28,11 +43,11 @@ function App() {
       // Save the new version first to prevent reload loops
       localStorage.setItem('last_installed_version', APP_VERSION);
 
-      // Clear all other localStorage keys
+      // Clear all other localStorage keys (preserve progress data)
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key !== 'last_installed_version') {
+        if (!PRESERVED_KEYS.includes(key)) {
           keysToRemove.push(key);
         }
       }
@@ -57,11 +72,14 @@ function App() {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [returnToGroups, setReturnToGroups] = useState(false);
   const [activeGame, setActiveGame] = useState(null);
+  const [appStarted, setAppStarted] = useState(false);
 
   const handleSelectGroup = useCallback((group) => {
     window.speechSynthesis.cancel();
+    preloadGroup(group.id);
     setSelectedGroup(group);
     setScreen('teaching');
+    setAppStarted(true);
   }, []);
 
   const handleExitTeaching = useCallback(() => {
@@ -69,13 +87,16 @@ function App() {
     setSelectedGroup(null);
     setReturnToGroups(true);
     setScreen('curriculum');
+    setAppStarted(true);
   }, []);
 
   const handleOpenPlayground = useCallback((group) => {
     window.speechSynthesis.cancel();
+    preloadGroup(group.id);
     setSelectedGroup(group);
     setActiveGame(null);
     setScreen('playground');
+    setAppStarted(true);
   }, []);
 
   const handleExitPlayground = useCallback(() => {
@@ -88,6 +109,7 @@ function App() {
 
   return (
     <MuteProvider>
+    <LandscapePrompt disabled={!appStarted} />
     <InAppBrowserGuard>
       <div className="min-h-screen bg-[#1a1147]">
         {screen === 'curriculum' && (
@@ -106,6 +128,7 @@ function App() {
           />
         )}
 
+        <Suspense fallback={<GameLoader />}>
         {screen === 'playground' && selectedGroup && !activeGame && (
           <PlaygroundHub
             group={selectedGroup}
@@ -175,6 +198,11 @@ function App() {
         {screen === 'playground' && selectedGroup && activeGame === 'scratch-discover' && (
           <ScratchDiscover group={selectedGroup} onBack={() => setActiveGame(null)} />
         )}
+
+        {screen === 'playground' && selectedGroup && activeGame === 'hungry-frogs' && (
+          <HungryFrogs group={selectedGroup} onBack={() => setActiveGame(null)} />
+        )}
+        </Suspense>
       </div>
     </InAppBrowserGuard>
     </MuteProvider>
