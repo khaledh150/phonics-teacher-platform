@@ -43,7 +43,10 @@
       "Bash(rmdir src/components/games)",
       "Bash(rmdir src/components/tutorials)",
       "Bash(wc:*)",
-      "Bash(npx vitest:*)"
+      "Bash(npx vitest:*)",
+      "Bash(node -e ':*)",
+      "Bash(npx vite:*)",
+      "Bash([ -f \"$f.mp3\" ])"
     ]
   }
 }

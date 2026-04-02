@@ -11,7 +11,7 @@ import CrabCompanion from './CrabCompanion';
 import BeachBackground from '../../themes/BeachBackground';
 
 // ─── Individual SVG imports from tracing-letter folder ──────────────────────
-const tracingRawModules = import.meta.glob('../../assets/materials/tracing-letter/*.svg', { query: '?raw', eager: true });
+const tracingRawModules = import.meta.glob('../../../assets/materials/tracing-letter/*.svg', { query: '?raw', eager: true });
 const tracingSvgText = {}; // key: "A_U" or "a_L" → raw SVG text
 for (const [path, mod] of Object.entries(tracingRawModules)) {
   const m = path.match(/\/([A-Za-z])-(?:uppercase|lowercase)\.svg$/);

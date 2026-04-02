@@ -126,6 +126,11 @@ function App() {
           <TeachingFlow
             group={selectedGroup}
             onExit={handleExitTeaching}
+            onOpenPlayground={() => {
+              setActiveGame(null);
+              setScreen('playground');
+              setAppStarted(true);
+            }}
           />
         )}
 

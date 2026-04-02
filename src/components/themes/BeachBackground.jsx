@@ -38,10 +38,9 @@ import starfishData from '../../assets/materials/summer-sticker-collection/star-
 
 const PLACED_STICKERS = [
   { img: surfingBoardImg, x: 2, y: 40, rotate: -15, size: 'clamp(40px, 7vw, 80px)' },
-  { img: shellImg, x: 5, y: 60, rotate: -8, size: 'clamp(45px, 8vw, 90px)' },
   { img: shellImg, x: 88, y: 68, rotate: 15, size: 'clamp(40px, 7vw, 85px)' },
-  { img: sticker2Img, x: 83, y: 28, rotate: 10, size: 'clamp(100px, 18vw, 200px)' },
-  { img: beachBallImg, x: 90, y: 42, rotate: 5, size: 'clamp(55px, 10vw, 110px)' },
+  { img: sticker2Img, x: 83, y: 18, rotate: 10, size: 'clamp(70px, 12vw, 150px)' },
+  { img: beachBallImg, x: 92, y: 50, rotate: 5, size: 'clamp(40px, 7vw, 80px)' },
 ];
 
 // ─── Sea wave animation (rAF-driven, no Framer for per-frame work) ──────────

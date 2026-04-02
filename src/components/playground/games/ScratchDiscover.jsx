@@ -259,8 +259,9 @@ const ScratchDiscoverGame = ({ group, onBack, onPlayAgain }) => {
 
   // --- Init canvas on round change ---
   useEffect(() => {
-    const timer = setTimeout(() => initCanvas(), 50);
-    return () => clearTimeout(timer);
+    // Use requestAnimationFrame to ensure canvas element is ready
+    const raf = requestAnimationFrame(() => initCanvas());
+    return () => cancelAnimationFrame(raf);
   }, [roundIndex, initCanvas]);
 
   // --- Idle reminder ---
@@ -272,7 +273,7 @@ const ScratchDiscoverGame = ({ group, onBack, onPlayAgain }) => {
     }, 8000);
   }, []);
 
-  // --- Mount: intro VO ---
+  // --- Mount: intro VO (only on first mount) ---
   useEffect(() => {
     let cancelled = false;
     mountedRef.current = true;
@@ -293,7 +294,8 @@ const ScratchDiscoverGame = ({ group, onBack, onPlayAgain }) => {
       stopVO();
       clearTimeout(idleRef.current);
     };
-  }, [startIdleReminder]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // --- 80% reveal logic ---
   useEffect(() => {
@@ -365,6 +367,7 @@ const ScratchDiscoverGame = ({ group, onBack, onPlayAgain }) => {
           // Next round - reset state
           setRoundIndex((r) => r + 1);
           setRevealed(false);
+          setScratchPercent(0);
           setSelectedLetter(null);
           setShowWord(false);
           setInstructionLock(true);

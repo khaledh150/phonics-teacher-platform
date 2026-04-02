@@ -62,8 +62,8 @@ const CrabCompanion = ({ isActivelyTracing, isGameComplete, letterCompletedTrigg
       style={{
         bottom: '1%',
         left: '2%',
-        width: 'clamp(160px, 30vw, 320px)',
-        height: 'clamp(160px, 30vw, 320px)',
+        width: 'clamp(100px, 22vw, 320px)',
+        height: 'clamp(100px, 22vw, 320px)',
         willChange: 'transform',
       }}
       animate={wrapperControls}

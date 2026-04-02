@@ -614,10 +614,10 @@ const DraggableLetter = ({ letter, onDrop, color, entranceDelay = 0 }) => {
       <div
         className="flex items-center justify-center rounded-2xl md:rounded-3xl shadow-lg font-bold text-white pointer-events-none"
         style={{
-          width: 'clamp(60px, 18vw, 110px)',
-          height: 'clamp(68px, 21vw, 125px)',
+          width: 'clamp(60px, min(18vw, 14vh), 120px)',
+          height: 'clamp(70px, min(20vw, 16vh), 130px)',
           backgroundColor: color,
-          fontSize: 'clamp(2rem, 9vw, 4rem)',
+          fontSize: 'clamp(2rem, 10vw, 4rem)',
           boxShadow: isDragging
             ? `0 12px 40px ${color}60, 0 4px 15px rgba(0,0,0,0.2)`
             : `0 4px 15px ${color}40, 0 2px 8px rgba(0,0,0,0.1)`,

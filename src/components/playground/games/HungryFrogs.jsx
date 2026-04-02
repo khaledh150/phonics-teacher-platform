@@ -17,7 +17,7 @@ const toggleFullscreen = () => {
 
 const STAGE1_ROUNDS = 5;       // number of sounds to cycle through
 const TIME_PER_SOUND = 30;     // seconds per sound
-const FLY_TOTAL = 12;          // flies on screen at once
+const FLY_TOTAL = 36;          // flies on screen at once
 const STAGE2_ROUNDS = 5;
 const CARD_COUNT = 6;
 const CARD_SPACING = 170;
@@ -80,10 +80,12 @@ const spawnFlySwarm = (target, allSounds, count) => {
   const distractorCount = count - targetCount;
   const pool = allSounds.filter((s) => s !== target);
   const fallback = ['x', 'z', 'q', 'w', 'v', 'b', 'f', 'g', 'k', 'l'];
-  while (pool.length < distractorCount) {
-    const f = fallback.shift() || 'k';
+  // Add unique fallback letters until we have enough (or run out)
+  for (const f of fallback) {
+    if (pool.length >= distractorCount) break;
     if (f !== target && !pool.includes(f)) pool.push(f);
   }
+  // Fill distractors by cycling through pool
   const distractors = [];
   for (let i = 0; i < distractorCount; i++) {
     distractors.push(pool[i % pool.length]);
@@ -704,7 +706,7 @@ const CatchTheFlyStage = ({ group, onComplete, onScoreUpdate }) => {
             if (!mountedRef.current) return;
             await delay(500);
             if (!mountedRef.current) return;
-            await playVO('Great catching!');
+            await playVO('Great job!');
             if (!mountedRef.current) return;
             onScoreUpdate?.(scoreRef.current);
             onComplete();
@@ -742,11 +744,11 @@ const CatchTheFlyStage = ({ group, onComplete, onScoreUpdate }) => {
       isProcessingRef.current = true;
       await delay(500);
       if (cancelled) return;
-      await playVO('Catch the flies with the sound...');
+      await playVO('Catch the items that start with the sound...');
       if (cancelled) return;
       await delay(200);
       if (cancelled) return;
-      await playLetterSound(currentTarget || 'a');
+      try { await playLetterSound(currentTarget || 'a'); } catch(e) { /* sound may fail */ }
       if (cancelled) return;
       setShowBubble(true);
       isProcessingRef.current = false;
@@ -890,7 +892,7 @@ const StageTransition = ({ onDone }) => {
     const run = async () => {
       await delay(400);
       if (cancelled) return;
-      await playVO("Great! Now let's feed the frog some words!");
+      await playVO('Great job!');
       if (cancelled) return;
       await delay(800);
       if (cancelled) return;
@@ -1007,11 +1009,11 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
 
   const speakTarget = useCallback(async () => {
     if (!mountedRef.current) return;
-    await playVO('Feed the frog the picture that starts with...');
+    await playVO('Tap the picture that starts with that sound!');
     if (!mountedRef.current) return;
     await delay(200);
     if (!mountedRef.current) return;
-    await playLetterSound(rounds[currentRound]?.firstLetter || 'a');
+    try { await playLetterSound(rounds[currentRound]?.firstLetter || 'a'); } catch(e) {}
   }, [rounds, currentRound]);
 
   const startIdleReminder = useCallback(() => {
@@ -1041,11 +1043,11 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
       isProcessingRef.current = true;
       await delay(600);
       if (cancelled) return;
-      await playVO('Feed the frog the picture that starts with...');
+      await playVO('Tap the picture that starts with that sound!');
       if (cancelled) return;
       await delay(200);
       if (cancelled) return;
-      await playLetterSound(rounds[currentRound]?.firstLetter || 'a');
+      try { await playLetterSound(rounds[currentRound]?.firstLetter || 'a'); } catch(e) {}
       if (cancelled) return;
       setShowBubble(true);
       setIsProcessing(false);
@@ -1130,7 +1132,7 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
       setFrogShakeWrong(false);
       await playVO('Oops, try again!');
       if (!mountedRef.current) return;
-      await playLetterSound(round.firstLetter);
+      try { await playLetterSound(round.firstLetter); } catch(e) {}
       if (!mountedRef.current) return;
       setIsProcessing(false);
       isProcessingRef.current = false;
@@ -1142,11 +1144,11 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
 
   return (
     <>
-      {/* Mother frog — RIGHT side, smaller, with letter on belly */}
+      {/* Mother frog — CENTER, with letter on belly */}
       <motion.div
         ref={frogZoneRef}
         className="absolute z-30"
-        style={{ right: 'clamp(20px, 4vw, 80px)', top: '50%', transform: 'translateY(-50%)' }}
+        style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
         animate={frogShakeWrong ? { x: [0, -15, 15, -10, 10, -5, 5, 0] } : {}}
         transition={{ duration: 0.5 }}
       >

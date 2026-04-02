@@ -133,8 +133,8 @@ export async function runBubbleSpellTutorial(cancelled, ctx, { isHelpReplay = fa
   app.ticker.add(tutTicker);
 
   const cleanup = () => {
-    app.ticker.remove(tutTicker);
-    tutBubbles.forEach(b => { try { app.stage.removeChild(b.container); b.container.destroy({ children: true }); } catch(e){} });
+    try { app.ticker?.remove(tutTicker); } catch(e) {}
+    tutBubbles.forEach(b => { try { app.stage?.removeChild(b.container); b.container?.destroy({ children: true }); } catch(e){} });
   };
 
   // VO while bubbles rise

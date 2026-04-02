@@ -62,7 +62,7 @@ const MagicFlashlightGame = ({ group, onBack, onPlayAgain }) => {
   const [isRevealed, setIsRevealed] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [instructionLock, setInstructionLock] = useState(true);
-  const [pointerPos, setPointerPos] = useState({ x: 50, y: 50 });
+  const [pointerPos, setPointerPos] = useState({ x: 15, y: 20 });
   const [gameComplete, setGameComplete] = useState(false);
   const [shuffledOptions, setShuffledOptions] = useState([]);
   const darkRef = useRef(null);

@@ -407,9 +407,9 @@ const SentenceScramble = ({ group, onComplete }) => {
           {/* Shelf (answer zone) */}
           <div className="w-full max-w-3xl">
             <motion.div
-              className="rounded-2xl p-4 md:p-5 flex flex-wrap items-center justify-center gap-3 md:gap-4 transition-all duration-500"
+              className="rounded-2xl p-2.5 md:p-4 flex flex-wrap items-center justify-center gap-2 md:gap-3 transition-all duration-500"
               style={{
-                minHeight: 'clamp(60px, 12vw, 90px)',
+                minHeight: 'clamp(48px, 10vw, 80px)',
                 borderWidth: showBorders ? 3 : 0,
                 borderColor: isCorrect ? '#22c55e' : checkWrong ? '#E60023' : '#3e366b30',
                 borderStyle: isCorrect ? 'solid' : 'dashed',
@@ -434,10 +434,11 @@ const SentenceScramble = ({ group, onComplete }) => {
                     <motion.button
                       key={word.id}
                       onClick={() => isLocked ? speakWithVoice(word.text, { rate: 0.85 }) : handleRemoveFromShelf(word)}
-                      className="px-5 py-3 md:px-6 md:py-3.5 lg:px-7 lg:py-4 font-bold text-white shadow-md select-none"
+                      className="font-bold text-white shadow-md select-none"
                       style={{
                         backgroundColor: isCorrect ? '#22c55e' : BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length],
-                        fontSize: 'clamp(1rem, 4vw, 1.6rem)',
+                        fontSize: 'clamp(0.8rem, 3vw, 1.4rem)',
+                        padding: 'clamp(0.3rem, 1vw, 0.7rem) clamp(0.5rem, 2vw, 1.2rem)',
                         borderRadius: showBorders ? '0.75rem' : '0.5rem',
                         border: showBorders ? undefined : 'none',
                         boxShadow: showBorders ? undefined : 'none',
@@ -466,9 +467,7 @@ const SentenceScramble = ({ group, onComplete }) => {
           </div>
 
           {/* Source words */}
-          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 w-full max-w-2xl lg:max-w-3xl"
-            style={{ maxWidth: 'calc(4 * (clamp(5rem, 20vw, 10rem) + 1rem))' }}
-          >
+          <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 w-full max-w-2xl lg:max-w-3xl px-2">
             <AnimatePresence>
               {sourceWords.map((word, idx) => (
                 <motion.button
@@ -477,10 +476,9 @@ const SentenceScramble = ({ group, onComplete }) => {
                   className="rounded-xl md:rounded-2xl font-bold text-white shadow-lg select-none cursor-pointer text-center"
                   style={{
                     backgroundColor: BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length],
-                    fontSize: 'clamp(1.1rem, 4.5vw, 1.8rem)',
-                    boxShadow: `0 4px 15px ${BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length]}50, 0 2px 8px rgba(0,0,0,0.1)`,
-                    width: 'clamp(5rem, 20vw, 10rem)',
-                    padding: 'clamp(0.6rem, 2vw, 1rem) 0',
+                    fontSize: 'clamp(0.8rem, 3vw, 1.6rem)',
+                    boxShadow: `0 3px 10px ${BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length]}50, 0 2px 6px rgba(0,0,0,0.1)`,
+                    padding: 'clamp(0.35rem, 1.2vw, 0.8rem) clamp(0.6rem, 2.5vw, 1.4rem)',
                   }}
                   initial={{ opacity: 0, scale: 0.5, rotate: Math.random() * 10 - 5 }}
                   animate={{ opacity: 1, scale: 1, rotate: 0 }}
