@@ -549,7 +549,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
         laneCountRef.current = screenW < 600 ? 3 : screenW < 1100 ? 4 : 5;
 
         // Hot-air balloon — sized proportionally, raised up from bottom
-        const wagonWidth = Math.max(140, Math.min(260, screenW * 0.32));
+        const wagonWidth = Math.max(100, Math.min(180, screenW * 0.22));
         const wagonHeight = wagonWidth * 1.4;
         const wagonY = screenH - wagonHeight * 0.5 - 80;
 

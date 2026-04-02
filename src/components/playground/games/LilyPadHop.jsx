@@ -166,7 +166,11 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
   const roundData = rounds[currentRound] || rounds[0];
   const totalGameHeight = (TOTAL_ROUNDS + 2) * ROW_HEIGHT + BOTTOM_PADDING;
   // Responsive pad size — smaller on phones to prevent overflow
-  const padSize = typeof window !== 'undefined' && window.innerWidth < 500 ? 100 : 140;
+  const padSize = typeof window !== 'undefined'
+    ? window.innerWidth < 500 ? 110
+    : window.innerWidth > window.innerHeight ? 200  // landscape tablet
+    : 150  // portrait tablet
+    : 150;
 
   const startIdleReminder = useCallback(() => {
     clearTimeout(idleRef.current);

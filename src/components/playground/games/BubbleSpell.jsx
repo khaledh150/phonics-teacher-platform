@@ -540,7 +540,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
     const distractorPool = group.sounds.filter((s) => s.length === 1 && !wordLetters.includes(s));
     const fallbackPool = 'abcdefghijklmnopqrstuvwxyz'.split('').filter((c) => !wordLetters.includes(c));
     const pool = [...distractorPool, ...fallbackPool.filter((c) => !distractorPool.includes(c))];
-    const numDistractors = Math.max(8, wordLetters.length * 2);
+    const numDistractors = Math.max(16, wordLetters.length * 4);
     const distractors = [];
     for (let d = 0; d < numDistractors; d++) {
       distractors.push(pool[d % pool.length]);
@@ -631,16 +631,16 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       if (alive >= MAX_ALIVE) return;
       spawnBubble(allLetters[letterIdx % allLetters.length]);
       letterIdx++;
-    }, 600);
+    }, 400);
 
-    // Spawn initial small batch (6 bubbles staggered quickly) so screen isn't empty
+    // Spawn initial batch (10 bubbles staggered quickly) from behind dog
     const initialTimers = [];
-    const initialCount = Math.min(6, allLetters.length);
+    const initialCount = Math.min(10, allLetters.length);
     for (let i = 0; i < initialCount; i++) {
       const timer = setTimeout(() => {
         spawnBubble(allLetters[letterIdx % allLetters.length]);
         letterIdx++;
-      }, i * 200);
+      }, i * 150);
       initialTimers.push(timer);
     }
 

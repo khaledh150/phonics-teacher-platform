@@ -147,27 +147,34 @@ const generateDistractors = (targetWord, allGroupWords, count = 5) => {
   return picked;
 };
 
-// Stage 2: pick target words, show first letter on frog, display picture cards
+// Stage 2: pick 3 frogs, each with a target word, 3 target cards + distractors per frog
+const FROGS_COUNT = 3;
+const FEEDS_PER_FROG = 3;
 const buildFeedRounds = (group) => {
   const allWords = group.words.map((w) => w.word);
-  const targets = shuffle(allWords).slice(0, STAGE2_ROUNDS);
-  return targets.map((target) => {
+  // Pick 3 target words for 3 frogs
+  const frogWords = shuffle(allWords).slice(0, FROGS_COUNT);
+  // Pad if fewer than 3 words
+  while (frogWords.length < FROGS_COUNT && allWords.length > 0) {
+    frogWords.push(allWords[Math.floor(Math.random() * allWords.length)]);
+  }
+  // For each frog, build a pool of cards: 3 copies of the target + distractors
+  const frogs = frogWords.map((target) => {
     const firstLetter = target[0].toLowerCase();
-    // Pick distractors — other group words that DON'T start with the same letter
-    const others = allWords.filter((w) => w !== target && w[0].toLowerCase() !== firstLetter);
-    const distractors = shuffle(others).slice(0, CARD_COUNT - 1);
-    // If not enough, pad with any group words
-    while (distractors.length < CARD_COUNT - 1) {
-      const extra = allWords.find((w) => w !== target && !distractors.includes(w));
-      if (extra) distractors.push(extra);
+    const others = allWords.filter((w) => w !== target);
+    const distractors = shuffle(others).slice(0, CARD_COUNT - FEEDS_PER_FROG);
+    while (distractors.length < CARD_COUNT - FEEDS_PER_FROG && others.length > 0) {
+      const extra = others[Math.floor(Math.random() * others.length)];
+      if (!distractors.includes(extra)) distractors.push(extra);
       else break;
     }
     const choices = shuffle([
-      { word: target, isTarget: true },
-      ...distractors.map((d) => ({ word: d, isTarget: false })),
+      ...Array(FEEDS_PER_FROG).fill(null).map((_, i) => ({ word: target, isTarget: true, copyId: i })),
+      ...distractors.map((d) => ({ word: d, isTarget: false, copyId: 0 })),
     ]);
-    return { target, firstLetter, choices };
+    return { target, firstLetter, choices, fedCount: 0 };
   });
+  return frogs;
 };
 
 // ─── SFX ─────────────────────────────────────────────────────────────────────
@@ -462,33 +469,71 @@ const TongueOverlay = ({ tongueTarget, frogSize }) => {
   );
 };
 
-// ─── Fly Sprite for Stage 1 ─────────────────────────────────────────────────
-const FlyBug = ({ letter, x, y, onTap, isEaten, isWrong, size = 150 }) => (
-  <motion.div
-    className="absolute flex items-center justify-center cursor-pointer"
-    style={{ left: x - size / 2, top: y - size / 2, width: size, height: size, zIndex: 100 }}
-    onClick={(e) => { e.stopPropagation(); if (!isEaten && onTap) onTap(); }}
-    animate={
-      isEaten ? { scale: 0, opacity: 0 } :
-      isWrong ? { x: [0, -10, 10, -6, 6, 0], scale: [1, 0.9, 1] } :
-      {}
-    }
-    transition={isEaten ? { duration: 0.3 } : isWrong ? { duration: 0.4 } : {}}
-  >
-    <Sprite sprite="fly" size={size} />
-    {/* Letter circle overlay */}
-    <div className="absolute flex items-center justify-center rounded-full bg-white/95 shadow-md"
-      style={{
-        width: size * 0.45, height: size * 0.45,
-        top: '50%', left: '50%',
-        transform: 'translate(-50%, -50%)',
-      }}>
-      <span className="font-black text-[#8B2FC9]" style={{ fontSize: size * 0.22 }}>
-        {getDisplaySound(letter)}
-      </span>
-    </div>
-  </motion.div>
-);
+// ─── Fly Container for Stage 1 (DOM-ref based, no React re-renders) ────────
+const FlyContainer = ({ flyPosRef, eatenSetRef, onTap, size = 150 }) => {
+  const containerRef = useRef(null);
+  const flyElsRef = useRef({});
+
+  // Create/update fly DOM elements directly in rAF — no setState
+  useEffect(() => {
+    let running = true;
+    const tick = () => {
+      if (!running) return;
+      const container = containerRef.current;
+      if (!container) { requestAnimationFrame(tick); return; }
+      const pos = flyPosRef.current;
+      const eaten = eatenSetRef.current;
+
+      for (const [id, p] of Object.entries(pos)) {
+        let el = flyElsRef.current[id];
+        if (eaten.has(id)) {
+          if (el) { el.style.display = 'none'; }
+          continue;
+        }
+        if (!el) {
+          // Create fly DOM element once
+          el = document.createElement('div');
+          el.className = 'absolute flex items-center justify-center cursor-pointer';
+          el.style.cssText = `width:${size}px;height:${size}px;z-index:100;will-change:transform;pointer-events:auto;`;
+          el.innerHTML = `<div style="width:${size * 0.45}px;height:${size * 0.45}px;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:2;" class="flex items-center justify-center rounded-full bg-white/95 shadow-md"><span class="font-black text-[#8B2FC9]" style="font-size:${size * 0.22}px">${getDisplaySound(p.letter)}</span></div>`;
+          // Add fly sprite via the same SVG pattern
+          const spriteDiv = document.createElement('div');
+          spriteDiv.style.cssText = `position:absolute;inset:0;`;
+          const img = document.createElement('img');
+          img.src = frogSheet;
+          img.style.cssText = `position:absolute;width:${size * (2000/680)}px;height:${size * (2000/510)}px;top:${-75 * size/680}px;left:${-1265 * size/680}px;pointer-events:none;user-select:none;`;
+          img.draggable = false;
+          spriteDiv.appendChild(img);
+          // Clip to fly region
+          spriteDiv.style.overflow = 'hidden';
+          el.insertBefore(spriteDiv, el.firstChild);
+          el.dataset.flyId = id;
+          el.addEventListener('click', (e) => { e.stopPropagation(); onTap(id, p.letter); });
+          container.appendChild(el);
+          flyElsRef.current[id] = el;
+        }
+        el.style.display = '';
+        el.style.transform = `translate(${p.x - size / 2}px, ${p.y - size / 2}px)`;
+        // Update letter if changed
+        const letterEl = el.querySelector('span');
+        if (letterEl) {
+          const display = getDisplaySound(p.letter);
+          if (letterEl.textContent !== display) letterEl.textContent = display;
+        }
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    return () => {
+      running = false;
+      // Cleanup fly elements
+      Object.values(flyElsRef.current).forEach((el) => el?.remove());
+      flyElsRef.current = {};
+    };
+  }, [flyPosRef, eatenSetRef, onTap, size]);
+
+  return <div ref={containerRef} className="absolute inset-0 z-40 overflow-hidden pointer-events-none" />;
+};
 
 // ─── Lily Pad SVG ───────────────────────────────────────────────────────────
 const LilyPadSVG = ({ size = 130 }) => (
@@ -513,7 +558,7 @@ const FlowingWordCard = ({ card, posX, posY, colorIndex, onDrop, isProcessing, s
   const lastPointerRef = useRef({ x: 0, y: 0 });
   const cardColor = CARD_COLORS[colorIndex % CARD_COLORS.length];
   const imgUrl = getWordImage(groupId, card.word);
-  const cardSize = 'clamp(78px, 15vw, 105px)';
+  const cardSize = 'clamp(90px, 20vw, 140px)';
 
   useEffect(() => {
     if (!isDragging) return;
@@ -582,7 +627,6 @@ const CatchTheFlyStage = ({ group, onComplete, onScoreUpdate }) => {
   const [mouthOpen, setMouthOpen] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
   const [tongueTarget, setTongueTarget] = useState(null);
-  const [flyTick, setFlyTick] = useState(0);
   const [displayTimeLeft, setDisplayTimeLeft] = useState(TIME_PER_SOUND);
   const [score, setScore] = useState(0);
   const [frogGrowth, setFrogGrowth] = useState(0); // grows with each catch
@@ -605,7 +649,7 @@ const CatchTheFlyStage = ({ group, onComplete, onScoreUpdate }) => {
   const allSounds = group.sounds || [];
   const currentTarget = soundTargets[soundIdx];
 
-  const flySize = Math.min(window.innerWidth * 0.12, 130);
+  const flySize = Math.min(window.innerWidth * 0.16, 170);
   // Frog grows slightly per catch, capped so it doesn't overflow
   const baseFrogSize = typeof window !== 'undefined' ? Math.min(window.innerWidth * 0.45, 450) : 300;
   const frogScale = 1 + Math.min(frogGrowth * 0.012, 0.25); // max +25%
@@ -673,7 +717,6 @@ const CatchTheFlyStage = ({ group, onComplete, onScoreUpdate }) => {
         }
       }
 
-      if (frame % 2 === 0) setFlyTick((t) => t + 1);
       requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
@@ -808,14 +851,15 @@ const CatchTheFlyStage = ({ group, onComplete, onScoreUpdate }) => {
     }
   }, [currentTarget, instructionLock]);
 
-  const positions = flyPosRef.current;
-  const flyEntries = Object.entries(positions);
+  const handleFlyTapCb = useCallback((flyId, letter) => {
+    handleFlyTap(flyId, letter);
+  }, [handleFlyTap]);
 
   return (
     <>
       {/* Frog — centered, grows with catches */}
-      <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-30"
-        style={{ transform: `translate(-50%, -50%) scale(${frogScale})`, transition: 'transform 0.3s ease-out' }}>
+      <div className="absolute z-30"
+        style={{ left: '50%', top: '50%', transform: `translate(-50%, -50%) scale(${frogScale})`, transition: 'transform 0.3s ease-out' }}>
         <MotherFrog
           targetLabel={currentTarget}
           showBubble={showBubble}
@@ -859,24 +903,13 @@ const CatchTheFlyStage = ({ group, onComplete, onScoreUpdate }) => {
         )}
       </AnimatePresence>
 
-      {/* Flies */}
-      <div className="absolute inset-0 z-40 overflow-hidden">
-        {flyEntries.map(([flyId, pos]) => {
-          if (eatenSetRef.current.has(flyId)) return null;
-          return (
-            <FlyBug
-              key={flyId}
-              letter={pos.letter}
-              x={pos.x}
-              y={pos.y}
-              onTap={() => handleFlyTap(flyId, pos.letter)}
-              isEaten={eatenSetRef.current.has(flyId)}
-              isWrong={false}
-              size={flySize}
-            />
-          );
-        })}
-      </div>
+      {/* Flies — DOM-ref based for smooth 60fps (no React re-renders) */}
+      <FlyContainer
+        flyPosRef={flyPosRef}
+        eatenSetRef={eatenSetRef}
+        onTap={handleFlyTapCb}
+        size={flySize}
+      />
     </>
   );
 };
@@ -930,60 +963,54 @@ const StageTransition = ({ onDone }) => {
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
-// STAGE 2: FEED THE FROG — letter on belly, picture cards, frog on right
+// STAGE 2: FEED THE FROGS — 3 frogs with words, flowing picture cards on lily pads
+// Each frog needs 3 target cards fed to jump into the water
 // ═════════════════════════════════════════════════════════════════════════════
 const FeedTheFrogStage = ({ group, onComplete }) => {
-  const [currentRound, setCurrentRound] = useState(0);
+  const [frogs, setFrogs] = useState(() => buildFeedRounds(group));
+  const [activeFrogIdx, setActiveFrogIdx] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [instructionLock, setInstructionLock] = useState(true);
   const [showBubble, setShowBubble] = useState(false);
   const [mouthOpen, setMouthOpen] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
-  const [frogShakeWrong, setFrogShakeWrong] = useState(false);
+  const [frogShakeWrong, setFrogShakeWrong] = useState(-1);
   const [removedCards, setRemovedCards] = useState(new Set());
   const [flowTick, setFlowTick] = useState(0);
+  const [jumpedFrogs, setJumpedFrogs] = useState(new Set());
 
   const mountedRef = useRef(true);
   const isProcessingRef = useRef(false);
   const idleRef = useRef(null);
-  const idleCountRef = useRef(0);
-  const frogZoneRef = useRef(null);
-  const frogRef = useRef(null);
+  const frogRefs = useRef([null, null, null]);
   const flowRef = useRef({ positions: {}, frame: 0 });
 
-  const [rounds] = useState(() => buildFeedRounds(group));
-  const round = rounds[currentRound];
-
-  // Smaller frog for stage 2 (right side)
-  const stage2FrogSize = typeof window !== 'undefined' ? Math.min(window.innerWidth * 0.28, 280) : 200;
+  const activeFrog = frogs[activeFrogIdx];
+  const stage2FrogSize = typeof window !== 'undefined' ? Math.min(window.innerWidth * 0.18, 180) : 140;
 
   useEffect(() => { isProcessingRef.current = isProcessing; }, [isProcessing]);
 
-  // Flow animation — rAF
+  // Flow animation — rAF, cards flow LEFT to RIGHT from far right edge
   useEffect(() => {
     let running = true;
     let lastTime = performance.now();
-
     const tick = (now) => {
       if (!running) return;
       const dt = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
       flowRef.current.frame++;
-
       const pos = flowRef.current.positions;
       const w = window.innerWidth;
-      const ids = Object.keys(pos);
-
-      for (const id of ids) {
+      for (const id of Object.keys(pos)) {
         const p = pos[id];
-        p.x += CARD_SPEED * dt;
-        if (p.x > w + 150) {
-          const minX = Math.min(...ids.map((k) => pos[k]?.x ?? 0));
-          p.x = minX - CARD_SPACING;
+        p.x -= CARD_SPEED * dt; // flow RIGHT to LEFT
+        if (p.x < -200) {
+          // wrap to far right
+          const maxX = Math.max(...Object.values(pos).map((pp) => pp.x));
+          p.x = maxX + CARD_SPACING;
         }
-        p.y = p.baseY + Math.sin(p.x * 0.012) * 14;
+        p.y = p.baseY + Math.sin(p.x * 0.01) * 12;
       }
-
       if (flowRef.current.frame % 2 === 0) setFlowTick((t) => t + 1);
       requestAnimationFrame(tick);
     };
@@ -991,52 +1018,40 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
     return () => { running = false; };
   }, []);
 
-  // Init card positions on round change
+  // Init card positions — start from far right edge
   useEffect(() => {
-    if (!round) return;
+    if (!activeFrog) return;
     const positions = {};
-    round.choices.forEach((c, i) => {
-      const laneOffset = i % 2 === 0 ? -25 : 25;
-      positions[c.word] = {
-        x: -CARD_SPACING - i * CARD_SPACING,
-        y: window.innerHeight * 0.55 + laneOffset,
-        baseY: window.innerHeight * 0.55 + laneOffset,
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    activeFrog.choices.forEach((c, i) => {
+      const cardKey = c.word + '-' + c.copyId;
+      if (removedCards.has(cardKey)) return;
+      const laneOffset = i % 2 === 0 ? -20 : 20;
+      positions[cardKey] = {
+        x: w + 100 + i * CARD_SPACING, // start off-screen RIGHT
+        y: h * 0.6 + laneOffset,
+        baseY: h * 0.6 + laneOffset,
       };
     });
     flowRef.current.positions = positions;
-    setRemovedCards(new Set());
-  }, [currentRound, round]);
-
-  const speakTarget = useCallback(async () => {
-    if (!mountedRef.current) return;
-    await playVO('Tap the picture that starts with that sound!');
-    if (!mountedRef.current) return;
-    await delay(200);
-    if (!mountedRef.current) return;
-    try { await playLetterSound(rounds[currentRound]?.firstLetter || 'a'); } catch(e) {}
-  }, [rounds, currentRound]);
+  }, [activeFrogIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const startIdleReminder = useCallback(() => {
     clearTimeout(idleRef.current);
     idleRef.current = setTimeout(async () => {
       if (!mountedRef.current || isProcessingRef.current) return;
-      const count = idleCountRef.current++;
-      if (count % 2 === 0) {
-        await speakTarget();
-      } else {
-        await playVO('Feed me!');
-      }
+      await playVO('Feed me!');
       if (!mountedRef.current || isProcessingRef.current) return;
       startIdleReminder();
     }, 8000);
-  }, [speakTarget]);
+  }, []);
 
-  // Round announcement
+  // Intro announcement
   useEffect(() => {
     mountedRef.current = true;
     setInstructionLock(true);
     setShowBubble(false);
-    setFrogShakeWrong(false);
     let cancelled = false;
     const run = async () => {
       setIsProcessing(true);
@@ -1047,42 +1062,43 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
       if (cancelled) return;
       await delay(200);
       if (cancelled) return;
-      try { await playLetterSound(rounds[currentRound]?.firstLetter || 'a'); } catch(e) {}
-      if (cancelled) return;
       setShowBubble(true);
       setIsProcessing(false);
       isProcessingRef.current = false;
       setInstructionLock(false);
-      idleCountRef.current = 0;
       startIdleReminder();
     };
     run();
     return () => { cancelled = true; clearTimeout(idleRef.current); };
-  }, [currentRound]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeFrogIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      clearTimeout(idleRef.current);
-    };
+    return () => { mountedRef.current = false; clearTimeout(idleRef.current); };
   }, []);
 
-  const handleDrop = useCallback(async (card, pointer) => {
-    if (instructionLock || isProcessingRef.current || !round) return;
+  const handleDrop = useCallback(async (card, cardKey, pointer) => {
+    if (instructionLock || isProcessingRef.current || !activeFrog) return;
 
-    const frogRect = frogZoneRef.current?.getBoundingClientRect();
-    if (!frogRect) return;
+    // Check which frog was hit
+    let hitFrogIdx = -1;
+    for (let fi = 0; fi < frogs.length; fi++) {
+      if (jumpedFrogs.has(fi)) continue;
+      const ref = frogRefs.current[fi];
+      if (!ref) continue;
+      const rect = ref.getBoundingClientRect();
+      if (pointer.x >= rect.left - 40 && pointer.x <= rect.right + 40 &&
+          pointer.y >= rect.top - 40 && pointer.y <= rect.bottom + 40) {
+        hitFrogIdx = fi;
+        break;
+      }
+    }
 
-    const hitFrog =
-      pointer.x >= frogRect.left - 60 &&
-      pointer.x <= frogRect.right + 60 &&
-      pointer.y >= frogRect.top - 60 &&
-      pointer.y <= frogRect.bottom + 60;
-
-    if (!hitFrog) {
+    if (hitFrogIdx < 0) {
       playSplashSfx();
-      setRemovedCards((prev) => new Set([...prev, card.word]));
+      setRemovedCards((prev) => new Set([...prev, cardKey]));
+      // Remove from flow positions
+      delete flowRef.current.positions[cardKey];
       return;
     }
 
@@ -1090,140 +1106,177 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
     setIsProcessing(true);
     isProcessingRef.current = true;
 
-    if (card.isTarget) {
-      setRemovedCards((prev) => new Set([...prev, card.word]));
+    const targetFrog = frogs[hitFrogIdx];
+    const isCorrectFrog = card.word === targetFrog.target;
+
+    if (isCorrectFrog && card.isTarget) {
+      // CORRECT — feed the frog
+      setRemovedCards((prev) => new Set([...prev, cardKey]));
+      delete flowRef.current.positions[cardKey];
       playMunchSfx();
       setMouthOpen(true);
-      setShowBubble(false);
-      await delay(200);
+      triggerSmallBurst();
+      await delay(250);
       if (!mountedRef.current) return;
       setMouthOpen(false);
-      triggerSmallBurst();
       await playVO('Yum, yum!');
       if (!mountedRef.current) return;
-      setCelebrating(true);
-      await playBlendingSequence(round.target, (w) => speakAsync(w));
-      if (!mountedRef.current) return;
-      await delay(300);
-      if (!mountedRef.current) return;
-      await playEncouragement();
-      if (!mountedRef.current) return;
-      setCelebrating(false);
-      await delay(800);
-      if (!mountedRef.current) return;
 
-      if (currentRound < rounds.length - 1) {
-        setCurrentRound((prev) => prev + 1);
-        setIsProcessing(false);
-        isProcessingRef.current = false;
-      } else {
-        triggerCelebration();
-        await playVO('Great job!');
+      // Increment fed count
+      const newFrogs = [...frogs];
+      newFrogs[hitFrogIdx] = { ...newFrogs[hitFrogIdx], fedCount: (newFrogs[hitFrogIdx].fedCount || 0) + 1 };
+      setFrogs(newFrogs);
+
+      const newFedCount = newFrogs[hitFrogIdx].fedCount;
+
+      if (newFedCount >= FEEDS_PER_FROG) {
+        // Frog is fully fed — celebrate and jump into water
+        setCelebrating(true);
+        await playEncouragement();
         if (!mountedRef.current) return;
-        onComplete();
+        await delay(500);
+        if (!mountedRef.current) return;
+        setCelebrating(false);
+        setJumpedFrogs((prev) => new Set([...prev, hitFrogIdx]));
+
+        // Check if all frogs are done
+        const allJumped = frogs.every((_, fi) => fi === hitFrogIdx || jumpedFrogs.has(fi));
+        if (allJumped) {
+          await delay(600);
+          if (!mountedRef.current) return;
+          triggerCelebration();
+          await playVO('Great job!');
+          if (!mountedRef.current) return;
+          onComplete();
+          return;
+        }
+
+        // Move to next un-jumped frog
+        const nextIdx = frogs.findIndex((_, fi) => fi !== hitFrogIdx && !jumpedFrogs.has(fi));
+        if (nextIdx >= 0) {
+          setActiveFrogIdx(nextIdx);
+          setRemovedCards(new Set());
+        }
       }
+
+      setIsProcessing(false);
+      isProcessingRef.current = false;
+      startIdleReminder();
     } else {
-      // WRONG: frog shakes red, card disappears, lily pad stays empty
+      // WRONG — shake the frog
       playWrongSfx();
-      setFrogShakeWrong(true);
-      setRemovedCards((prev) => new Set([...prev, card.word]));
+      setFrogShakeWrong(hitFrogIdx);
+      setRemovedCards((prev) => new Set([...prev, cardKey]));
+      delete flowRef.current.positions[cardKey];
       await delay(600);
       if (!mountedRef.current) return;
-      setFrogShakeWrong(false);
+      setFrogShakeWrong(-1);
       await playVO('Oops, try again!');
-      if (!mountedRef.current) return;
-      try { await playLetterSound(round.firstLetter); } catch(e) {}
       if (!mountedRef.current) return;
       setIsProcessing(false);
       isProcessingRef.current = false;
       startIdleReminder();
     }
-  }, [round, currentRound, rounds, startIdleReminder, instructionLock, onComplete]);
+  }, [frogs, activeFrog, activeFrogIdx, jumpedFrogs, instructionLock, onComplete, startIdleReminder]);
 
   const positions = flowRef.current.positions;
 
+  // Position frogs evenly across top area (near water edge)
+  const frogPositions = frogs.map((_, i) => ({
+    left: `${20 + i * 30}%`,
+    top: 'clamp(30px, 8vh, 80px)',
+  }));
+
   return (
     <>
-      {/* Mother frog — CENTER, with letter on belly */}
-      <motion.div
-        ref={frogZoneRef}
-        className="absolute z-30"
-        style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
-        animate={frogShakeWrong ? { x: [0, -15, 15, -10, 10, -5, 5, 0] } : {}}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="flex flex-col items-center relative" ref={frogRef}>
-          {/* Letter on belly — no background */}
-          <AnimatePresence>
-            {showBubble && round?.firstLetter && (
-              <motion.div
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0, opacity: 0 }}
-                className="absolute flex items-center justify-center pointer-events-none"
-                style={{ top: '50%', left: '55%', transform: 'translate(-50%, -50%)', zIndex: 60 }}
-              >
-                <span className="font-black uppercase"
-                  style={{
-                    fontSize: 'clamp(2.5rem, 7vw, 4rem)',
-                    color: frogShakeWrong ? '#EF4444' : '#fff',
-                    textShadow: '0 3px 10px rgba(0,0,0,0.6), 0 0 25px rgba(255,255,255,0.3)',
-                    transition: 'color 0.2s',
-                  }}>
-                  {getDisplaySound(round.firstLetter)}
-                </span>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Frog body */}
+      {/* Three frogs — near top (water edge), spaced horizontally */}
+      {frogs.map((frog, fi) => {
+        if (jumpedFrogs.has(fi)) return (
+          <motion.div key={`frog-${fi}`} className="absolute z-30"
+            style={{ left: frogPositions[fi].left, top: frogPositions[fi].top }}
+            initial={{ y: 0, opacity: 1 }}
+            animate={{ y: -120, opacity: 0, scale: 0.5 }}
+            transition={{ duration: 0.8, ease: 'easeIn' }}
+          />
+        );
+        return (
           <motion.div
-            animate={
-              celebrating
-                ? { y: [0, -25, 0, -18, 0], scale: [1, 1.15, 1, 1.1, 1], rotate: [0, -4, 4, -2, 0] }
-                : mouthOpen
-                  ? { scale: [1, 1.08, 0.97, 1], y: [0, -3, 0] }
-                  : { scale: [1, 1.02, 1] }
-            }
-            transition={
-              celebrating
-                ? { duration: 1, repeat: 2 }
-                : mouthOpen
-                  ? { duration: 0.35 }
-                  : { duration: 3, repeat: Infinity, ease: 'easeInOut' }
-            }
-            style={{ filter: frogShakeWrong ? 'hue-rotate(-60deg) saturate(2) brightness(0.9)' : 'none', transition: 'filter 0.2s' }}
+            key={`frog-${fi}`}
+            ref={(el) => { frogRefs.current[fi] = el; }}
+            className="absolute z-30"
+            style={{ left: frogPositions[fi].left, top: frogPositions[fi].top, transform: 'translateX(-50%)' }}
+            animate={frogShakeWrong === fi ? { x: [0, -12, 12, -8, 8, 0] } : {}}
+            transition={{ duration: 0.4 }}
           >
-            <Sprite sprite="frogOnPad" size={stage2FrogSize} />
+            <div className="flex flex-col items-center relative">
+              {/* Word label on frog */}
+              <div className="absolute -top-1 left-1/2 -translate-x-1/2 z-50 bg-white/90 rounded-full px-3 py-0.5"
+                style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.2)', whiteSpace: 'nowrap' }}>
+                <span className="font-black text-[#3e366b] uppercase" style={{ fontSize: 'clamp(0.7rem, 2.5vw, 1rem)' }}>
+                  {frog.target}
+                </span>
+              </div>
+              {/* Fed count indicator */}
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-50 flex gap-1">
+                {Array(FEEDS_PER_FROG).fill(null).map((_, di) => (
+                  <div key={di} className={`rounded-full ${di < (frog.fedCount || 0) ? 'bg-[#22c55e]' : 'bg-white/40'}`}
+                    style={{ width: 'clamp(8px, 1.5vw, 14px)', height: 'clamp(8px, 1.5vw, 14px)', border: '1.5px solid rgba(255,255,255,0.6)' }} />
+                ))}
+              </div>
+              {/* Frog body */}
+              <motion.div
+                animate={
+                  celebrating && fi === activeFrogIdx
+                    ? { y: [0, -20, 0], scale: [1, 1.15, 1], rotate: [0, -4, 4, 0] }
+                    : mouthOpen && fi === activeFrogIdx
+                      ? { scale: [1, 1.08, 0.97, 1] }
+                      : fi === activeFrogIdx
+                        ? { scale: [1, 1.03, 1] }
+                        : {}
+                }
+                transition={
+                  celebrating ? { duration: 0.8, repeat: 2 }
+                    : mouthOpen ? { duration: 0.3 }
+                    : { duration: 3, repeat: Infinity, ease: 'easeInOut' }
+                }
+                style={{
+                  filter: frogShakeWrong === fi ? 'hue-rotate(-60deg) saturate(2) brightness(0.9)' : fi === activeFrogIdx ? 'none' : 'brightness(0.7)',
+                  transition: 'filter 0.2s',
+                  opacity: fi === activeFrogIdx ? 1 : 0.6,
+                }}
+              >
+                <Sprite sprite="frogOnPad" size={stage2FrogSize} />
+              </motion.div>
+            </div>
           </motion.div>
-        </div>
-      </motion.div>
+        );
+      })}
 
-      {/* Flowing picture cards */}
+      {/* Flowing picture cards on lily pads — from right edge */}
       <div className="absolute inset-0 z-20 pointer-events-none">
-        {round?.choices.map((c, i) => {
-          const pos = positions[c.word];
+        {activeFrog?.choices.map((c, i) => {
+          const cardKey = c.word + '-' + c.copyId;
+          const pos = positions[cardKey];
           if (!pos) return null;
-          const isRemoved = removedCards.has(c.word);
+          const isRemoved = removedCards.has(cardKey);
+          if (isRemoved) return null;
           return (
-            <div key={c.word + '-' + currentRound} className="pointer-events-auto">
-              {/* Lily pad always visible (bigger) */}
-              <div className="absolute" style={{ left: pos.x - 25, top: pos.y + 45, zIndex: 10 }}>
+            <div key={cardKey} className="pointer-events-auto">
+              {/* Lily pad */}
+              <div className="absolute" style={{ left: pos.x - 20, top: pos.y + 40, zIndex: 10 }}>
                 <LilyPadSVG size={180} />
               </div>
-              {/* Card — only if not removed */}
-              {!isRemoved && (
-                <FlowingWordCard
-                  card={c}
-                  posX={pos.x}
-                  posY={pos.y}
-                  colorIndex={i}
-                  onDrop={handleDrop}
-                  isProcessing={isProcessing || instructionLock}
-                  showType="picture"
-                  groupId={group.id}
-                />
-              )}
+              {/* Card */}
+              <FlowingWordCard
+                card={c}
+                posX={pos.x}
+                posY={pos.y}
+                colorIndex={i}
+                onDrop={(card, pointer) => handleDrop(card, cardKey, pointer)}
+                isProcessing={isProcessing || instructionLock}
+                showType="picture"
+                groupId={group.id}
+              />
             </div>
           );
         })}
@@ -1275,7 +1328,7 @@ const ResultsScreen = ({ onBack, onPlayAgain, fliesCaught = 0 }) => {
         </motion.div>
         <h2 className="text-2xl md:text-3xl font-bold text-[#1E8449] mb-2">Frog Master!</h2>
         <p className="text-[#3e366b]/60 text-sm md:text-base mb-6">
-          You caught {fliesCaught} flies and fed {STAGE2_ROUNDS} words!
+          You caught {fliesCaught} flies and fed {FROGS_COUNT} frogs!
         </p>
         <div className="flex gap-3 justify-center">
           <motion.button

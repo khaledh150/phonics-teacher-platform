@@ -734,6 +734,35 @@ const SoundBalloons = ({ group, onComplete }) => {
 
   return (
     <div ref={containerRef} className="h-full w-full relative overflow-hidden select-none">
+      {/* Loading overlay — covers everything until PixiJS + countdown are done */}
+      <AnimatePresence>
+        {!gameStarted && !showResults && (
+          <motion.div
+            key="balloon-loader"
+            className="absolute inset-0 z-[80] flex flex-col items-center justify-center"
+            style={{ background: 'linear-gradient(135deg, #87CEEB 0%, #5BA3D9 100%)' }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <motion.span
+              className="font-black text-white drop-shadow-lg"
+              style={{ fontSize: 'clamp(2rem, 8vh, 4rem)' }}
+              animate={{ scale: [1, 1.05, 1], y: [0, -5, 0] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              Pop the Balloons!
+            </motion.span>
+            <div className="flex gap-2 mt-4">
+              {[0, 1, 2].map((i) => (
+                <motion.div key={i} className="w-3 h-3 rounded-full bg-white/60"
+                  animate={{ scale: [1, 1.5, 1], opacity: [0.4, 1, 0.4] }}
+                  transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }} />
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* PixiJS canvas container — sky background + balloons rendered here */}
       <div ref={canvasContainerRef} className="absolute inset-0 z-20" />
 
