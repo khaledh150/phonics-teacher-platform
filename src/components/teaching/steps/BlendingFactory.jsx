@@ -125,7 +125,12 @@ const splitIntoBlocks = (word, groupSounds) => {
 const BlendingFactory = ({ group, onComplete }) => {
   const words = useMemo(() => {
     const withImages = group.words.filter(w => getWordImage(group.id, w.image || w.word) !== null);
-    return withImages.length > 0 ? withImages : group.words;
+    const list = withImages.length > 0 ? [...withImages] : [...group.words];
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [list[i], list[j]] = [list[j], list[i]];
+    }
+    return list;
   }, [group]);
   const [wordIdx, setWordIdx] = useState(0);
   const [slots, setSlots] = useState([]);
@@ -418,7 +423,7 @@ const BlendingFactory = ({ group, onComplete }) => {
       style={{ background: 'transparent' }}>
 
       {/* Title + Progress — top center */}
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-1" style={{ transform: 'translateX(-50%)', top: 'clamp(8px, 1.5vh, 20px)' }}>
+      <div className="absolute left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-1" style={{ top: 'clamp(8px, 1.5vh, 20px)' }}>
         <motion.span
           className="text-base md:text-xl lg:text-2xl font-bold text-white/80"
           initial={{ opacity: 0 }}

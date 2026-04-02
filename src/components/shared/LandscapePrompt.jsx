@@ -6,20 +6,35 @@ const LandscapePrompt = ({ disabled = false }) => {
 
   useEffect(() => {
     const checkOrientation = () => {
-      // Show on any screen that is in portrait mode (height > width)
       const isPortrait = window.innerHeight > window.innerWidth;
       setShowPrompt(isPortrait && !disabled);
     };
 
     checkOrientation();
     window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', () => setTimeout(checkOrientation, 100));
+
+    const handleOrientationChange = () => setTimeout(checkOrientation, 150);
+    window.addEventListener('orientationchange', handleOrientationChange);
+
+    // Also listen to fullscreen exit — if user exits fullscreen, re-check
+    const handleFullscreenChange = () => setTimeout(checkOrientation, 100);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
 
     return () => {
       window.removeEventListener('resize', checkOrientation);
-      window.removeEventListener('orientationchange', checkOrientation);
+      window.removeEventListener('orientationchange', handleOrientationChange);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
   }, [disabled]);
+
+  // When prompt appears, try to re-enter fullscreen and lock orientation
+  useEffect(() => {
+    if (!showPrompt || disabled) return;
+    // If not in fullscreen, try to re-enter (requires prior user gesture)
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+    }
+  }, [showPrompt, disabled]);
 
   return (
     <AnimatePresence>
@@ -32,6 +47,9 @@ const LandscapePrompt = ({ disabled = false }) => {
           style={{
             background: 'linear-gradient(135deg, #1a1147 0%, #2d1b69 50%, #1a1147 100%)',
           }}
+          // Block all interaction behind the prompt
+          onClick={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
         >
           {/* Rotating phone icon */}
           <motion.div

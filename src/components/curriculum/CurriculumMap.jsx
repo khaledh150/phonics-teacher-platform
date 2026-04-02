@@ -104,7 +104,7 @@ const LEVELS = [
   { id: 6, title: 'Level 6', color: '#ff6b9d', locked: true },
 ];
 
-const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelReset }) => {
+const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelReset, onAppStarted }) => {
   const [selectedLevel, setSelectedLevel] = useState(initialLevel || null);
   const [isPC, setIsPC] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
@@ -154,7 +154,12 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
 
   const handleTapToStart = async () => {
     setHasInteracted(true);
-    document.documentElement.requestFullscreen?.().catch(() => {});
+    onAppStarted?.();
+    // Enter fullscreen and lock to landscape
+    try {
+      await document.documentElement.requestFullscreen?.();
+      await screen.orientation?.lock?.('landscape').catch(() => {});
+    } catch {}
     welcomePlayingRef.current = true;
     await playVO('Welcome to Wonder Phonics!');
     welcomePlayingRef.current = false;

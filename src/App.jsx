@@ -23,7 +23,7 @@ const ScratchDiscover = lazy(() => import('./components/playground/games/Scratch
 const HungryFrogs = lazy(() => import('./components/playground/games/HungryFrogs'));
 
 // Increment this manually when you want to force a cache reset on deployed versions
-const APP_VERSION = "2.5.30";
+const APP_VERSION = "2.5.35";
 
 // Keys to preserve across version upgrades (progress data survives cache busts)
 const PRESERVED_KEYS = ['last_installed_version', 'wp_progress'];
@@ -118,6 +118,7 @@ function App() {
             onOpenPlayground={handleOpenPlayground}
             initialLevel={returnToGroups ? 1 : null}
             onLevelReset={() => setReturnToGroups(false)}
+            onAppStarted={() => setAppStarted(true)}
           />
         )}
 

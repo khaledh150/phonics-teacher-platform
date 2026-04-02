@@ -15,14 +15,15 @@ const toggleFullscreen = () => {
   else document.exitFullscreen?.();
 };
 
-const STAGE1_ROUNDS = 5;
+const STAGE1_ROUNDS = 5;       // number of sounds to cycle through
+const TIME_PER_SOUND = 30;     // seconds per sound
+const FLY_TOTAL = 12;          // flies on screen at once
 const STAGE2_ROUNDS = 5;
-const FLY_COUNT = 4;
 const CARD_COUNT = 6;
 const CARD_SPACING = 170;
 const CARD_SPEED = 50;
-const FLY_SPEED_MIN = 75;
-const FLY_SPEED_MAX = 125;
+const FLY_SPEED_MIN = 60;
+const FLY_SPEED_MAX = 130;
 
 const shuffle = (arr) => {
   const a = [...arr];
@@ -62,25 +63,36 @@ const Sprite = ({ sprite, size, className, style }) => {
 };
 
 // ─── Build rounds ───────────────────────────────────────────────────────────
-const buildFlyRounds = (group) => {
+// Build target sound list for Stage 1 (one target per timer round)
+const buildFlySoundTargets = (group) => {
   const sounds = group.sounds || [];
   if (sounds.length === 0) return [];
   const targets = shuffle(sounds).slice(0, STAGE1_ROUNDS);
-  // If fewer sounds than rounds, cycle
   while (targets.length < STAGE1_ROUNDS && sounds.length > 0) {
     targets.push(sounds[Math.floor(Math.random() * sounds.length)]);
   }
-  return targets.map((target) => {
-    const pool = sounds.filter((s) => s !== target);
-    const distractors = shuffle(pool).slice(0, FLY_COUNT - 1);
-    // Fill if not enough distractors
-    const fallback = ['x', 'z', 'q', 'w', 'v'];
-    while (distractors.length < FLY_COUNT - 1) {
-      const f = fallback.shift() || 'k';
-      if (f !== target && !distractors.includes(f)) distractors.push(f);
-    }
-    return { target, flies: shuffle([target, ...distractors]) };
-  });
+  return targets;
+};
+
+// Spawn a swarm of flies: ~40% target, ~60% distractors
+const spawnFlySwarm = (target, allSounds, count) => {
+  const targetCount = Math.max(3, Math.ceil(count * 0.4));
+  const distractorCount = count - targetCount;
+  const pool = allSounds.filter((s) => s !== target);
+  const fallback = ['x', 'z', 'q', 'w', 'v', 'b', 'f', 'g', 'k', 'l'];
+  while (pool.length < distractorCount) {
+    const f = fallback.shift() || 'k';
+    if (f !== target && !pool.includes(f)) pool.push(f);
+  }
+  const distractors = [];
+  for (let i = 0; i < distractorCount; i++) {
+    distractors.push(pool[i % pool.length]);
+  }
+  const flies = shuffle([
+    ...Array(targetCount).fill(target),
+    ...distractors,
+  ]);
+  return flies;
 };
 
 const generateDistractors = (targetWord, allGroupWords, count = 5) => {
@@ -133,17 +145,26 @@ const generateDistractors = (targetWord, allGroupWords, count = 5) => {
   return picked;
 };
 
+// Stage 2: pick target words, show first letter on frog, display picture cards
 const buildFeedRounds = (group) => {
-  const words = group.words.map((w) => w.word);
-  const allWords = words.map((w) => w.toLowerCase());
-  const targets = shuffle(words).slice(0, STAGE2_ROUNDS);
+  const allWords = group.words.map((w) => w.word);
+  const targets = shuffle(allWords).slice(0, STAGE2_ROUNDS);
   return targets.map((target) => {
-    const distractors = generateDistractors(target, allWords, CARD_COUNT - 1);
+    const firstLetter = target[0].toLowerCase();
+    // Pick distractors — other group words that DON'T start with the same letter
+    const others = allWords.filter((w) => w !== target && w[0].toLowerCase() !== firstLetter);
+    const distractors = shuffle(others).slice(0, CARD_COUNT - 1);
+    // If not enough, pad with any group words
+    while (distractors.length < CARD_COUNT - 1) {
+      const extra = allWords.find((w) => w !== target && !distractors.includes(w));
+      if (extra) distractors.push(extra);
+      else break;
+    }
     const choices = shuffle([
       { word: target, isTarget: true },
       ...distractors.map((d) => ({ word: d, isTarget: false })),
     ]);
-    return { target, choices };
+    return { target, firstLetter, choices };
   });
 };
 
@@ -353,7 +374,7 @@ const CattailGroup = ({ flip }) => (
 
 // ─── Mother Frog ─────────────────────────────────────────────────────────────
 const MotherFrog = ({ targetLabel, showBubble, bubbleType, mouthOpen, celebrating, tongueTarget, frogRef }) => {
-  const frogSize = typeof window !== 'undefined' ? Math.min(window.innerWidth * 0.25, 280) : 200;
+  const frogSize = typeof window !== 'undefined' ? Math.min(window.innerWidth * 0.45, 450) : 300;
 
   return (
     <div className="flex flex-col items-center relative" ref={frogRef}>
@@ -365,20 +386,20 @@ const MotherFrog = ({ targetLabel, showBubble, bubbleType, mouthOpen, celebratin
             animate={{ scale: 1, opacity: 1, y: [0, -4, 0] }}
             exit={{ scale: 0, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 15 }}
-            className="absolute bg-white rounded-2xl flex items-center justify-center"
+            className="absolute flex items-center justify-center pointer-events-none"
             style={{
-              top: -70, left: '50%', transform: 'translateX(-50%)',
-              padding: 'clamp(8px, 2.5vw, 16px) clamp(14px, 4vw, 24px)',
-              boxShadow: '0px 6px 18px rgba(0,0,0,0.25)',
-              zIndex: 60, minWidth: 70,
+              top: '50%', left: '55%', transform: 'translate(-50%, -50%)',
+              zIndex: 60,
             }}
           >
-            <span className="font-black text-[#3e366b] uppercase"
-              style={{ fontSize: bubbleType === 'sound' ? 'clamp(1.8rem, 5vw, 2.8rem)' : 'clamp(1.2rem, 3.5vw, 2rem)' }}>
+            <span className="font-black uppercase"
+              style={{
+                fontSize: 'clamp(3rem, 9vw, 5rem)',
+                color: '#fff',
+                textShadow: '0 3px 10px rgba(0,0,0,0.6), 0 0 25px rgba(255,255,255,0.3)',
+              }}>
               {bubbleType === 'sound' ? getDisplaySound(targetLabel) : targetLabel}
             </span>
-            <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-0 h-0"
-              style={{ borderLeft: '10px solid transparent', borderRight: '10px solid transparent', borderTop: '12px solid white' }} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -410,10 +431,6 @@ const MotherFrog = ({ targetLabel, showBubble, bubbleType, mouthOpen, celebratin
         <Sprite sprite="frogOnPad" size={frogSize} />
       </motion.div>
 
-      {/* Large lily pad under frog */}
-      <div style={{ marginTop: -frogSize * 0.12 }}>
-        <Sprite sprite="lilyPad" size={frogSize * 1.35} />
-      </div>
     </div>
   );
 };
@@ -444,7 +461,7 @@ const TongueOverlay = ({ tongueTarget, frogSize }) => {
 };
 
 // ─── Fly Sprite for Stage 1 ─────────────────────────────────────────────────
-const FlyBug = ({ letter, x, y, onTap, isEaten, isWrong, size = 65 }) => (
+const FlyBug = ({ letter, x, y, onTap, isEaten, isWrong, size = 150 }) => (
   <motion.div
     className="absolute flex items-center justify-center cursor-pointer"
     style={{ left: x - size / 2, top: y - size / 2, width: size, height: size, zIndex: 100 }}
@@ -512,10 +529,6 @@ const FlowingWordCard = ({ card, posX, posY, colorIndex, onDrop, isProcessing, s
 
   return (
     <div className="absolute" style={{ left: posX, top: posY, zIndex: isDragging ? 200 : 50 }}>
-      {/* Lily pad behind card */}
-      <div className="absolute" style={{ left: -20, top: 50, zIndex: -1 }}>
-        <LilyPadSVG size={135} />
-      </div>
       {/* Draggable card */}
       <motion.div
         className="cursor-grab active:cursor-grabbing select-none touch-none"
@@ -558,54 +571,78 @@ const FlowingWordCard = ({ card, posX, posY, colorIndex, onDrop, isProcessing, s
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
-// STAGE 1: CATCH THE FLY
+// STAGE 1: CATCH THE FLY — Balloon-popping style (timer + swarm + score)
 // ═════════════════════════════════════════════════════════════════════════════
-const CatchTheFlyStage = ({ group, onComplete }) => {
-  const [flyRound, setFlyRound] = useState(0);
-  const [isProcessing, setIsProcessing] = useState(false);
+const CatchTheFlyStage = ({ group, onComplete, onScoreUpdate }) => {
+  const [soundIdx, setSoundIdx] = useState(0);
   const [showBubble, setShowBubble] = useState(false);
   const [instructionLock, setInstructionLock] = useState(true);
   const [mouthOpen, setMouthOpen] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
   const [tongueTarget, setTongueTarget] = useState(null);
-  const [eatenFlyId, setEatenFlyId] = useState(null);
-  const [wrongFlyId, setWrongFlyId] = useState(null);
   const [flyTick, setFlyTick] = useState(0);
+  const [displayTimeLeft, setDisplayTimeLeft] = useState(TIME_PER_SOUND);
+  const [score, setScore] = useState(0);
+  const [frogGrowth, setFrogGrowth] = useState(0); // grows with each catch
+  const [popFlash, setPopFlash] = useState(null);
 
   const mountedRef = useRef(true);
   const isProcessingRef = useRef(false);
   const idleRef = useRef(null);
-  const idleCountRef = useRef(0);
   const flyPosRef = useRef({});
   const frogRef = useRef(null);
+  const timerRef = useRef(null);
+  const timeLeftRef = useRef(TIME_PER_SOUND);
+  const transitioningRef = useRef(false);
+  const scoreRef = useRef(0);
+  const soundScoreRef = useRef(0);
+  const eatenSetRef = useRef(new Set());
+  const nextFlyIdRef = useRef(0);
 
-  const [rounds] = useState(() => buildFlyRounds(group));
-  const round = rounds[flyRound];
+  const [soundTargets] = useState(() => buildFlySoundTargets(group));
+  const allSounds = group.sounds || [];
+  const currentTarget = soundTargets[soundIdx];
 
-  useEffect(() => { isProcessingRef.current = isProcessing; }, [isProcessing]);
+  const flySize = Math.min(window.innerWidth * 0.12, 130);
+  // Frog grows slightly per catch, capped so it doesn't overflow
+  const baseFrogSize = typeof window !== 'undefined' ? Math.min(window.innerWidth * 0.45, 450) : 300;
+  const frogScale = 1 + Math.min(frogGrowth * 0.012, 0.25); // max +25%
 
-  // Fly movement rAF
+  // Spawn a swarm of flies
+  const spawnSwarm = useCallback((target) => {
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    const flyLetters = spawnFlySwarm(target, allSounds, FLY_TOTAL);
+    const positions = {};
+    flyLetters.forEach((letter, i) => {
+      const id = `fly-${nextFlyIdRef.current++}`;
+      const speed = FLY_SPEED_MIN + Math.random() * (FLY_SPEED_MAX - FLY_SPEED_MIN);
+      const lane = i % 4;
+      let baseY;
+      if (lane === 0) baseY = h * 0.08 + Math.random() * (h * 0.15);
+      else if (lane === 1) baseY = h * 0.75 + Math.random() * (h * 0.18);
+      else if (lane === 2) baseY = h * 0.25 + Math.random() * (h * 0.1);
+      else baseY = h * 0.6 + Math.random() * (h * 0.1);
+      positions[id] = {
+        x: -(50 + i * (w / FLY_TOTAL) + Math.random() * 100), // start off-screen LEFT
+        y: baseY,
+        baseY,
+        speed,
+        letter,
+      };
+    });
+    flyPosRef.current = positions;
+    eatenSetRef.current = new Set();
+  }, [allSounds]);
+
+  // Fly movement rAF — LEFT TO RIGHT
   useEffect(() => {
     let running = true;
     let lastTime = performance.now();
     const w = () => window.innerWidth;
     const h = () => window.innerHeight;
 
-    // Init fly positions
-    if (round) {
-      const positions = {};
-      round.flies.forEach((letter, i) => {
-        const speed = FLY_SPEED_MIN + Math.random() * (FLY_SPEED_MAX - FLY_SPEED_MIN);
-        positions[`${letter}-${i}`] = {
-          x: w() + 80 + i * 180,
-          y: h() * 0.55 + (i % 2 === 0 ? -40 : 40) + Math.random() * 30,
-          baseY: h() * 0.55 + (i % 2 === 0 ? -40 : 40) + Math.random() * 30,
-          speed,
-          letter,
-        };
-      });
-      flyPosRef.current = positions;
-    }
+    spawnSwarm(currentTarget);
 
     let frame = 0;
     const tick = (now) => {
@@ -615,15 +652,22 @@ const CatchTheFlyStage = ({ group, onComplete }) => {
       frame++;
 
       const pos = flyPosRef.current;
-      const ids = Object.keys(pos);
-      for (const id of ids) {
+      for (const id of Object.keys(pos)) {
+        if (eatenSetRef.current.has(id)) continue;
         const p = pos[id];
-        p.x -= p.speed * dt;
-        p.y = p.baseY + Math.sin(p.x * 0.015) * 25;
-        if (p.x < -100) {
-          p.x = w() + 80 + Math.random() * 60;
-          p.baseY = h() * 0.45 + Math.random() * (h() * 0.25);
+        p.x += p.speed * dt; // LEFT TO RIGHT
+        p.y = p.baseY + Math.sin(p.x * 0.012) * 20;
+        if (p.x > w() + 150) {
+          // Re-spawn from left
+          p.x = -(60 + Math.random() * 120);
+          const lane = Math.floor(Math.random() * 4);
+          if (lane === 0) p.baseY = h() * 0.08 + Math.random() * (h() * 0.15);
+          else if (lane === 1) p.baseY = h() * 0.75 + Math.random() * (h() * 0.18);
+          else if (lane === 2) p.baseY = h() * 0.25 + Math.random() * (h() * 0.1);
+          else p.baseY = h() * 0.6 + Math.random() * (h() * 0.1);
           p.y = p.baseY;
+          const targetRatio = Math.random();
+          p.letter = targetRatio < 0.4 ? currentTarget : allSounds[Math.floor(Math.random() * allSounds.length)] || currentTarget;
         }
       }
 
@@ -632,152 +676,146 @@ const CatchTheFlyStage = ({ group, onComplete }) => {
     };
     requestAnimationFrame(tick);
     return () => { running = false; };
-  }, [flyRound, round]);
+  }, [soundIdx, currentTarget, spawnSwarm]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const speakTarget = useCallback(async () => {
-    if (!mountedRef.current) return;
-    await playVO('Catch the fly with the sound...');
-    if (!mountedRef.current) return;
-    await delay(200);
-    if (!mountedRef.current) return;
-    await playLetterSound(rounds[flyRound]?.target || 'a');
-  }, [rounds, flyRound]);
+  // Timer — 30s per sound
+  useEffect(() => {
+    if (instructionLock) return;
+    timeLeftRef.current = TIME_PER_SOUND;
+    setDisplayTimeLeft(TIME_PER_SOUND);
+    soundScoreRef.current = 0;
 
-  const startIdleReminder = useCallback(() => {
-    clearTimeout(idleRef.current);
-    idleRef.current = setTimeout(async () => {
-      if (!mountedRef.current || isProcessingRef.current) return;
-      const count = idleCountRef.current++;
-      if (count % 2 === 0) {
-        await speakTarget();
-      } else {
-        await playVO('Catch the fly!');
+    timerRef.current = setInterval(() => {
+      if (!mountedRef.current) { clearInterval(timerRef.current); return; }
+      if (transitioningRef.current) return;
+
+      timeLeftRef.current -= 1;
+      setDisplayTimeLeft(timeLeftRef.current);
+
+      if (timeLeftRef.current <= 0) {
+        clearInterval(timerRef.current);
+        transitioningRef.current = true;
+
+        const nextIdx = soundIdx + 1;
+        if (nextIdx >= soundTargets.length) {
+          const finish = async () => {
+            triggerCelebration();
+            await playVO("Time's up!");
+            if (!mountedRef.current) return;
+            await delay(500);
+            if (!mountedRef.current) return;
+            await playVO('Great catching!');
+            if (!mountedRef.current) return;
+            onScoreUpdate?.(scoreRef.current);
+            onComplete();
+          };
+          finish();
+        } else {
+          const transition = async () => {
+            const caughtThisRound = soundScoreRef.current;
+            triggerSmallBurst();
+            setPopFlash({ sound: currentTarget, count: caughtThisRound });
+            await playVO("Time's up!");
+            if (!mountedRef.current) return;
+            await delay(1200);
+            if (!mountedRef.current) return;
+            setPopFlash(null);
+            setSoundIdx(nextIdx);
+            transitioningRef.current = false;
+          };
+          transition();
+        }
       }
-      if (!mountedRef.current || isProcessingRef.current) return;
-      startIdleReminder();
-    }, 8000);
-  }, [speakTarget]);
+    }, 1000);
 
-  // Round announcement
+    return () => clearInterval(timerRef.current);
+  }, [instructionLock, soundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sound announcement
   useEffect(() => {
     mountedRef.current = true;
     setInstructionLock(true);
     setShowBubble(false);
-    setEatenFlyId(null);
-    setWrongFlyId(null);
-    setTongueTarget(null);
+    setFrogGrowth(0);
     let cancelled = false;
     const run = async () => {
-      setIsProcessing(true);
       isProcessingRef.current = true;
-      await delay(600);
+      await delay(500);
       if (cancelled) return;
-      await playVO('Catch the fly with the sound...');
+      await playVO('Catch the flies with the sound...');
       if (cancelled) return;
       await delay(200);
       if (cancelled) return;
-      await playLetterSound(rounds[flyRound]?.target || 'a');
+      await playLetterSound(currentTarget || 'a');
       if (cancelled) return;
       setShowBubble(true);
-      setIsProcessing(false);
       isProcessingRef.current = false;
       setInstructionLock(false);
-      idleCountRef.current = 0;
-      startIdleReminder();
     };
     run();
     return () => { cancelled = true; clearTimeout(idleRef.current); };
-  }, [flyRound]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [soundIdx]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       clearTimeout(idleRef.current);
+      clearInterval(timerRef.current);
     };
   }, []);
 
-  const handleFlyTap = useCallback(async (flyId, letter) => {
-    if (instructionLock || isProcessingRef.current || !round) return;
+  const handleFlyTap = useCallback((flyId, letter) => {
+    if (instructionLock || isProcessingRef.current || transitioningRef.current) return;
+    if (eatenSetRef.current.has(flyId)) return;
 
-    clearTimeout(idleRef.current);
-    setIsProcessing(true);
-    isProcessingRef.current = true;
-
-    const isCorrect = letter === round.target;
+    const isCorrect = letter === currentTarget;
     const flyPos = flyPosRef.current[flyId];
 
     if (isCorrect) {
-      // Get frog center for tongue direction
+      // Tongue shoots toward fly
       const frogRect = frogRef.current?.getBoundingClientRect();
       const frogCX = frogRect ? frogRect.left + frogRect.width / 2 : window.innerWidth / 2;
-      const frogCY = frogRect ? frogRect.top + frogRect.height * 0.35 : window.innerHeight * 0.25;
+      const frogCY = frogRect ? frogRect.top + frogRect.height * 0.35 : window.innerHeight / 2;
       const dx = (flyPos?.x || 0) - frogCX;
       const dy = (flyPos?.y || 0) - frogCY;
       setTongueTarget({ x: dx, y: dy });
       playTongueSfx();
 
-      await delay(200);
-      if (!mountedRef.current) return;
-      setEatenFlyId(flyId);
-      playCatchSfx();
-
-      await delay(250);
-      if (!mountedRef.current) return;
-      setTongueTarget(null);
-      setMouthOpen(true);
-      playMunchSfx();
-
-      await delay(200);
-      if (!mountedRef.current) return;
-      setMouthOpen(false);
-      triggerSmallBurst();
-      setShowBubble(false);
-
-      await playVO('Yum!');
-      if (!mountedRef.current) return;
-      setCelebrating(true);
-      await playEncouragement();
-      if (!mountedRef.current) return;
-      setCelebrating(false);
-      await delay(500);
-      if (!mountedRef.current) return;
-
-      if (flyRound < rounds.length - 1) {
-        setFlyRound((prev) => prev + 1);
-        setIsProcessing(false);
-        isProcessingRef.current = false;
-      } else {
-        // Stage 1 complete
-        triggerCelebration();
-        await playVO('Great catching!');
+      // After tongue extends, eat the fly
+      setTimeout(() => {
         if (!mountedRef.current) return;
-        onComplete();
-      }
+        eatenSetRef.current.add(flyId);
+        scoreRef.current += 1;
+        soundScoreRef.current += 1;
+        setScore(scoreRef.current);
+        setFrogGrowth((g) => g + 1);
+        playCatchSfx();
+        playMunchSfx();
+        triggerSmallBurst();
+        setMouthOpen(true);
+        setTimeout(() => {
+          if (mountedRef.current) {
+            setMouthOpen(false);
+            setTongueTarget(null);
+          }
+        }, 250);
+      }, 220);
     } else {
-      setWrongFlyId(flyId);
       playWrongSfx();
-      await delay(400);
-      if (!mountedRef.current) return;
-      setWrongFlyId(null);
-      await playVO('Oops, try again!');
-      if (!mountedRef.current) return;
-      await playLetterSound(round.target);
-      if (!mountedRef.current) return;
-      setIsProcessing(false);
-      isProcessingRef.current = false;
-      startIdleReminder();
     }
-  }, [round, flyRound, rounds, startIdleReminder, instructionLock, onComplete]);
+  }, [currentTarget, instructionLock]);
 
   const positions = flyPosRef.current;
+  const flyEntries = Object.entries(positions);
 
   return (
     <>
-      {/* Frog — top center */}
-      <div className="absolute left-1/2 -translate-x-1/2 z-30" style={{ top: 'clamp(50px, 8vh, 100px)' }}>
+      {/* Frog — centered, grows with catches */}
+      <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-30"
+        style={{ transform: `translate(-50%, -50%) scale(${frogScale})`, transition: 'transform 0.3s ease-out' }}>
         <MotherFrog
-          targetLabel={round?.target}
+          targetLabel={currentTarget}
           showBubble={showBubble}
           bubbleType="sound"
           mouthOpen={mouthOpen}
@@ -787,22 +825,52 @@ const CatchTheFlyStage = ({ group, onComplete }) => {
         />
       </div>
 
+      {/* Timer + Score HUD */}
+      <div className="fixed top-3 right-3 z-[60] flex items-center gap-2">
+        <div className={`bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 font-bold text-sm ${displayTimeLeft <= 5 ? 'text-red-400' : 'text-white/80'}`}>
+          {displayTimeLeft}s
+        </div>
+        <div className="bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 font-bold text-sm text-[#FFD000]">
+          {score} caught
+        </div>
+        <div className="bg-white/20 backdrop-blur-sm rounded-full px-3 py-1 font-semibold text-xs text-white/60">
+          {soundIdx + 1}/{soundTargets.length}
+        </div>
+      </div>
+
+      {/* Pop flash — shows between sounds */}
+      <AnimatePresence>
+        {popFlash && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/30"
+          >
+            <div className="bg-white/90 rounded-3xl px-8 py-6 text-center" style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.3)' }}>
+              <span className="text-4xl font-black text-[#1E8449] block mb-1">{popFlash.count}</span>
+              <span className="text-lg font-bold text-[#3e366b]/70">
+                "{getDisplaySound(popFlash.sound)}" flies caught!
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Flies */}
-      <div className="absolute inset-0 z-40">
-        {round?.flies.map((letter, i) => {
-          const flyId = `${letter}-${i}`;
-          const pos = positions[flyId];
-          if (!pos || eatenFlyId === flyId) return null;
+      <div className="absolute inset-0 z-40 overflow-hidden">
+        {flyEntries.map(([flyId, pos]) => {
+          if (eatenSetRef.current.has(flyId)) return null;
           return (
             <FlyBug
-              key={flyId + '-' + flyRound}
-              letter={letter}
+              key={flyId}
+              letter={pos.letter}
               x={pos.x}
               y={pos.y}
-              onTap={() => handleFlyTap(flyId, letter)}
-              isEaten={eatenFlyId === flyId}
-              isWrong={wrongFlyId === flyId}
-              size={Math.min(window.innerWidth * 0.08, 70)}
+              onTap={() => handleFlyTap(flyId, pos.letter)}
+              isEaten={eatenSetRef.current.has(flyId)}
+              isWrong={false}
+              size={flySize}
             />
           );
         })}
@@ -860,7 +928,7 @@ const StageTransition = ({ onDone }) => {
 };
 
 // ═════════════════════════════════════════════════════════════════════════════
-// STAGE 2: FEED THE FROG
+// STAGE 2: FEED THE FROG — letter on belly, picture cards, frog on right
 // ═════════════════════════════════════════════════════════════════════════════
 const FeedTheFrogStage = ({ group, onComplete }) => {
   const [currentRound, setCurrentRound] = useState(0);
@@ -869,9 +937,8 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
   const [showBubble, setShowBubble] = useState(false);
   const [mouthOpen, setMouthOpen] = useState(false);
   const [celebrating, setCelebrating] = useState(false);
-  const [cardShaking, setCardShaking] = useState(null);
+  const [frogShakeWrong, setFrogShakeWrong] = useState(false);
   const [removedCards, setRemovedCards] = useState(new Set());
-  const [showType] = useState(() => Math.random() > 0.5 ? 'picture' : 'text');
   const [flowTick, setFlowTick] = useState(0);
 
   const mountedRef = useRef(true);
@@ -884,6 +951,9 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
 
   const [rounds] = useState(() => buildFeedRounds(group));
   const round = rounds[currentRound];
+
+  // Smaller frog for stage 2 (right side)
+  const stage2FrogSize = typeof window !== 'undefined' ? Math.min(window.innerWidth * 0.28, 280) : 200;
 
   useEffect(() => { isProcessingRef.current = isProcessing; }, [isProcessing]);
 
@@ -927,8 +997,8 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
       const laneOffset = i % 2 === 0 ? -25 : 25;
       positions[c.word] = {
         x: -CARD_SPACING - i * CARD_SPACING,
-        y: window.innerHeight * 0.65 + laneOffset,
-        baseY: window.innerHeight * 0.65 + laneOffset,
+        y: window.innerHeight * 0.55 + laneOffset,
+        baseY: window.innerHeight * 0.55 + laneOffset,
       };
     });
     flowRef.current.positions = positions;
@@ -937,11 +1007,11 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
 
   const speakTarget = useCallback(async () => {
     if (!mountedRef.current) return;
-    await playVO('Feed the frog the word...');
+    await playVO('Feed the frog the picture that starts with...');
     if (!mountedRef.current) return;
     await delay(200);
     if (!mountedRef.current) return;
-    await speakAsync(rounds[currentRound]?.target || '');
+    await playLetterSound(rounds[currentRound]?.firstLetter || 'a');
   }, [rounds, currentRound]);
 
   const startIdleReminder = useCallback(() => {
@@ -964,17 +1034,18 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
     mountedRef.current = true;
     setInstructionLock(true);
     setShowBubble(false);
+    setFrogShakeWrong(false);
     let cancelled = false;
     const run = async () => {
       setIsProcessing(true);
       isProcessingRef.current = true;
       await delay(600);
       if (cancelled) return;
-      await playVO('Feed the frog the word...');
+      await playVO('Feed the frog the picture that starts with...');
       if (cancelled) return;
       await delay(200);
       if (cancelled) return;
-      await speakAsync(rounds[currentRound]?.target || '');
+      await playLetterSound(rounds[currentRound]?.firstLetter || 'a');
       if (cancelled) return;
       setShowBubble(true);
       setIsProcessing(false);
@@ -1002,10 +1073,10 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
     if (!frogRect) return;
 
     const hitFrog =
-      pointer.x >= frogRect.left - 50 &&
-      pointer.x <= frogRect.right + 50 &&
-      pointer.y >= frogRect.top - 50 &&
-      pointer.y <= frogRect.bottom + 50;
+      pointer.x >= frogRect.left - 60 &&
+      pointer.x <= frogRect.right + 60 &&
+      pointer.y >= frogRect.top - 60 &&
+      pointer.y <= frogRect.bottom + 60;
 
     if (!hitFrog) {
       playSplashSfx();
@@ -1050,18 +1121,17 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
         onComplete();
       }
     } else {
+      // WRONG: frog shakes red, card disappears, lily pad stays empty
       playWrongSfx();
-      setCardShaking(card.word);
-      setMouthOpen(true);
-      await delay(200);
-      setMouthOpen(false);
-      await playVO('Blegh!');
+      setFrogShakeWrong(true);
+      setRemovedCards((prev) => new Set([...prev, card.word]));
+      await delay(600);
       if (!mountedRef.current) return;
+      setFrogShakeWrong(false);
       await playVO('Oops, try again!');
       if (!mountedRef.current) return;
-      await speakAsync(round.target);
+      await playLetterSound(round.firstLetter);
       if (!mountedRef.current) return;
-      setCardShaking(null);
       setIsProcessing(false);
       isProcessingRef.current = false;
       startIdleReminder();
@@ -1072,35 +1142,75 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
 
   return (
     <>
-      {/* Mother frog — top center */}
-      <div
+      {/* Mother frog — RIGHT side, smaller, with letter on belly */}
+      <motion.div
         ref={frogZoneRef}
-        className="absolute left-1/2 -translate-x-1/2 z-30"
-        style={{ top: 'clamp(50px, 8vh, 100px)' }}
+        className="absolute z-30"
+        style={{ right: 'clamp(20px, 4vw, 80px)', top: '50%', transform: 'translateY(-50%)' }}
+        animate={frogShakeWrong ? { x: [0, -15, 15, -10, 10, -5, 5, 0] } : {}}
+        transition={{ duration: 0.5 }}
       >
-        <MotherFrog
-          targetLabel={round?.target}
-          showBubble={showBubble}
-          bubbleType="word"
-          mouthOpen={mouthOpen}
-          celebrating={celebrating}
-          tongueTarget={null}
-          frogRef={frogRef}
-        />
-      </div>
+        <div className="flex flex-col items-center relative" ref={frogRef}>
+          {/* Letter on belly — no background */}
+          <AnimatePresence>
+            {showBubble && round?.firstLetter && (
+              <motion.div
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+                className="absolute flex items-center justify-center pointer-events-none"
+                style={{ top: '50%', left: '55%', transform: 'translate(-50%, -50%)', zIndex: 60 }}
+              >
+                <span className="font-black uppercase"
+                  style={{
+                    fontSize: 'clamp(2.5rem, 7vw, 4rem)',
+                    color: frogShakeWrong ? '#EF4444' : '#fff',
+                    textShadow: '0 3px 10px rgba(0,0,0,0.6), 0 0 25px rgba(255,255,255,0.3)',
+                    transition: 'color 0.2s',
+                  }}>
+                  {getDisplaySound(round.firstLetter)}
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-      {/* Flowing word cards */}
+          {/* Frog body */}
+          <motion.div
+            animate={
+              celebrating
+                ? { y: [0, -25, 0, -18, 0], scale: [1, 1.15, 1, 1.1, 1], rotate: [0, -4, 4, -2, 0] }
+                : mouthOpen
+                  ? { scale: [1, 1.08, 0.97, 1], y: [0, -3, 0] }
+                  : { scale: [1, 1.02, 1] }
+            }
+            transition={
+              celebrating
+                ? { duration: 1, repeat: 2 }
+                : mouthOpen
+                  ? { duration: 0.35 }
+                  : { duration: 3, repeat: Infinity, ease: 'easeInOut' }
+            }
+            style={{ filter: frogShakeWrong ? 'hue-rotate(-60deg) saturate(2) brightness(0.9)' : 'none', transition: 'filter 0.2s' }}
+          >
+            <Sprite sprite="frogOnPad" size={stage2FrogSize} />
+          </motion.div>
+        </div>
+      </motion.div>
+
+      {/* Flowing picture cards */}
       <div className="absolute inset-0 z-20 pointer-events-none">
         {round?.choices.map((c, i) => {
-          if (removedCards.has(c.word)) return null;
           const pos = positions[c.word];
           if (!pos) return null;
+          const isRemoved = removedCards.has(c.word);
           return (
             <div key={c.word + '-' + currentRound} className="pointer-events-auto">
-              <motion.div
-                animate={cardShaking === c.word ? { x: [0, -12, 12, -8, 8, -4, 4, 0] } : {}}
-                transition={{ duration: 0.5 }}
-              >
+              {/* Lily pad always visible (bigger) */}
+              <div className="absolute" style={{ left: pos.x - 25, top: pos.y + 45, zIndex: 10 }}>
+                <LilyPadSVG size={180} />
+              </div>
+              {/* Card — only if not removed */}
+              {!isRemoved && (
                 <FlowingWordCard
                   card={c}
                   posX={pos.x}
@@ -1108,10 +1218,10 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
                   colorIndex={i}
                   onDrop={handleDrop}
                   isProcessing={isProcessing || instructionLock}
-                  showType={showType}
+                  showType="picture"
                   groupId={group.id}
                 />
-              </motion.div>
+              )}
             </div>
           );
         })}
@@ -1123,7 +1233,7 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
 // ═════════════════════════════════════════════════════════════════════════════
 // RESULTS SCREEN
 // ═════════════════════════════════════════════════════════════════════════════
-const ResultsScreen = ({ onBack, onPlayAgain }) => {
+const ResultsScreen = ({ onBack, onPlayAgain, fliesCaught = 0 }) => {
   // Confetti rain
   useEffect(() => {
     let running = true;
@@ -1163,7 +1273,7 @@ const ResultsScreen = ({ onBack, onPlayAgain }) => {
         </motion.div>
         <h2 className="text-2xl md:text-3xl font-bold text-[#1E8449] mb-2">Frog Master!</h2>
         <p className="text-[#3e366b]/60 text-sm md:text-base mb-6">
-          You caught {STAGE1_ROUNDS} flies and fed {STAGE2_ROUNDS} words!
+          You caught {fliesCaught} flies and fed {STAGE2_ROUNDS} words!
         </p>
         <div className="flex gap-3 justify-center">
           <motion.button
@@ -1193,6 +1303,7 @@ const ResultsScreen = ({ onBack, onPlayAgain }) => {
 // ═════════════════════════════════════════════════════════════════════════════
 const HungryFrogsGame = ({ group, onBack, onPlayAgain }) => {
   const [gameStage, setGameStage] = useState('fly'); // 'fly' | 'transition' | 'feed' | 'results'
+  const [fliesCaught, setFliesCaught] = useState(0);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -1266,7 +1377,7 @@ const HungryFrogsGame = ({ group, onBack, onPlayAgain }) => {
 
       {/* Stages */}
       {gameStage === 'fly' && (
-        <CatchTheFlyStage group={group} onComplete={() => setGameStage('transition')} />
+        <CatchTheFlyStage group={group} onComplete={() => setGameStage('transition')} onScoreUpdate={(s) => setFliesCaught(s)} />
       )}
       {gameStage === 'transition' && (
         <StageTransition onDone={() => setGameStage('feed')} />
@@ -1278,6 +1389,7 @@ const HungryFrogsGame = ({ group, onBack, onPlayAgain }) => {
         <ResultsScreen
           onBack={handleBack}
           onPlayAgain={() => onPlayAgain ? onPlayAgain() : window.location.reload()}
+          fliesCaught={fliesCaught}
         />
       )}
     </div>
