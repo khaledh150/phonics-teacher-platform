@@ -7,8 +7,8 @@ const toggleFullscreen = () => {
   else document.exitFullscreen?.();
 };
 
-const btnSize = 'clamp(36px, 10vh, 56px)';
-const iconStyle = { width: '45%', height: '45%' };
+const btnSize = 'clamp(32px, 8vh, 48px)';
+const iconStyle = { width: '50%', height: '50%' };
 
 const GameControlBar = ({ onBack, className = '' }) => (
   <div className={`fixed top-3 left-3 z-[70] flex items-center gap-2 ${className}`}>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Volume2, Search } from 'lucide-react';
+import { ArrowLeft, Maximize, Volume2 } from 'lucide-react';
 import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
 import { stopAllAudio } from '../../../utils/letterSounds';
 import { speakAsync } from '../../../utils/speech';
@@ -8,8 +8,14 @@ import { triggerSmallBurst, triggerCelebration } from '../../../utils/confetti';
 import { playEncouragement } from '../../../utils/encouragement';
 import { getWordImage } from '../../../utils/assetHelpers';
 import confetti from 'canvas-confetti';
-import GameControlBar from '../../shared/GameControlBar';
-import GameResultCard from '../../shared/GameResultCard';
+
+const toggleFullscreen = () => {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen?.();
+  } else {
+    document.exitFullscreen?.();
+  }
+};
 
 const TOTAL_ROUNDS = 5;
 
@@ -183,22 +189,68 @@ const ShadowMatchGame = ({ group, onBack, onPlayAgain }) => {
     onBack();
   };
 
+  // --- Results screen ---
+  if (gameComplete) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#1a1147] to-[#8B5CF6]">
+        <motion.button
+          onClick={toggleFullscreen}
+          className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}
+        >
+          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
+        <motion.div
+          initial={{ scale: 0 }} animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+          className="bg-[#2d1b69] p-8 md:p-12 text-center max-w-md mx-4 border-t-4 border-[#FFD000]"
+          style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
+        >
+          <motion.span className="text-7xl md:text-8xl block mb-4"
+            animate={{ y: [0, -8, 0], rotate: [0, 5, -5, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}>
+            🔍⭐
+          </motion.span>
+          <h2 className="text-2xl md:text-3xl font-bold text-[#8B5CF6] mb-2">Shadow Spotter!</h2>
+          <p className="text-white/60 text-sm md:text-base mb-6">You matched all the shadows!</p>
+          <div className="flex flex-col gap-3">
+            <motion.button onClick={onPlayAgain}
+              className="px-8 py-3 md:px-10 md:py-4 bg-[#22c55e] text-white font-bold text-base md:text-lg"
+              style={{ borderRadius: '1.6rem', borderBottom: '5px solid #16a34a', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
+              whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95, y: 4 }}>
+              Play Again
+            </motion.button>
+            <motion.button onClick={handleBack}
+              className="px-8 py-2.5 md:px-10 md:py-3 bg-white/20 text-white/70 font-bold text-sm md:text-base"
+              style={{ borderRadius: '1.6rem', borderBottom: '4px solid rgba(0,0,0,0.05)' }}
+              whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95, y: 4 }}>
+              Back to Playground
+            </motion.button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   // --- Main game ---
   return (
     <div className="h-screen w-screen flex flex-col bg-gradient-to-b from-[#1a1147] to-[#6B3FA0] overflow-hidden">
-      <GameControlBar onBack={handleBack} />
-
-      {/* Results overlay */}
-      {gameComplete && (
-        <GameResultCard
-          title="Shadow Detective!"
-          subtitle="You matched all the shadows!"
-          accentColor="#6B3FA0"
-          icon={Search}
-          onPlayAgain={onPlayAgain}
-          onBack={handleBack}
-        />
-      )}
+      {/* Back + Fullscreen buttons */}
+      <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
+        <motion.button onClick={handleBack}
+          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}>
+          <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
+        <motion.button onClick={toggleFullscreen}
+          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
+          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+          whileTap={{ scale: 0.95, y: 3 }}>
+          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+        </motion.button>
+      </div>
 
       {/* Speaker + Progress dots */}
       <div className="fixed top-3 right-3 z-[70] flex items-center gap-2">

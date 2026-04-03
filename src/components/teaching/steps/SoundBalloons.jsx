@@ -734,35 +734,6 @@ const SoundBalloons = ({ group, onComplete }) => {
 
   return (
     <div ref={containerRef} className="h-full w-full relative overflow-hidden select-none">
-      {/* Loading overlay — covers everything until PixiJS + countdown are done */}
-      <AnimatePresence>
-        {!gameStarted && !showResults && (
-          <motion.div
-            key="balloon-loader"
-            className="absolute inset-0 z-[80] flex flex-col items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #87CEEB 0%, #5BA3D9 100%)' }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <motion.span
-              className="font-black text-white drop-shadow-lg"
-              style={{ fontSize: 'clamp(2rem, 8vh, 4rem)' }}
-              animate={{ scale: [1, 1.05, 1], y: [0, -5, 0] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              Pop the Balloons!
-            </motion.span>
-            <div className="flex gap-2 mt-4">
-              {[0, 1, 2].map((i) => (
-                <motion.div key={i} className="w-3 h-3 rounded-full bg-white/60"
-                  animate={{ scale: [1, 1.5, 1], opacity: [0.4, 1, 0.4] }}
-                  transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }} />
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* PixiJS canvas container — sky background + balloons rendered here */}
       <div ref={canvasContainerRef} className="absolute inset-0 z-20" />
 
@@ -815,28 +786,19 @@ const SoundBalloons = ({ group, onComplete }) => {
         )}
       </AnimatePresence>
 
-      {/* Header HUD — z-40 to sit below group label (z-50) */}
-      <div className="absolute top-0 left-0 right-0 z-40 flex flex-col items-end px-4 pt-3 md:pt-4 lg:pt-6">
-        {/* Title — top center (absolute to avoid pushing HUD down) */}
+      {/* Header HUD — z-50 to be above canvas */}
+      <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-4 pt-3 md:pt-4 lg:pt-6">
+        {/* Title — top center */}
+        <div className="flex-1" />
         <motion.span
-          className="absolute left-1/2 -translate-x-1/2 text-base md:text-xl lg:text-2xl font-bold text-white/80 drop-shadow-lg"
+          className="text-base md:text-xl lg:text-2xl font-bold text-white/80 drop-shadow-lg"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
         >
           Pop the Balloons!
         </motion.span>
-        {/* Speaker button — top right, sits at same level as group label */}
-        <motion.button
-          onClick={handleReplaySound}
-          className="p-2 lg:p-2.5 rounded-[0.8rem] bg-[#6B3FA0]"
-          style={{ borderBottom: '4px solid #4A2B70', boxShadow: '0px 4px 0px rgba(0,0,0,0.15)' }}
-          whileTap={{ scale: 0.95, y: 3 }}
-          whileHover={{ scale: 1.1 }}
-        >
-          <Volume2 className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
-        </motion.button>
-        {/* Progress + Timer — below speaker button */}
-        <div className="flex items-center gap-2 mt-2">
+        <div className="flex-1 flex justify-end">
+        <div className="flex items-center gap-2">
           <div className="bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 lg:px-4 lg:py-1.5 flex items-center gap-2">
             <span className="text-xs lg:text-sm text-white/50 font-medium">
               {displayTargetIdx + 1}/{sounds.length}
@@ -852,6 +814,16 @@ const SoundBalloons = ({ group, onComplete }) => {
           <div className={`bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 font-bold text-sm ${displayTimeLeft <= 3 ? 'text-red-500' : 'text-white/70'}`}>
             {displayTimeLeft}s
           </div>
+          <motion.button
+            onClick={handleReplaySound}
+            className="p-2 lg:p-2.5 rounded-[0.8rem] bg-[#6B3FA0]"
+            style={{ borderBottom: '4px solid #4A2B70', boxShadow: '0px 4px 0px rgba(0,0,0,0.15)' }}
+            whileTap={{ scale: 0.95, y: 3 }}
+            whileHover={{ scale: 1.1 }}
+          >
+            <Volume2 className="w-4 h-4 lg:w-5 lg:h-5 text-white" />
+          </motion.button>
+        </div>
         </div>
       </div>
 
@@ -901,7 +873,7 @@ const SoundBalloons = ({ group, onComplete }) => {
         )}
       </AnimatePresence>
 
-      {/* Correct pop celebration flash — gummy card */}
+      {/* Correct pop celebration flash */}
       <AnimatePresence>
         {popFlash && (
           <motion.div
@@ -912,25 +884,24 @@ const SoundBalloons = ({ group, onComplete }) => {
             transition={{ duration: 0.2 }}
           >
             <motion.div
-              className="flex flex-col items-center gap-2 relative overflow-hidden"
-              style={{
-                background: 'linear-gradient(145deg, rgba(255,255,255,1) 0%, rgba(245,245,255,1) 100%)',
-                borderRadius: 'clamp(1.5rem, 5vh, 3rem)',
-                border: 'clamp(3px, 0.8vh, 5px) solid #4ECDC4',
-                padding: 'clamp(16px, 4vh, 32px) clamp(24px, 6vh, 48px)',
-                boxShadow: '0 clamp(4px, 1.5vh, 8px) 0 #38B2AC, 0 clamp(6px, 2vh, 15px) rgba(0,0,0,0.2), inset 0 clamp(2px, 1vh, 4px) 0 rgba(255,255,255,0.9)',
-              }}
+              className="bg-[#2d1b69]/80 backdrop-blur-sm px-10 py-6 md:px-14 md:py-8 rounded-3xl flex flex-col items-center gap-2"
               initial={{ scale: 0.4, y: 30 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ type: 'spring', bounce: 0.6, duration: 0.9 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
             >
-              <div className="absolute top-0 left-[15%] right-[15%] h-[20%] bg-white/50 rounded-full pointer-events-none" />
-              <span className="font-black text-[#4ECDC4] uppercase" style={{ fontSize: 'clamp(2rem, 8vh, 4rem)' }}>{getDisplaySound(popFlash.sound)}</span>
+              <motion.span
+                className="text-5xl md:text-6xl"
+                animate={{ scale: [1, 1.3, 1], rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 0.6 }}
+              >
+                🎈
+              </motion.span>
+              <span className="text-3xl md:text-4xl font-black text-[#4ECDC4] uppercase">{getDisplaySound(popFlash.sound)}</span>
               {popFlash.count > 0 && (
-                <span className="text-[#3e366b] font-bold" style={{ fontSize: 'clamp(0.9rem, 3vh, 1.3rem)' }}>{popFlash.count} popped!</span>
+                <span className="text-white font-bold text-lg md:text-xl">{popFlash.count} popped!</span>
               )}
-              <span className="text-[#3e366b]/60 font-bold" style={{ fontSize: 'clamp(0.7rem, 2.5vh, 1rem)' }}>Great job!</span>
+              <span className="text-white/70 text-sm md:text-base font-bold">Great job!</span>
             </motion.div>
           </motion.div>
         )}
@@ -977,20 +948,19 @@ const SoundBalloons = ({ group, onComplete }) => {
             <motion.div
               initial={{ scale: 0, rotate: -10 }}
               animate={{ scale: 1, rotate: 0 }}
-              transition={{ type: 'spring', bounce: 0.6, duration: 0.9, delay: 0.2 }}
-              className="text-center mx-4 relative z-10 overflow-hidden"
-              style={{
-                background: 'linear-gradient(145deg, rgba(255,255,255,1) 0%, rgba(245,245,255,1) 100%)',
-                borderRadius: 'clamp(1.5rem, 5vh, 3rem)',
-                border: `clamp(3px, 0.8vh, 5px) solid ${group.color}`,
-                padding: 'clamp(20px, 5vh, 40px) clamp(28px, 7vh, 56px)',
-                boxShadow: `0 clamp(4px, 1.5vh, 8px) 0 ${group.color}, 0 clamp(6px, 2vh, 15px) rgba(0,0,0,0.2), inset 0 clamp(2px, 1vh, 4px) 0 rgba(255,255,255,0.9)`,
-              }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
+              className="bg-[#2d1b69] p-6 md:p-10 text-center max-w-sm md:max-w-md mx-4 relative z-10"
+              style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
             >
-              <div className="absolute top-0 left-[15%] right-[15%] h-[15%] bg-white/50 rounded-full pointer-events-none" />
+              <motion.div
+                className="relative inline-block mb-3"
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <span className="text-6xl md:text-8xl block">&#127880;</span>
+              </motion.div>
               <motion.h2
-                className="font-bold text-[#3e366b] mb-1"
-                style={{ fontSize: 'clamp(1.4rem, 5vh, 2rem)' }}
+                className="text-2xl md:text-3xl font-bold text-white mb-1"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
@@ -1006,8 +976,9 @@ const SoundBalloons = ({ group, onComplete }) => {
                 <motion.span
                   className="font-black block mb-1"
                   style={{
-                    fontSize: 'clamp(3rem, 10vw, 5rem)',
+                    fontSize: 'clamp(3.5rem, 12vw, 5.5rem)',
                     color: group.color,
+                    textShadow: `0 4px 15px ${group.color}40`,
                     lineHeight: 1.1,
                   }}
                   animate={{ scale: [1, 1.08, 1] }}
@@ -1015,39 +986,31 @@ const SoundBalloons = ({ group, onComplete }) => {
                 >
                   {totalPopped}
                 </motion.span>
-                <span className="font-semibold block text-[#3e366b]/70" style={{ fontSize: 'clamp(0.9rem, 3vh, 1.2rem)' }}>
+                <span className="text-lg md:text-xl text-[#ae90fd] font-semibold block">
                   balloons popped!
                 </span>
               </motion.div>
               <div className="flex flex-col items-center gap-3">
                 <motion.button
                   onClick={handlePlayAgain}
-                  className="text-white font-extrabold relative overflow-hidden"
-                  style={{
-                    background: 'linear-gradient(180deg, #34D399 0%, #22C55E 100%)',
-                    borderRadius: 'clamp(1rem, 4vh, 2rem)',
-                    border: 'clamp(2px, 0.5vh, 3px) solid #FFF',
-                    padding: 'clamp(10px, 2.5vh, 16px) clamp(24px, 6vh, 48px)',
-                    fontSize: 'clamp(0.9rem, 3vh, 1.2rem)',
-                    boxShadow: '0 clamp(3px, 1vh, 6px) 0 #16A34A, 0 clamp(4px, 1.5vh, 10px) rgba(0,0,0,0.2)',
-                  }}
+                  className="px-6 py-3 bg-[#22c55e] text-white font-bold text-base md:text-lg"
+                  style={{ borderRadius: '1.6rem', borderBottom: '5px solid #16a34a', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
                   whileHover={{ scale: 1.05, y: -2 }}
-                  whileTap={{ scale: 0.95, y: 3, boxShadow: '0 0px 0 #16A34A' }}
+                  whileTap={{ scale: 0.95, y: 4 }}
                   initial={{ opacity: 0, scale: 0.5 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: 0.9, type: 'spring', stiffness: 400, damping: 15 }}
                 >
-                  <div className="absolute top-0 left-[15%] right-[15%] h-[25%] bg-white/40 rounded-full pointer-events-none" />
-                  Play Again
+                  Play Again &#8635;
                 </motion.button>
                 <motion.div
-                  className="flex items-center gap-2 text-[#3e366b]/50 text-sm font-medium"
+                  className="flex items-center gap-2 text-white/50 text-sm font-medium"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 1 }}
                 >
                   <span>Next step in</span>
-                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#3e366b]/10 text-[#3e366b] font-bold text-base">
+                  <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white font-bold text-base">
                     {resultCountdown}
                   </span>
                 </motion.div>

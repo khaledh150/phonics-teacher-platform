@@ -40,7 +40,7 @@ const toggleFullscreen = () => {
   }
 };
 
-const STEPS = ['sounds', 'song', 'words', 'balloons', 'exercise', 'blending', 'sentences'];
+const STEPS = ['sounds', 'words', 'balloons', 'exercise', 'blending', 'sentences'];
 
 const STEP_META = {
   sounds:    { label: 'Sounds',    icon: Sparkles,      emoji: '🔤' },

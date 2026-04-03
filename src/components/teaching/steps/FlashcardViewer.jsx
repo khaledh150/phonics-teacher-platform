@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Volume2 } from 'lucide-react';
 import { getWordImage } from '../../../utils/assetHelpers';
 import { speakWithVoice } from '../../../utils/speech';
-import { playBlendingSequence, wordToCharPhonemeMap } from '../../../utils/letterSounds';
+import { playBlendingSequence, wordToPhonemes, wordToCharPhonemeMap } from '../../../utils/letterSounds';
 import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
 
 // Shared glass-arrow navigation overlay with swipe + tap-to-reveal
@@ -54,15 +54,11 @@ const NavOverlay = ({ onPrev, onNext }) => {
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.2 }}
             onClick={(e) => { e.stopPropagation(); onPrev(); }}
-            className="fixed left-2 md:left-4 top-1/2 -translate-y-1/2 z-50 p-2 md:p-3 rounded-full"
-            style={{ 
-              background: 'linear-gradient(145deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%)', 
-              border: 'clamp(1px, 0.3vh, 2px) solid rgba(255,255,255,0.4)',
-              boxShadow: '0 clamp(4px, 1vh, 8px) rgba(0,0,0,0.2)' 
-            }}
+            className="fixed left-2 md:left-4 top-1/2 -translate-y-1/2 z-50 p-2.5 md:p-3 rounded-2xl backdrop-blur-md"
+            style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)' }}
             whileTap={{ scale: 0.9 }}
           >
-            <ChevronLeft style={{ width: 'clamp(24px, 6vh, 32px)', height: 'clamp(24px, 6vh, 32px)' }} className="text-white" />
+            <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-white/80" />
           </motion.button>
         )}
         {visible && onNext && (
@@ -73,15 +69,11 @@ const NavOverlay = ({ onPrev, onNext }) => {
             exit={{ opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
             onClick={(e) => { e.stopPropagation(); onNext(); }}
-            className="fixed right-2 md:right-4 top-1/2 -translate-y-1/2 z-50 p-2 md:p-3 rounded-full"
-            style={{ 
-              background: 'linear-gradient(145deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%)', 
-              border: 'clamp(1px, 0.3vh, 2px) solid rgba(255,255,255,0.4)',
-              boxShadow: '0 clamp(4px, 1vh, 8px) rgba(0,0,0,0.2)' 
-            }}
+            className="fixed right-2 md:right-4 top-1/2 -translate-y-1/2 z-50 p-2.5 md:p-3 rounded-2xl backdrop-blur-md"
+            style={{ background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)' }}
             whileTap={{ scale: 0.9 }}
           >
-            <ChevronRight style={{ width: 'clamp(24px, 6vh, 32px)', height: 'clamp(24px, 6vh, 32px)' }} className="text-white" />
+            <ChevronRight className="w-5 h-5 md:w-6 md:h-6 text-white/80" />
           </motion.button>
         )}
       </AnimatePresence>
@@ -117,29 +109,30 @@ const playWhoosh = () => {
 };
 
 const imageVariants = {
-  enter: (dir) => ({ x: dir > 0 ? '50vw' : '-50vw', opacity: 0, scale: 0.7, rotateY: dir > 0 ? 45 : -45 }),
+  enter: (dir) => ({ x: dir > 0 ? 400 : -400, opacity: 0, scale: 0.85 }),
   center: {
-    x: 0, opacity: 1, scale: 1, rotateY: 0,
-    transition: { type: 'spring', stiffness: 220, damping: 20, mass: 1 },
+    x: 0, opacity: 1, scale: 1,
+    transition: { x: { type: 'spring', stiffness: 260, damping: 25 }, opacity: { duration: 0.3 }, scale: { type: 'spring', stiffness: 200, damping: 20 } },
   },
-  exit: (dir) => ({ x: dir < 0 ? '50vw' : '-50vw', opacity: 0, scale: 0.7, rotateY: dir < 0 ? -45 : 45, transition: { duration: 0.3 } }),
+  exit: (dir) => ({ x: dir < 0 ? 400 : -400, opacity: 0, scale: 0.85, transition: { duration: 0.25 } }),
 };
 
 const wordVariants = {
-  enter: (dir) => ({ y: dir > 0 ? '20vh' : '-20vh', opacity: 0, scale: 0.8 }),
+  enter: (dir) => ({ y: dir > 0 ? 60 : -60, opacity: 0, scale: 0.8 }),
   center: {
     y: 0, opacity: 1, scale: 1,
-    transition: { type: 'spring', stiffness: 300, damping: 25, delay: 0.1 },
+    transition: { y: { type: 'spring', stiffness: 300, damping: 25, delay: 0.1 }, opacity: { duration: 0.3, delay: 0.1 }, scale: { type: 'spring', stiffness: 400, damping: 20, delay: 0.1 } },
   },
-  exit: (dir) => ({ y: dir < 0 ? '20vh' : '-20vh', opacity: 0, scale: 0.8, transition: { duration: 0.2 } }),
+  exit: (dir) => ({ y: dir < 0 ? 60 : -60, opacity: 0, scale: 0.8, transition: { duration: 0.2 } }),
 };
 
-// Render word with per-phoneme highlighting
+// Render word with per-phoneme highlighting (supports split digraphs — e.g. "bake" highlights a+e together)
 const HighlightedWord = ({ word, activePhonemeIndex, highlightAll, groupSounds }) => {
+  // Per-character phoneme index map — handles split digraphs where vowel and final e share same index
   const charMap = useMemo(() => wordToCharPhonemeMap(word, groupSounds).charMap, [word, groupSounds]);
 
   return (
-    <span className="inline-flex" style={{ padding: '0 clamp(10px, 2vh, 20px)' }}>
+    <span className="inline-flex">
       {word.split('').map((char, i) => {
         const phonemeIdx = charMap[i];
         const isActive = highlightAll || phonemeIdx === activePhonemeIndex;
@@ -149,15 +142,18 @@ const HighlightedWord = ({ word, activePhonemeIndex, highlightAll, groupSounds }
             key={i}
             animate={isActive && !isSilent ? {
               scale: [1, 1.15, 1],
-              color: highlightAll ? '#A78BFA' : '#FFD000',
-              textShadow: highlightAll ? '0 0 30px rgba(167,139,250,0.8)' : '0 0 30px rgba(255,208,0,0.8)'
+              color: highlightAll ? '#22c55e' : '#E60023',
             } : {
               scale: 1,
               color: isSilent ? '#ffffff60' : '#ffffff',
-              textShadow: isSilent ? 'none' : '0 clamp(4px, 1vh, 8px) rgba(0, 0, 0, 0.4)'
             }}
             transition={{ duration: 0.3 }}
-            style={{ display: 'inline-block' }}
+            style={{
+              display: 'inline-block',
+              textShadow: isActive && !isSilent
+                ? (highlightAll ? '0 0 20px rgba(34,197,94,0.5)' : '0 0 20px rgba(230,0,35,0.5)')
+                : '0 4px 12px rgba(0, 0, 0, 0.3)',
+            }}
           >
             {char}
           </motion.span>
@@ -167,12 +163,22 @@ const HighlightedWord = ({ word, activePhonemeIndex, highlightAll, groupSounds }
   );
 };
 
-// Extremely responsive font sizing for landscape VH constraints
-const getResponsiveFontSize = (word) => {
+// Scale font size down for longer words so they don't overflow
+const getWordFontSize = (word, base, vw, max) => {
   const len = word.length;
-  if (len <= 4) return `clamp(3rem, 18vh, 12rem)`;
-  if (len <= 5) return `clamp(2.5rem, 14vh, 9rem)`;
-  return `clamp(2rem, 10vh, 7rem)`;
+  if (len <= 4) return `clamp(${base}, ${vw}, ${max})`;
+  if (len <= 5) return `clamp(${parseFloat(base) * 0.75}rem, ${parseFloat(vw) * 0.75}vw, ${parseFloat(max) * 0.75}rem)`;
+  // 6+ chars — scale aggressively
+  const scale = Math.max(0.45, 4 / len);
+  return `clamp(${(parseFloat(base) * scale).toFixed(1)}rem, ${(parseFloat(vw) * scale).toFixed(1)}vw, ${(parseFloat(max) * scale).toFixed(1)}rem)`;
+};
+
+const getWordFontSizeLg = (word, baseRem) => {
+  const len = word.length;
+  if (len <= 4) return `${baseRem}rem`;
+  if (len <= 5) return `${baseRem * 0.75}rem`;
+  const scale = Math.max(0.45, 4 / len);
+  return `${(baseRem * scale).toFixed(1)}rem`;
 };
 
 const FlashcardViewer = ({ group, onComplete }) => {
@@ -180,7 +186,7 @@ const FlashcardViewer = ({ group, onComplete }) => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isBlending, setIsBlending] = useState(false);
   const [imageError, setImageError] = useState(false);
-  const [activePhoneme, setActivePhoneme] = useState(null); 
+  const [activePhoneme, setActivePhoneme] = useState(null); // index of phoneme being played, -1 = full word
   const speechTimeoutRef = useRef(null);
   const blendingRef = useRef(false);
 
@@ -209,11 +215,13 @@ const FlashcardViewer = ({ group, onComplete }) => {
     setShowReminder(false);
   }, []);
 
+  // Single blend+speak cycle, returns promise that resolves when the final word is spoken
   const runOneBlendCycle = useCallback(() => {
     return new Promise(async (resolve) => {
       let resolved = false;
       const safeResolve = () => { if (!resolved) { resolved = true; resolve(); } };
 
+      // Safety timeout — TTS onEnd/onError may never fire on some devices
       const safetyTimer = setTimeout(() => {
         setIsSpeaking(false);
         setIsBlending(false);
@@ -259,8 +267,9 @@ const FlashcardViewer = ({ group, onComplete }) => {
         safeResolve();
       }
     });
-  }, [displayText, group.sounds]);
+  }, [displayText]);
 
+  // Single play — used when user taps the speaker button
   const handleBlendOnce = useCallback(async () => {
     if (blendingRef.current) return;
     clearTimeout(reminderRef.current);
@@ -276,16 +285,20 @@ const FlashcardViewer = ({ group, onComplete }) => {
 
   const autoAdvanceTimerRef = useRef(null);
 
+  // Full 3x sequence: play → "Say it with me!" → play → "Listen closely..." → play → auto-advance
+  // Matches SoundLearning's speakSound pattern exactly — no blendingRef guard
   const handleBlendAndSpeak = useCallback(async () => {
     stopVO();
     clearTimeout(reminderRef.current);
     clearTimeout(autoAdvanceTimerRef.current);
     cancelledRef.current = false;
 
+    // 1st play
     await runOneBlendCycle();
     if (cancelledRef.current) return;
     await delay(800);
     if (cancelledRef.current) return;
+    // "Say it with me!" + 2nd play
     await playVO('Say it with me!');
     if (cancelledRef.current) return;
     await delay(600);
@@ -294,13 +307,14 @@ const FlashcardViewer = ({ group, onComplete }) => {
     if (cancelledRef.current) return;
     await delay(1000);
     if (cancelledRef.current) return;
+    // "Listen closely..." + 3rd play
     await playVO('Listen closely...');
     if (cancelledRef.current) return;
     await delay(600);
     if (cancelledRef.current) return;
     await runOneBlendCycle();
     if (cancelledRef.current) return;
-    
+    // Auto-advance to next word after a brief pause
     clearTimeout(autoAdvanceTimerRef.current);
     autoAdvanceTimerRef.current = setTimeout(() => {
       if (!cancelledRef.current) goToNextRef.current?.();
@@ -388,101 +402,110 @@ const FlashcardViewer = ({ group, onComplete }) => {
 
   return (
     <div className="h-full w-full overflow-hidden relative">
-      <div className="absolute top-2 md:top-4 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 z-40 pointer-events-none">
-        <motion.div className="bg-[rgba(255,255,255,0.1)] rounded-full font-bold text-white shadow-sm" style={{ padding: 'clamp(2px, 0.5vh, 4px) clamp(10px, 2.5vh, 16px)', fontSize: 'clamp(0.6rem, 2vh, 0.9rem)', border: '1px solid rgba(255,255,255,0.2)' }}>
-          {currentIndex + 1} / {words.length}
-        </motion.div>
+      {/* Background particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(8)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              width: Math.random() * 80 + 40,
+              height: Math.random() * 80 + 40,
+              left: `${Math.random() * 100}%`,
+              top: `${Math.random() * 100}%`,
+              background: ['#ae90fd15', '#4d79ff15', '#ffd70015', '#f093fb15'][i % 4],
+            }}
+            animate={{ y: [0, -15, 0], scale: [1, 1.08, 1] }}
+            transition={{ duration: Math.random() * 5 + 5, repeat: Infinity, ease: 'easeInOut', delay: Math.random() * 2 }}
+          />
+        ))}
       </div>
 
-      {/* UNIVERSAL HORIZONTAL LAYOUT (VH SCALED) */}
-      <div className="h-full w-full flex flex-row items-center justify-center gap-[clamp(8px,3vw,24px)] px-4 py-8" style={{ perspective: '1500px' }}>
-        
-        {/* LEFT: 3D Squishy Image Card */}
-        <div className="flex-[0.4] flex items-center justify-center translate-y-[clamp(10px, 2vh, 30px)]">
+      {/* Title + Progress - top center */}
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 md:top-4 z-40 flex flex-col items-center gap-1">
+        <motion.span
+          className="text-base md:text-xl lg:text-2xl font-bold text-white/80"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          Flashcards!
+        </motion.span>
+        <div className="bg-white/10 backdrop-blur-sm rounded-full px-3 py-0.5 md:px-4 md:py-1">
+          <span className="text-white/50 font-semibold text-xs md:text-sm lg:text-base">
+            {currentIndex + 1} / {words.length}
+          </span>
+        </div>
+      </div>
+
+      {/* Small screens: top half = pic, fixed center = speaker, bottom half = word */}
+      {/* Big screens (lg+): horizontal row — pic left | speaker center | word right */}
+
+      {/* --- SMALL/MEDIUM SCREEN LAYOUT (below lg) --- */}
+      <div className="h-full w-full flex flex-col lg:hidden">
+        {/* Top half: picture */}
+        <div className="flex-1 flex items-center justify-center pb-10 md:pb-12 pt-10 md:pt-12 px-6">
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
-              key={currentItem.word + '-img'}
+              key={currentItem.word + '-img-sm'}
               custom={direction}
               variants={imageVariants}
               initial="enter"
               animate="center"
               exit="exit"
-              className="relative cursor-pointer"
-              whileHover={{ scale: 1.05, rotateY: 5, rotateX: -5 }}
-              whileTap={{ scale: 0.95, rotateY: -5, rotateX: 5 }}
-              onClick={() => { clearReminder(); handleBlendOnce(); }}
             >
-              <div 
-                className="bg-white relative overflow-hidden"
-                style={{
-                  width: 'clamp(100px, min(40vh, 35vw), 450px)',
-                  height: 'clamp(100px, min(40vh, 35vw), 450px)',
-                  borderRadius: 'clamp(1.5rem, 5vh, 3rem)',
-                  border: 'clamp(4px, 1vh, 8px) solid #FFF',
-                  boxShadow: '0 clamp(8px, 3vh, 20px) rgba(0,0,0,0.3)'
-                }}
-              >
-                {imagePath && !imageError ? (
-                  <motion.img
-                    src={imagePath}
-                    alt={currentItem.word}
-                    onError={() => setImageError(true)}
-                    className="w-full h-full object-contain relative z-0"
-                    style={{ padding: 'clamp(10px, 3vh, 30px)' }}
-                    animate={{ scale: [1, 1.02, 1] }}
-                    transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <span style={{ fontSize: 'clamp(4rem, 15vh, 8rem)' }} className="text-[#A78BFA] font-black">
-                      {currentItem.word.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                )}
-              </div>
+              {imagePath && !imageError ? (
+                <motion.img
+                  src={imagePath}
+                  alt={currentItem.word}
+                  onError={() => setImageError(true)}
+                  className="object-contain rounded-3xl shadow-2xl bg-white border-4 border-[#ae90fd]"
+                  style={{
+                    width: 'clamp(200px, 50vw, 350px)',
+                    height: 'clamp(200px, 50vw, 350px)',
+                    padding: 'clamp(8px, 2vw, 16px)',
+                    boxShadow: '0px 8px 0px rgba(0,0,0,0.1)',
+                  }}
+                  animate={{ scale: [1, 1.02, 1] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                />
+              ) : (
+                <motion.div
+                  className="rounded-3xl shadow-2xl bg-white flex items-center justify-center border-4 border-[#ae90fd]"
+                  style={{
+                    width: 'clamp(200px, 50vw, 350px)',
+                    height: 'clamp(200px, 50vw, 350px)',
+                    boxShadow: '0px 8px 0px rgba(0,0,0,0.1)',
+                  }}
+                  animate={{ scale: [1, 1.02, 1] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <span style={{ fontSize: 'clamp(5rem, 12vw, 8rem)' }} className="text-[#ae90fd]">
+                    {currentItem.word.charAt(0).toUpperCase()}
+                  </span>
+                </motion.div>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
 
-        {/* CENTER: Squishy Speaker Pill */}
-        <div className="flex-[0.2] flex items-center justify-center translate-y-[clamp(10px, 2vh, 30px)] z-20 pl-4 md:pl-6">
-          <motion.button
-            onClick={() => { clearReminder(); handleBlendOnce(); }}
-            className={`transition-colors flex items-center justify-center relative overflow-hidden ${showReminder ? 'bg-gradient-to-b from-[#FF6B9D] to-[#E60023]' : 'bg-gradient-to-b from-[#A78BFA] to-[#7C3AED]'}`}
-            style={{
-              width: 'clamp(60px, 18vh, 140px)',
-              height: 'clamp(60px, 18vh, 140px)',
-              borderRadius: 'clamp(1.2rem, 4vh, 2.5rem)',
-              border: `clamp(2px, 0.5vh, 4px) solid ${showReminder ? '#FFF' : '#C4B5FD'}`,
-              boxShadow: showReminder 
-                ? '0 clamp(4px, 1vh, 8px) 0 #B8001B, 0 clamp(6px, 2vh, 15px) rgba(230,0,35,0.4)' 
-                : '0 clamp(4px, 1.5vh, 8px) 0 #5B21B6, 0 clamp(6px, 2vh, 15px) rgba(0,0,0,0.3)'
-            }}
-            whileHover={{ scale: 1.1, y: -2 }}
-            whileTap={{ scale: 0.9, y: 4, boxShadow: showReminder ? '0 0px 0 #B8001B' : '0 0px 0 #5B21B6' }}
-            animate={isSpeaking ? { scale: [1, 1.15, 1, 1.15, 1] } : showReminder ? { scale: [1, 1.1, 1] } : {}}
-            transition={isSpeaking ? { duration: 1, repeat: Infinity, ease: 'easeInOut' } : showReminder ? { duration: 0.8, repeat: Infinity, ease: 'easeInOut' } : {}}
-          >
-            <div className="absolute top-0 left-1/4 right-1/4 h-1/4 bg-white/40 rounded-full" />
-            <Volume2 className="text-white" style={{ width: 'clamp(24px, 8vh, 60px)', height: 'clamp(24px, 8vh, 60px)' }} />
-          </motion.button>
-        </div>
-
-        {/* RIGHT: Phoneme Highlighted Text */}
-        <div className="flex-[0.4] flex items-center justify-center translate-y-[clamp(10px, 2vh, 30px)] z-10 pl-4 pr-6">
+        {/* Bottom half: word */}
+        <div className="flex-1 flex items-start justify-center pt-20 pb-6 px-6">
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
-              key={currentItem.word + '-text'}
+              key={currentItem.word + '-text-sm'}
               custom={direction}
               variants={wordVariants}
               initial="enter"
               animate="center"
               exit="exit"
-              className="text-center w-full"
+              className="text-center"
             >
               <h1
-                className="font-extrabold tracking-wide drop-shadow-xl"
-                style={{ fontSize: getResponsiveFontSize(currentItem.word), lineHeight: 1 }}
+                className="font-bold tracking-wide"
+                style={{
+                  fontSize: getWordFontSize(currentItem.word, '5', '20', '10'),
+                  lineHeight: 1.1,
+                }}
               >
                 <HighlightedWord
                   word={currentItem.word}
@@ -496,6 +519,121 @@ const FlashcardViewer = ({ group, onComplete }) => {
         </div>
       </div>
 
+      {/* --- LARGE SCREEN LAYOUT (lg+) --- */}
+      <div className="h-full w-full hidden lg:flex flex-row items-center justify-center px-24 py-12">
+        {/* Image left */}
+        <div className="flex-1 flex items-center justify-center">
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={currentItem.word + '-img-lg'}
+              custom={direction}
+              variants={imageVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+            >
+              {imagePath && !imageError ? (
+                <motion.img
+                  src={imagePath}
+                  alt={currentItem.word}
+                  onError={() => setImageError(true)}
+                  className="object-contain rounded-3xl shadow-2xl bg-white border-4 border-[#ae90fd]"
+                  style={{
+                    width: '420px',
+                    height: '420px',
+                    padding: '20px',
+                    boxShadow: '0px 8px 0px rgba(0,0,0,0.1)',
+                  }}
+                  animate={{ scale: [1, 1.02, 1] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                />
+              ) : (
+                <motion.div
+                  className="rounded-3xl shadow-2xl bg-white flex items-center justify-center border-4 border-[#ae90fd]"
+                  style={{
+                    width: '420px',
+                    height: '420px',
+                    boxShadow: '0px 8px 0px rgba(0,0,0,0.1)',
+                  }}
+                  animate={{ scale: [1, 1.02, 1] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                >
+                  <span className="text-[10rem] text-[#ae90fd]">
+                    {currentItem.word.charAt(0).toUpperCase()}
+                  </span>
+                </motion.div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Speaker center */}
+        <div className="mx-8 xl:mx-12">
+          <motion.button
+            onClick={() => { clearReminder(); handleBlendOnce(); }}
+            className={`p-5 transition-colors ${showReminder ? 'bg-[#E60023]' : 'bg-[#6B3FA0]'}`}
+            style={{
+              borderRadius: '1.6rem',
+              borderBottom: showReminder ? '5px solid #B8001B' : '5px solid #4A2B70',
+              boxShadow: showReminder ? '0px 6px 0px rgba(0,0,0,0.1), 0 0 20px rgba(230,0,35,0.5)' : '0px 6px 0px rgba(0,0,0,0.12)',
+            }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95, y: 4 }}
+            animate={isSpeaking ? { scale: [1, 1.15, 1, 1.15, 1] } : showReminder ? { scale: [1, 1.12, 1] } : {}}
+            transition={isSpeaking ? { duration: 1, repeat: Infinity, ease: 'easeInOut' } : showReminder ? { duration: 0.8, repeat: Infinity, ease: 'easeInOut' } : {}}
+          >
+            <Volume2 className="w-10 h-10 text-white" />
+          </motion.button>
+        </div>
+
+        {/* Word right */}
+        <div className="flex-1 flex items-center justify-center pr-8 xl:pr-12">
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={currentItem.word + '-text-lg'}
+              custom={direction}
+              variants={wordVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="text-center"
+            >
+              <h1
+                className="font-bold tracking-wide"
+                style={{ fontSize: getWordFontSizeLg(currentItem.word, 14), lineHeight: 1.1 }}
+              >
+                <HighlightedWord
+                  word={currentItem.word}
+                  activePhonemeIndex={activePhoneme}
+                  highlightAll={activePhoneme === -1}
+                  groupSounds={group.sounds}
+                />
+              </h1>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Speaker button - FIXED CENTER for small/medium screens only, same level as yellow arrows */}
+      <div className="fixed left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-40 lg:hidden">
+        <motion.button
+          onClick={() => { clearReminder(); handleBlendOnce(); }}
+          className={`p-4 md:p-5 transition-colors ${showReminder ? 'bg-[#E60023]' : 'bg-[#6B3FA0]'}`}
+          style={{
+            borderRadius: '1.6rem',
+            borderBottom: showReminder ? '5px solid #B8001B' : '5px solid #4A2B70',
+            boxShadow: showReminder ? '0px 6px 0px rgba(0,0,0,0.1), 0 0 20px rgba(230,0,35,0.5)' : '0px 6px 0px rgba(0,0,0,0.12)',
+          }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95, y: 4 }}
+          animate={isSpeaking ? { scale: [1, 1.15, 1, 1.15, 1] } : showReminder ? { scale: [1, 1.12, 1] } : {}}
+          transition={isSpeaking ? { duration: 1, repeat: Infinity, ease: 'easeInOut' } : showReminder ? { duration: 0.8, repeat: Infinity, ease: 'easeInOut' } : {}}
+        >
+          <Volume2 className="w-8 h-8 md:w-9 md:h-9 text-white" />
+        </motion.button>
+      </div>
+
+      {/* Swipe + tap-to-show navigation overlay */}
       <NavOverlay onPrev={currentIndex > 0 ? goToPrev : null} onNext={goToNext} />
     </div>
   );
