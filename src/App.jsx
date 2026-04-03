@@ -2,9 +2,11 @@ import React, { useState, useCallback, useEffect, Suspense, lazy } from 'react';
 import './App.css';
 import InAppBrowserGuard from './components/shared/InAppBrowserGuard';
 import { MuteProvider } from './contexts/MuteContext';
+import SplashScreen from './components/shared/SplashScreen';
 import CurriculumMap from './components/curriculum/CurriculumMap';
 import TeachingFlow from './components/teaching/TeachingFlow';
 import LandscapePrompt from './components/shared/LandscapePrompt';
+import { playVO } from './utils/audioPlayer';
 import { preloadGroup } from './utils/assetHelpers';
 
 // Lazy-loaded game components — only fetched when user enters a game
@@ -24,7 +26,7 @@ const HungryFrogs = lazy(() => import('./components/playground/games/HungryFrogs
 const PhonicsSpellGame = lazy(() => import('./components/playground/games/PhonicsSpellGame'));
 
 // Increment this manually when you want to force a cache reset on deployed versions
-const APP_VERSION = "2.5.35";
+const APP_VERSION = "2.5.36";
 
 // Keys to preserve across version upgrades (progress data survives cache busts)
 const PRESERVED_KEYS = ['last_installed_version', 'wp_progress'];
@@ -75,12 +77,25 @@ function App() {
   const [activeGame, setActiveGame] = useState(null);
   const [appStarted, setAppStarted] = useState(false);
 
+  const handleSplashTap = useCallback(async () => {
+    setAppStarted(true);
+    // Force fullscreen
+    try {
+      await document.documentElement.requestFullscreen?.();
+    } catch { /* user gesture may fail on some browsers */ }
+    // Lock to landscape (use window.screen to avoid shadowing by React state)
+    try {
+      await window.screen.orientation?.lock?.('landscape');
+    } catch { /* not all browsers support orientation lock */ }
+    // Welcome VO
+    playVO('Welcome to Wonder Phonics!');
+  }, []);
+
   const handleSelectGroup = useCallback((group) => {
     window.speechSynthesis.cancel();
     preloadGroup(group.id);
     setSelectedGroup(group);
     setScreen('teaching');
-    setAppStarted(true);
   }, []);
 
   const handleExitTeaching = useCallback(() => {
@@ -88,7 +103,6 @@ function App() {
     setSelectedGroup(null);
     setReturnToGroups(true);
     setScreen('curriculum');
-    setAppStarted(true);
   }, []);
 
   const handleOpenPlayground = useCallback((group) => {
@@ -97,7 +111,6 @@ function App() {
     setSelectedGroup(group);
     setActiveGame(null);
     setScreen('playground');
-    setAppStarted(true);
   }, []);
 
   const handleExitPlayground = useCallback(() => {
@@ -108,9 +121,18 @@ function App() {
     setScreen('curriculum');
   }, []);
 
+  // If app hasn't started yet, show splash screen only (no landscape enforcement)
+  if (!appStarted) {
+    return (
+      <InAppBrowserGuard>
+        <SplashScreen onStart={handleSplashTap} />
+      </InAppBrowserGuard>
+    );
+  }
+
   return (
     <MuteProvider>
-    <LandscapePrompt disabled={!appStarted} />
+    <LandscapePrompt />
     <InAppBrowserGuard>
       <div className="min-h-screen bg-[#1a1147]">
         {screen === 'curriculum' && (
@@ -119,7 +141,6 @@ function App() {
             onOpenPlayground={handleOpenPlayground}
             initialLevel={selectedGroup?.level || 1}
             onLevelReset={() => setReturnToGroups(false)}
-            onAppStarted={() => setAppStarted(true)}
           />
         )}
 
@@ -130,7 +151,6 @@ function App() {
             onOpenPlayground={() => {
               setActiveGame(null);
               setScreen('playground');
-              setAppStarted(true);
             }}
           />
         )}

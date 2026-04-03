@@ -159,12 +159,9 @@ const LEVELS = [
   { id: 6, title: 'Level 6', color: '#ff6b9d', locked: true },
 ];
 
-const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelReset, onAppStarted }) => {
+const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelReset }) => {
   const [selectedLevel, setSelectedLevel] = useState(initialLevel || null);
   const [isPC, setIsPC] = useState(false);
-  const [hasInteracted, setHasInteracted] = useState(!!initialLevel);
-  const returnedFromTeachingRef = useRef(!!initialLevel);
-  const welcomePlayingRef = useRef(false);
   const [longPressGroup, setLongPressGroup] = useState(null);
   const longPressTimerRef = useRef(null);
   const justLongPressedRef = useRef(false);
@@ -177,7 +174,6 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
   useEffect(() => {
     if (initialLevel) {
       setSelectedLevel(initialLevel);
-      setHasInteracted(true);
       if (onLevelReset) onLevelReset();
     }
   }, [initialLevel, onLevelReset]);
@@ -190,14 +186,9 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
   }, []);
 
   useEffect(() => {
-    if (!hasInteracted) return;
     if (!selectedLevel) return;
     let cancelled = false;
     const run = async () => {
-      if (welcomePlayingRef.current) {
-        await delay(200);
-        if (cancelled) return;
-      }
       stopVO();
       await delay(50);
       if (cancelled) return;
@@ -205,19 +196,7 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
     };
     run();
     return () => { cancelled = true; stopVO(); };
-  }, [selectedLevel, hasInteracted]);
-
-  const handleTapToStart = async () => {
-    setHasInteracted(true);
-    onAppStarted?.();
-    try {
-      await document.documentElement.requestFullscreen?.();
-      await screen.orientation?.lock?.('landscape').catch(() => { });
-    } catch { }
-    welcomePlayingRef.current = true;
-    await playVO('Welcome to Wonder Phonics!');
-    welcomePlayingRef.current = false;
-  };
+  }, [selectedLevel]);
 
   const handleLevelClick = (level) => {
     if (level.locked) return;
@@ -243,55 +222,6 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
       className={`flex flex-col items-center relative ${!selectedLevel ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh] overflow-y-auto overflow-x-hidden'}`}
       style={{ background: 'linear-gradient(135deg, #1e1252 0%, #3a2287 100%)' }}
     >
-      {/* Tap to Start overlay (First Screen) */}
-      <AnimatePresence>
-        {!hasInteracted && (
-          <motion.div
-            key="splash"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.1 }}
-            transition={{ duration: 0.8, ease: "easeInOut" }}
-            className="fixed inset-0 z-[200] flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-[#1e1252]"
-            onClick={handleTapToStart}
-          >
-            {/* Enlarged Logo on Splash */}
-            <motion.img
-              src={wonderPhonicsLogo}
-              alt="Wonder Phonics"
-              className="w-auto mx-auto object-contain z-10 px-4"
-              style={{
-                height: isPC ? '420px' : 'clamp(200px, 60vh, 450px)',
-                marginBottom: isPC ? '32px' : 'clamp(10px, 5vh, 32px)',
-                filter: 'drop-shadow(0 15px 20px rgba(0,0,0,0.5))'
-              }}
-              animate={{ scale: [1, 1.03, 1], y: [0, -5, 0] }}
-              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-            />
-
-            <motion.div
-              className="relative bg-gradient-to-b from-[#FFE55C] to-[#FFD000] text-[#3e366b] font-extrabold z-10 mx-6 text-center overflow-hidden"
-              style={{
-                borderRadius: 'clamp(1.5rem, 5vh, 3rem)',
-                border: 'clamp(2px, 0.8vh, 4px) solid #FFF',
-                padding: isPC ? '20px 48px' : 'clamp(10px, 3.5vh, 24px) clamp(24px, 8vh, 48px)',
-                fontSize: isPC ? '2.5rem' : 'clamp(1.4rem, 6vh, 2.5rem)',
-                marginBottom: 'clamp(30px, 10vh, 100px)',
-                boxShadow: '0 clamp(4px, 1.5vh, 8px) 0 #E0B800'
-              }}
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95, y: 6, boxShadow: '0 0px 0 #E0B800' }}
-            >
-              Tap to Start!
-            </motion.div>
-
-            {/* Copyright Statement */}
-            <span className="fixed bottom-2 left-1/2 -translate-x-1/2 text-[#3e366b]/40 font-bold z-10 whitespace-nowrap" style={{ fontSize: 'clamp(0.6rem, 2.5vh, 0.85rem)' }}>
-              &copy; 2026 Wonder Kids Co. All rights reserved.
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* Top Left Controls */}
       <div className="fixed top-3 left-3 md:top-4 md:left-4 z-40 flex items-center gap-2 md:gap-3 pointer-events-auto">
         {selectedLevel && (

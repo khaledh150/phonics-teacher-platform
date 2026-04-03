@@ -275,7 +275,11 @@ const SoundBalloons = ({ group, onComplete }) => {
         const stageH = h;
         // Aggressive scaling for wide screens (tablets/desktops) to ensure game doesn't look empty
         const isPC = w >= 1024;
-        const balloonSize = isPC ? Math.min(Math.max(50, stageW * 0.12), 140) : Math.min(Math.max(45, stageW * 0.11), 60);
+        // Phone-sized screens (<768px wide) get bigger balloons for easier tapping
+        const isPhone = stageW < 768;
+        const balloonSize = isPC ? Math.min(Math.max(50, stageW * 0.12), 140)
+          : isPhone ? Math.min(Math.max(60, stageW * 0.18), 100)
+          : Math.min(Math.max(45, stageW * 0.11), 60);
 
         // Main game loop — all balloon logic here, zero React state
         app.ticker.add((ticker) => {

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const LandscapePrompt = ({ disabled = false }) => {
+const LandscapePrompt = () => {
   const [showPrompt, setShowPrompt] = useState(false);
 
   useEffect(() => {
     const checkOrientation = () => {
       const isPortrait = window.innerHeight > window.innerWidth;
-      setShowPrompt(isPortrait && !disabled);
+      setShowPrompt(isPortrait);
     };
 
     checkOrientation();
@@ -25,16 +25,17 @@ const LandscapePrompt = ({ disabled = false }) => {
       window.removeEventListener('orientationchange', handleOrientationChange);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, [disabled]);
+  }, []);
 
   // When prompt appears, try to re-enter fullscreen and lock orientation
   useEffect(() => {
-    if (!showPrompt || disabled) return;
-    // If not in fullscreen, try to re-enter (requires prior user gesture)
+    if (!showPrompt) return;
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen?.().catch(() => {});
     }
-  }, [showPrompt, disabled]);
+    // Also try to re-lock landscape
+    screen.orientation?.lock?.('landscape').catch(() => {});
+  }, [showPrompt]);
 
   return (
     <AnimatePresence>
