@@ -3,14 +3,38 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Home, Lock, Maximize, BookOpen, Gamepad2, Settings, VolumeX, Volume2, Sparkles } from 'lucide-react';
 import { PHONICS_GROUPS } from '../../data/phonicsData';
 import wonderPhonicsLogo from '../../assets/wonder-phonics-logo.webp';
-import group1Img from '../../assets/lvl1/group-1.jpeg';
+import group1Img from '../../assets/lvl1/group-1.png';
+import group2Img from '../../assets/lvl1/group-2.png';
+import group3Img from '../../assets/lvl1/group-3.png';
+import group4Img from '../../assets/lvl1/group-4.png';
+import group5Img from '../../assets/lvl1/group-5.png';
+import group6Img from '../../assets/lvl1/group-6.png';
+import group7Img from '../../assets/lvl1/group-7.png';
+import group8Img from '../../assets/lvl1/group-8.png';
+import group9Img from '../../assets/lvl1/group-9.png';
+import group10Img from '../../assets/lvl1/group-10.png';
+import group11Img from '../../assets/lvl1/group-11.png';
+import group12Img from '../../assets/lvl1/group-12.png';
+import group13Img from '../../assets/lvl1/group-13.png';
+import group14Img from '../../assets/lvl1/group-14.png';
+import group15Img from '../../assets/lvl1/group-15.png';
+import group16Img from '../../assets/lvl1/group-16.png';
+import group17Img from '../../assets/lvl1/group-17.png';
+import group18Img from '../../assets/lvl1/group-18.png';
+import group19Img from '../../assets/lvl1/group-19.png';
+import group20Img from '../../assets/lvl1/group-20.png';
 import { playVO, stopVO, delay } from '../../utils/audioPlayer';
 import { getDisplaySound } from '../../utils/letterSounds';
 import { useMute } from '../../contexts/MuteContext';
 import ScrollNavOverlay from '../shared/ScrollNavOverlay';
 
-// Group images map — add more as images become available
-const GROUP_IMAGES = { 1: group1Img };
+// Group images map — all 20 groups linked
+const GROUP_IMAGES = {
+  1: group1Img, 2: group2Img, 3: group3Img, 4: group4Img, 5: group5Img,
+  6: group6Img, 7: group7Img, 8: group8Img, 9: group9Img, 10: group10Img,
+  11: group11Img, 12: group12Img, 13: group13Img, 14: group14Img, 15: group15Img,
+  16: group16Img, 17: group17Img, 18: group18Img, 19: group19Img, 20: group20Img
+};
 
 // Shared card dimensions — used by level buttons, group cards, and playground game cards
 const CARD_W = 'clamp(180px, min(35vw, 55vh), 380px)';
@@ -21,91 +45,100 @@ const CARD_RADIUS = 'clamp(1.6rem, 5vh, 3.2rem)';
 const GroupCard = ({ group, idx, isPC, onSelect, onLongPress, longPressGroup, longPressTimerRef, justLongPressedRef, onOpenPlayground }) => {
   const groupImg = GROUP_IMAGES[group.id];
   return (
-  <div className="relative flex flex-col items-center shrink-0">
-    <motion.button
-      onClick={() => {
-        if (justLongPressedRef.current) { justLongPressedRef.current = false; return; }
-        onSelect(group);
-      }}
-      onPointerDown={() => {
-        justLongPressedRef.current = false;
-        longPressTimerRef.current = setTimeout(() => {
-          onLongPress(group.id);
-          justLongPressedRef.current = true;
-        }, 500);
-      }}
-      onPointerUp={() => clearTimeout(longPressTimerRef.current)}
-      onPointerLeave={() => clearTimeout(longPressTimerRef.current)}
-      onContextMenu={(e) => e.preventDefault()}
-      className="flex flex-col items-stretch select-none relative overflow-hidden"
-      style={{
-        borderRadius: CARD_RADIUS,
-        background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(240,240,250,1) 100%)',
-        border: `clamp(2.5px, 0.7vh, 4.5px) solid ${group.color}`,
-        width: CARD_W,
-        height: CARD_H,
-        boxShadow: `0 clamp(3px, 1.5vh, 6px) 0 ${group.color}, 0 clamp(4px, 2vh, 12px) rgba(0,0,0,0.25), inset 0 clamp(2px, 1vh, 4px) 0 rgba(255,255,255,0.8)`,
-      }}
-      initial={idx < 8 ? { opacity: 0, scale: 0.5, y: 30 } : false}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={{ delay: idx < 8 ? idx * 0.05 : 0, type: 'spring', bounce: 0.6, duration: 0.8 }}
-      whileHover={{ scale: 1.05, y: -4 }}
-      whileTap={{ scale: 0.95, y: 6, boxShadow: `0 0px 0 ${group.color}, 0 2px 3px rgba(0,0,0,0.15), inset 0 2px 0 rgba(255,255,255,0.9)` }}
-    >
-      {/* Image area — fills the card edge to edge */}
-      <div className="flex-1 flex items-center justify-center overflow-hidden">
-        {groupImg ? (
-          <img src={groupImg} alt={group.title} className="w-full h-full object-cover translate-y-1" style={{ scale: group.id === 1 ? 1.15 : 1 }} draggable={false} />
-        ) : (
-          <motion.div
-            style={{ width: isPC ? '70px' : 'clamp(35px, 10vh, 70px)', height: isPC ? '70px' : 'clamp(35px, 10vh, 70px)' }}
-            className="flex items-center justify-center bg-[#f0ecfc] rounded-full"
-            animate={{ y: [-2, 2, -2], rotate: [-3, 3, -3] }}
-            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+    <div className="relative flex flex-col items-center shrink-0">
+      <motion.button
+        onClick={() => {
+          if (justLongPressedRef.current) { justLongPressedRef.current = false; return; }
+          onSelect(group);
+        }}
+        onPointerDown={() => {
+          justLongPressedRef.current = false;
+          longPressTimerRef.current = setTimeout(() => {
+            onLongPress(group.id);
+            justLongPressedRef.current = true;
+          }, 500);
+        }}
+        onPointerUp={() => clearTimeout(longPressTimerRef.current)}
+        onPointerLeave={() => clearTimeout(longPressTimerRef.current)}
+        onContextMenu={(e) => e.preventDefault()}
+        className="flex flex-col items-stretch select-none relative overflow-hidden"
+        style={{
+          borderRadius: CARD_RADIUS,
+          background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(240,240,250,1) 100%)',
+          border: `clamp(2.5px, 0.7vh, 4.5px) solid #FFFFFF`,
+          width: CARD_W,
+          height: CARD_H,
+          boxShadow: `0 clamp(4px, 1.8vh, 8px) 0 #FFFFFF, 0 clamp(4px, 2.5vh, 16px) rgba(0,0,0,0.2), inset 0 clamp(2px, 1vh, 4px) 0 rgba(255,255,255,0.9)`,
+        }}
+        initial={idx < 8 ? { opacity: 0, scale: 0.5, y: 30 } : false}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ delay: idx < 8 ? idx * 0.05 : 0, type: 'spring', bounce: 0.6, duration: 0.8 }}
+        whileHover={{ scale: 1.05, y: -4 }}
+        whileTap={{ scale: 0.95, y: 6, boxShadow: `0 0px 0 #FFFFFF, 0 2px 3px rgba(0,0,0,0.15), inset 0 2px 0 rgba(255,255,255,0.9)` }}
+      >
+        {/* Image area — fills the card edge to edge */}
+        <div className="flex-1 flex items-center justify-center overflow-hidden">
+          {groupImg ? (
+            <img src={groupImg} alt={group.title} className="w-full h-full object-cover translate-y-1" draggable={false} />
+          ) : (
+            <motion.div
+              style={{ width: isPC ? '70px' : 'clamp(35px, 10vh, 70px)', height: isPC ? '70px' : 'clamp(35px, 10vh, 70px)' }}
+              className="flex items-center justify-center bg-[#f0ecfc] rounded-full"
+              animate={{ y: [-2, 2, -2], rotate: [-3, 3, -3] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <Sparkles style={{ width: '50%', height: '50%', color: group.color }} />
+            </motion.div>
+          )}
+        </div>
+
+        {/* Footer label — group name + sounds */}
+        <div className="flex flex-col items-center justify-center px-2 py-0.5 md:py-1">
+          <span className="font-extrabold text-center tracking-tight leading-tight"
+            style={{
+              color: '#3e366b',
+              fontSize: isPC ? '1.1rem' : 'clamp(0.85rem, 3.5vh, 1.2rem)',
+            }}>
+            {group.title}
+          </span>
+          {group.sounds && (
+            <div className="flex flex-wrap justify-center gap-1 mt-0.5">
+              {group.sounds.map((s, i) => (
+                <span key={i} className="font-black" style={{ color: group.color, fontSize: 'clamp(0.7rem, 2.5vh, 0.95rem)' }}>
+                  {s}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </motion.button>
+
+      <AnimatePresence>
+        {longPressGroup === group.id && (
+          <motion.button
+            initial={{ opacity: 0, y: -20, scale: 0.5 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -15, scale: 0.6 }}
+            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenPlayground(group);
+            }}
+            className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-b from-[#A78BFA] to-[#7C3AED] text-white font-extrabold rounded-full z-10"
+            style={{
+              fontSize: isPC ? '1rem' : 'clamp(0.65rem, 2.5vh, 1rem)',
+              border: '2px solid #6D28D9',
+              boxShadow: '0 3px 0 #5B21B6, 0 6px 10px rgba(139,92,246,0.3), inset 0 2px 0 rgba(255,255,255,0.4)',
+            }}
+            whileHover={{ scale: 1.1, y: -2 }}
+            whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #5B21B6, 0 2px 4px rgba(139,92,246,0.3)' }}
           >
-            <Sparkles style={{ width: '50%', height: '50%', color: group.color }} />
-          </motion.div>
+            <Gamepad2 className="w-3 h-3 md:w-5 md:h-5" />
+            Playground
+          </motion.button>
         )}
-      </div>
-
-      {/* Footer label — group name with clean look */}
-      <div className="flex items-center justify-center px-2 py-0.5 md:py-1">
-        <span className="font-extrabold text-center tracking-tight"
-          style={{ 
-            color: '#3e366b', 
-            fontSize: isPC ? '1.1rem' : 'clamp(0.75rem, 3.2vh, 1.1rem)',
-          }}>
-          {group.title}
-        </span>
-      </div>
-    </motion.button>
-
-    <AnimatePresence>
-      {longPressGroup === group.id && (
-        <motion.button
-          initial={{ opacity: 0, y: -20, scale: 0.5 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -15, scale: 0.6 }}
-          transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenPlayground(group);
-          }}
-          className="mt-2 flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-b from-[#A78BFA] to-[#7C3AED] text-white font-extrabold rounded-full z-10"
-          style={{
-            fontSize: isPC ? '1rem' : 'clamp(0.65rem, 2.5vh, 1rem)',
-            border: '2px solid #6D28D9',
-            boxShadow: '0 3px 0 #5B21B6, 0 6px 10px rgba(139,92,246,0.3), inset 0 2px 0 rgba(255,255,255,0.4)',
-          }}
-          whileHover={{ scale: 1.1, y: -2 }}
-          whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #5B21B6, 0 2px 4px rgba(139,92,246,0.3)' }}
-        >
-          <Gamepad2 className="w-3 h-3 md:w-5 md:h-5" />
-          Playground
-        </motion.button>
-      )}
-    </AnimatePresence>
-  </div>
+      </AnimatePresence>
+    </div>
   );
 };
 
@@ -179,8 +212,8 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
     onAppStarted?.();
     try {
       await document.documentElement.requestFullscreen?.();
-      await screen.orientation?.lock?.('landscape').catch(() => {});
-    } catch {}
+      await screen.orientation?.lock?.('landscape').catch(() => { });
+    } catch { }
     welcomePlayingRef.current = true;
     await playVO('Welcome to Wonder Phonics!');
     welcomePlayingRef.current = false;
@@ -226,10 +259,10 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
               src={wonderPhonicsLogo}
               alt="Wonder Phonics"
               className="w-auto mx-auto object-contain z-10 px-4"
-              style={{ 
-                height: isPC ? '420px' : 'clamp(200px, 60vh, 450px)', 
+              style={{
+                height: isPC ? '420px' : 'clamp(200px, 60vh, 450px)',
                 marginBottom: isPC ? '32px' : 'clamp(10px, 5vh, 32px)',
-                filter: 'drop-shadow(0 15px 20px rgba(0,0,0,0.5))' 
+                filter: 'drop-shadow(0 15px 20px rgba(0,0,0,0.5))'
               }}
               animate={{ scale: [1, 1.03, 1], y: [0, -5, 0] }}
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
@@ -237,13 +270,13 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
 
             <motion.div
               className="relative bg-gradient-to-b from-[#FFE55C] to-[#FFD000] text-[#3e366b] font-extrabold z-10 mx-6 text-center overflow-hidden"
-              style={{ 
-                borderRadius: 'clamp(1.5rem, 5vh, 3rem)', 
+              style={{
+                borderRadius: 'clamp(1.5rem, 5vh, 3rem)',
                 border: 'clamp(2px, 0.8vh, 4px) solid #FFF',
                 padding: isPC ? '20px 48px' : 'clamp(10px, 3.5vh, 24px) clamp(24px, 8vh, 48px)',
                 fontSize: isPC ? '2.5rem' : 'clamp(1.4rem, 6vh, 2.5rem)',
                 marginBottom: 'clamp(30px, 10vh, 100px)',
-                boxShadow: '0 clamp(4px, 1.5vh, 8px) 0 #E0B800' 
+                boxShadow: '0 clamp(4px, 1.5vh, 8px) 0 #E0B800'
               }}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95, y: 6, boxShadow: '0 0px 0 #E0B800' }}
@@ -329,9 +362,9 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
                 {voMuted ? <VolumeX className="w-4 h-4 md:w-5 md:h-5 text-[#FF6B9D]" /> : <Volume2 className="w-4 h-4 md:w-5 md:h-5 text-[#22c55e]" />}
                 <span>{voMuted ? 'VO Muted' : 'VO On'}</span>
                 <div className={`ml-auto w-8 h-4 md:w-10 md:h-5 rounded-full transition-all relative shadow-inner ${voMuted ? 'bg-[#FF6B9D]/30 border border-[#FF6B9D]' : 'bg-[#22c55e]/30 border border-[#22c55e]'}`}>
-                  <motion.div 
+                  <motion.div
                     layout
-                    className={`absolute top-[1px] w-3 h-3 md:w-4 md:h-4 rounded-full shadow-md ${voMuted ? 'left-[1px] bg-[#FF6B9D]' : 'left-[16px] md:left-[21px] bg-[#22c55e]'}`} 
+                    className={`absolute top-[1px] w-3 h-3 md:w-4 md:h-4 rounded-full shadow-md ${voMuted ? 'left-[1px] bg-[#FF6B9D]' : 'left-[16px] md:left-[21px] bg-[#22c55e]'}`}
                   />
                 </div>
               </button>
@@ -356,16 +389,16 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
               src={wonderPhonicsLogo}
               alt="Wonder Phonics"
               className="w-auto mx-auto object-contain z-10"
-              style={{ 
-                height: isPC ? '280px' : 'clamp(100px, 35vh, 260px)', 
+              style={{
+                height: isPC ? '280px' : 'clamp(100px, 35vh, 260px)',
                 marginBottom: 'clamp(4px, 1.5vh, 16px)',
-                filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.4))' 
+                filter: 'drop-shadow(0 10px 15px rgba(0,0,0,0.4))'
               }}
               animate={{ y: [-2, 2, -2] }}
               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
             />
 
-            <h2 
+            <h2
               className="font-extrabold text-white drop-shadow-lg tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-white to-[#E2D4FF] text-center"
               style={{
                 fontSize: isPC ? '2rem' : 'clamp(1rem, 4vh, 2.2rem)',
@@ -378,55 +411,54 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
             {/* Scrollable row — same dimensions as group cards */}
             <div className="w-full overflow-x-auto scrollbar-hide px-4 md:px-8" style={{ WebkitOverflowScrolling: 'touch' }}>
               <div className="flex w-max items-center justify-start pb-2" style={{ gap: isPC ? '24px' : 'clamp(10px, 2.5vh, 24px)' }}>
-              {LEVELS.map((level, idx) => (
-                <motion.button
-                  key={level.id}
-                  onClick={() => handleLevelClick(level)}
-                  className={`relative flex flex-col items-center justify-center shrink-0 overflow-hidden ${
-                    level.locked ? 'cursor-not-allowed opacity-85' : 'cursor-pointer'
-                  }`}
-                  style={{
-                    borderRadius: CARD_RADIUS,
-                    background: level.locked ? 'linear-gradient(145deg, rgba(200,200,220,1) 0%, rgba(180,180,200,1) 100%)' : `linear-gradient(145deg, rgba(255,255,255,1) 0%, #F5F5FF 100%)`,
-                    border: `clamp(2px, 0.6vh, 4px) solid ${level.locked ? '#888' : level.color}`,
-                    width: CARD_W,
-                    height: CARD_H,
-                    boxShadow: level.locked
-                      ? '0 clamp(3px, 1.5vh, 6px) 0 #777, 0 clamp(4px, 2vh, 10px) rgba(0,0,0,0.2)'
-                      : `0 clamp(3px, 1.5vh, 6px) 0 ${level.color}, 0 clamp(4px, 2vh, 10px) clamp(6px, 2.5vh, 15px) rgba(0,0,0,0.3), inset 0 clamp(2px, 1vh, 4px) 0 rgba(255,255,255,0.9)`,
-                  }}
-                  initial={{ opacity: 0, scale: 0.5, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ delay: idx * 0.08, type: 'spring', bounce: 0.6, duration: 0.8 }}
-                  whileHover={!level.locked ? { scale: 1.05, y: -3 } : {}}
-                  whileTap={!level.locked ? { scale: 0.95, y: 6, boxShadow: `0 0px 0 ${level.color}` } : {}}
-                >
-                  {level.locked ? (
-                    <Lock className="text-[#666]" style={{ width: 'clamp(28px, 8vh, 50px)', height: 'clamp(28px, 8vh, 50px)' }} />
-                  ) : (
-                  <motion.div animate={{ y: [-1, 1, -1] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
-                    <BookOpen style={{ width: 'clamp(45px, 14vh, 90px)', height: 'clamp(45px, 14vh, 90px)', color: level.color }} />
-                  </motion.div>
-                )}
+                {LEVELS.map((level, idx) => (
+                  <motion.button
+                    key={level.id}
+                    onClick={() => handleLevelClick(level)}
+                    className={`relative flex flex-col items-center justify-center shrink-0 overflow-hidden ${level.locked ? 'cursor-not-allowed opacity-85' : 'cursor-pointer'
+                      }`}
+                    style={{
+                      borderRadius: CARD_RADIUS,
+                      background: level.locked ? 'linear-gradient(145deg, rgba(200,200,220,1) 0%, rgba(180,180,200,1) 100%)' : `linear-gradient(145deg, rgba(255,255,255,1) 0%, #F5F5FF 100%)`,
+                      border: `clamp(2px, 0.6vh, 4px) solid ${level.locked ? '#888' : level.color}`,
+                      width: CARD_W,
+                      height: CARD_H,
+                      boxShadow: level.locked
+                        ? '0 clamp(3px, 1.5vh, 6px) 0 #777, 0 clamp(4px, 2vh, 10px) rgba(0,0,0,0.2)'
+                        : `0 clamp(3px, 1.5vh, 6px) 0 ${level.color}, 0 clamp(4px, 2vh, 10px) clamp(6px, 2.5vh, 15px) rgba(0,0,0,0.3), inset 0 clamp(2px, 1vh, 4px) 0 rgba(255,255,255,0.9)`,
+                    }}
+                    initial={{ opacity: 0, scale: 0.5, y: 20 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ delay: idx * 0.08, type: 'spring', bounce: 0.6, duration: 0.8 }}
+                    whileHover={!level.locked ? { scale: 1.05, y: -3 } : {}}
+                    whileTap={!level.locked ? { scale: 0.95, y: 6, boxShadow: `0 0px 0 ${level.color}` } : {}}
+                  >
+                    {level.locked ? (
+                      <Lock className="text-[#666]" style={{ width: 'clamp(28px, 8vh, 50px)', height: 'clamp(28px, 8vh, 50px)' }} />
+                    ) : (
+                      <motion.div animate={{ y: [-1, 1, -1] }} transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
+                        <BookOpen style={{ width: 'clamp(45px, 14vh, 90px)', height: 'clamp(45px, 14vh, 90px)', color: level.color }} />
+                      </motion.div>
+                    )}
 
-                <div className="absolute bottom-2 left-0 right-0 flex justify-center">
-                  <span className="font-black tracking-wide leading-none"
-                    style={{ 
-                      color: level.locked ? '#888' : '#2e1a47', 
-                      fontSize: isPC ? '1.4rem' : 'clamp(1rem, 4vh, 1.6rem)',
-                      textShadow: '0 1px 2px rgba(255,255,255,0.8)'
-                    }}>
-                    {level.title}
-                  </span>
-                </div>
+                    <div className="absolute bottom-2 left-0 right-0 flex justify-center">
+                      <span className="font-black tracking-wide leading-none"
+                        style={{
+                          color: level.locked ? '#888' : '#2e1a47',
+                          fontSize: isPC ? '1.4rem' : 'clamp(1rem, 4vh, 1.6rem)',
+                          textShadow: '0 1px 2px rgba(255,255,255,0.8)'
+                        }}>
+                        {level.title}
+                      </span>
+                    </div>
 
-                  {level.locked && (
-                    <span className="text-[#666]/90 font-bold bg-white/60 px-2 rounded-full mt-1" style={{ fontSize: isPC ? '0.7rem' : 'clamp(0.5rem, 2vh, 0.7rem)' }}>
-                      Soon
-                    </span>
-                  )}
-                </motion.button>
-              ))}
+                    {level.locked && (
+                      <span className="text-[#666]/90 font-bold bg-white/60 px-2 rounded-full mt-1" style={{ fontSize: isPC ? '0.7rem' : 'clamp(0.5rem, 2vh, 0.7rem)' }}>
+                        Soon
+                      </span>
+                    )}
+                  </motion.button>
+                ))}
               </div>
             </div>
           </motion.div>
@@ -439,21 +471,21 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
             exit={{ opacity: 0, x: '-100vw' }}
             transition={{ duration: 0.6, type: "spring", bounce: 0.2 }}
             className="flex flex-col items-center w-full min-h-[100dvh] relative z-10 scrollbar-hide"
-            style={{ 
-              paddingTop: isPC ? '80px' : 'clamp(60px, 15vh, 100px)', 
+            style={{
+              paddingTop: isPC ? '60px' : 'clamp(40px, 12vh, 80px)',
               paddingBottom: isPC ? '40px' : 'clamp(20px, 8vh, 60px)'
             }}
           >
             {/* Title at top */}
             <div className="w-full flex justify-center px-2" style={{ marginBottom: isPC ? '24px' : 'clamp(8px, 2vh, 24px)' }}>
-              <motion.div 
+              <motion.div
                 className="bg-[rgba(255,255,255,0.1)] border border-white/20 px-5 rounded-full shadow-lg flex justify-center items-center"
                 style={{ paddingBlock: 'clamp(3px, 1vh, 10px)' }}
                 initial={{ y: -30, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.2, type: 'spring' }}
               >
-                <h2 
+                <h2
                   className="font-extrabold text-white text-center drop-shadow-md"
                   style={{ fontSize: isPC ? '1.8rem' : 'clamp(0.9rem, 4vh, 1.8rem)' }}
                 >
