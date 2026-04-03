@@ -329,8 +329,8 @@ const SentenceScramble = ({ group, onComplete }) => {
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
           className="bg-[#2d1b69] p-6 md:p-10 text-center max-w-sm md:max-w-md mx-4 border-[4px] border-[#8B5CF6] relative z-10"
-          style={{ 
-            borderRadius: '2.5rem', 
+          style={{
+            borderRadius: '2.5rem',
             boxShadow: '0 12px 0 #1a1147, 0 20px 40px rgba(0,0,0,0.5)',
           }}>
           <motion.span className="text-6xl md:text-8xl block mb-3"
@@ -384,23 +384,29 @@ const SentenceScramble = ({ group, onComplete }) => {
         </div>
       </div>
 
-      {/* Main content — portrait: stacked, landscape: side-by-side */}
-      <div className="flex-1 flex flex-col landscape:flex-row items-center landscape:items-start justify-center px-4 landscape:px-8 pt-18 md:pt-24 landscape:pt-32 min-h-0 gap-2 landscape:gap-4 lg:gap-8">
+      {/* Main content — landscape-first centering with no overflow */}
+      <div className="flex-1 flex flex-col landscape:flex-row items-center justify-center px-4 landscape:px-12 min-h-0 gap-3 landscape:gap-14 overflow-hidden pt-28 md:pt-32 landscape:pt-16">
 
         {/* LEFT in landscape / TOP in portrait: Picture */}
         <div className="flex flex-col items-center justify-center landscape:flex-[0.4] landscape:pl-[5%] gap-2 mt-4 landscape:mt-0">
 
           {sentenceImage && (
-            <motion.img
-              key={`img-${sentenceIdx}`}
-              src={sentenceImage}
-              alt={currentKeyword}
-              className="rounded-2xl shadow-lg object-contain bg-white border-3 border-[#ae90fd]/30"
-              style={{ width: 'clamp(120px, min(24vw, 40vh), 250px)', height: 'clamp(120px, min(24vw, 40vh), 250px)', padding: 'clamp(8px, 1.5vh, 16px)' }}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
-            />
+            <motion.div className="relative">
+              <motion.img
+                key={`img-${sentenceIdx}`}
+                src={sentenceImage}
+                alt={currentKeyword}
+                className="rounded-2xl shadow-xl object-contain bg-white border-[3px] border-[#ae90fd]/30"
+                style={{
+                  width: 'clamp(140px, min(40vw, 55vh), 450px)',
+                  height: 'clamp(140px, min(40vw, 55vh), 450px)',
+                  padding: 'clamp(4px, 1vh, 8px)'
+                }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: 'spring', damping: 15 }}
+              />
+            </motion.div>
           )}
         </div>
 
@@ -436,11 +442,11 @@ const SentenceScramble = ({ group, onComplete }) => {
                     <motion.button
                       key={word.id}
                       onClick={() => isLocked ? speakWithVoice(word.text, { rate: 0.85 }) : handleRemoveFromShelf(word)}
-                      className="px-5 py-3 md:px-6 md:py-3.5 lg:px-7 lg:py-4 font-bold text-white shadow-md select-none"
+                      className="px-5 py-3 md:px-7 md:py-4 lg:px-9 lg:py-5 font-bold text-white shadow-lg select-none"
                       style={{
                         backgroundColor: isCorrect ? '#22c55e' : BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length],
-                        fontSize: 'clamp(1rem, 3.8vh, 10vh)',
-                        borderRadius: showBorders ? 'clamp(0.5rem, 2vh, 1rem)' : '0.5rem',
+                        fontSize: 'clamp(1.4rem, 5.5vh, 3rem)',
+                        borderRadius: showBorders ? 'clamp(0.5rem, 1.6vh, 0.9rem)' : '0.4rem',
                         border: showBorders ? undefined : 'none',
                         boxShadow: showBorders ? undefined : 'none',
                       }}
@@ -451,8 +457,8 @@ const SentenceScramble = ({ group, onComplete }) => {
                         y: isHighlighted ? -8 : 0,
                         backgroundColor: isHighlighted && isDictationPhase ? '#FFD000'
                           : isHighlighted && isInReadingPhase ? '#FF6600'
-                          : isCorrect ? '#22c55e'
-                          : BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length],
+                            : isCorrect ? '#22c55e'
+                              : BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length],
                       }}
                       exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.15 } }}
                       whileTap={!isLocked ? { scale: 0.95 } : {}}
@@ -467,22 +473,25 @@ const SentenceScramble = ({ group, onComplete }) => {
             </motion.div>
           </div>
 
-          {/* Source words */}
-          <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 w-full max-w-2xl lg:max-w-3xl"
-            style={{ maxWidth: 'calc(4 * (clamp(5rem, 20vw, 10rem) + 1rem))' }}
-          >
+          {/* Source words - locked 3 per line centered with tighter gaps */}
+          <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 w-full max-w-3xl px-2">
             <AnimatePresence>
               {sourceWords.map((word, idx) => (
                 <motion.button
                   key={word.id}
                   onClick={() => handleWordTap(word)}
-                  className="rounded-lg md:rounded-xl font-bold text-white shadow-lg select-none cursor-pointer text-center"
+                  className="rounded-lg md:rounded-xl font-bold text-white shadow-md select-none cursor-pointer text-center"
                   style={{
                     backgroundColor: BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length],
-                    fontSize: 'clamp(1.2rem, 4.2vh, 10vh)',
-                    boxShadow: `0 4px 15px ${BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length]}50, 0 2px 8px rgba(0,0,0,0.1)`,
-                    width: 'clamp(4.5rem, 18vw, 13rem)',
-                    padding: 'clamp(0.4rem, 1.2vh, 0.7rem) 0',
+                    fontSize: 'clamp(1.3rem, 5vh, 2.5rem)',
+                    boxShadow: `0 3px 8px ${BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length]}30, 0 2px 4px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.3)`,
+                    width: 'calc(33.33% - 10px)',
+                    minWidth: 'clamp(60px, 10vw, 120px)',
+                    aspectRatio: '16/8.5',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0.2rem',
                   }}
                   initial={{ opacity: 0, scale: 0.5, rotate: Math.random() * 10 - 5 }}
                   animate={{ opacity: 1, scale: 1, rotate: 0 }}

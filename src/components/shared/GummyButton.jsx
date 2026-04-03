@@ -20,6 +20,12 @@ const VARIANTS = {
     border: '#FFF',
     text: '#FFF',
   },
+  red: {
+    bg: 'linear-gradient(180deg, #FF6B6B 0%, #E60023 100%)',
+    shadow: '#B8001B',
+    border: '#FFF',
+    text: '#FFF',
+  },
   ghost: {
     bg: 'rgba(255,255,255,0.15)',
     shadow: 'rgba(255,255,255,0.08)',

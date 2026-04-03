@@ -410,8 +410,8 @@ const BlendingFactory = ({ group, onComplete }) => {
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
           className="bg-[#2d1b69] p-6 md:p-10 text-center max-w-sm md:max-w-md mx-4 border-[4px] border-[#8B5CF6] relative z-10"
-          style={{ 
-            borderRadius: '2.5rem', 
+          style={{
+            borderRadius: '2.5rem',
             boxShadow: '0 12px 0 #1a1147, 0 20px 40px rgba(0,0,0,0.5)',
           }}
         >
@@ -442,7 +442,7 @@ const BlendingFactory = ({ group, onComplete }) => {
       style={{ background: 'transparent' }}>
 
       {/* Title + Progress — top center */}
-      <div className="absolute left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-1" style={{ top: 'clamp(8px, 1.5vh, 20px)' }}>
+      <div className="w-full flex flex-col items-center pt-2 md:pt-3 lg:pt-5 z-30">
         <motion.span
           className="text-base md:text-xl lg:text-2xl font-bold text-white/80"
           initial={{ opacity: 0 }}
@@ -460,10 +460,10 @@ const BlendingFactory = ({ group, onComplete }) => {
         <motion.button
           onClick={speakWord}
           className="flex items-center justify-center rounded-full bg-gradient-to-b from-[#A78BFA] to-[#7C3AED] relative overflow-hidden"
-          style={{ 
+          style={{
             width: 'clamp(44px, 13vh, 70px)', height: 'clamp(44px, 13vh, 70px)',
-            border: 'clamp(2.5px, 0.6vh, 3.5px) solid #3e366b', 
-            boxShadow: '0 5px 0 #5B21B6, 0 4px 15px rgba(0,0,0,0.2)' 
+            border: 'clamp(2.5px, 0.6vh, 3.5px) solid #3e366b',
+            boxShadow: '0 5px 0 #5B21B6, 0 4px 15px rgba(0,0,0,0.2)'
           }}
           whileTap={{ scale: 0.9, y: 3 }}
           whileHover={{ scale: 1.15 }}
@@ -475,8 +475,8 @@ const BlendingFactory = ({ group, onComplete }) => {
         </motion.button>
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col landscape:flex-row items-center justify-center px-4 md:px-6 landscape:px-8 py-2 md:py-4 landscape:pt-14 min-h-0 gap-4 md:gap-6 landscape:gap-4 lg:gap-8">
+      {/* Game area: landscape = side-by-side, portrait = stacked */}
+      <div className="flex-1 w-full flex flex-col landscape:flex-row items-center justify-center px-3 md:px-6 lg:px-10 py-1 md:py-2 lg:py-4 gap-2 landscape:gap-2 md:gap-4 lg:gap-5">
         {/* LEFT in landscape / TOP in portrait: Picture */}
         <div className="flex flex-col items-center justify-center landscape:flex-[0.45] gap-4">
           <motion.div
@@ -489,12 +489,12 @@ const BlendingFactory = ({ group, onComplete }) => {
                 src={imageSrc}
                 alt={currentWord.word}
                 className="rounded-[1.5rem] shadow-xl object-contain bg-white border-2 border-[#ae90fd]/20"
-                style={{ width: 'clamp(140px, min(35vw, 55vh), 320px)', height: 'clamp(140px, min(35vw, 55vh), 320px)', padding: 'clamp(8px, 1.5vh, 16px)' }}
+                style={{ width: 'clamp(120px, min(32vw, 55vh), 420px)', height: 'clamp(120px, min(32vw, 55vh), 420px)', padding: 'clamp(4px, 1vh, 8px)' }}
                 onError={() => setImageError(true)}
               />
             ) : (
               <div className="rounded-[1.5rem] shadow-xl flex items-center justify-center bg-white border-2 border-[#ae90fd]/20"
-                style={{ width: 'clamp(140px, min(35vw, 55vh), 320px)', height: 'clamp(140px, min(35vw, 55vh), 320px)' }}>
+                style={{ width: 'clamp(140px, min(40vw, 65vh), 320px)', height: 'clamp(140px, min(40vw, 65vh), 320px)' }}>
                 <span className="text-5xl md:text-6xl">&#128522;</span>
               </div>
             )}
@@ -503,68 +503,71 @@ const BlendingFactory = ({ group, onComplete }) => {
         </div>
 
         {/* RIGHT in landscape / BOTTOM in portrait: slots + choices */}
-        <div className="flex flex-col items-center justify-center landscape:flex-[0.55] gap-4 md:gap-5 min-h-0">
+        <div className="flex flex-col items-center justify-center landscape:flex-[0.55] gap-2 md:gap-5 min-h-0 relative">
 
           {/* Drop zone slots */}
           <motion.div
-            className="flex items-center justify-center gap-3 md:gap-4 lg:gap-5"
-          animate={shakeAll ? { x: [0, -10, 10, -10, 10, 0] } : {}}
-          transition={shakeAll ? { duration: 0.4 } : {}}
-        >
-          {wordLetters.map((letter, idx) => (
-            <motion.div
-              key={`slot-${wordIdx}-${idx}`}
-              data-slot-idx={idx}
-              onClick={() => handleSlotTap(idx)}
-              className="relative flex items-center justify-center border-3 cursor-pointer"
-              style={{
-                width: 'clamp(55px, 12vw, 15vh)',
-                height: 'clamp(65px, 14vw, 18vh)',
-                borderRadius: 'clamp(6px, 1.2vw, 10px)',
-                borderColor: slots[idx] ? SLOT_COLORS[slots[idx].originalIdx % SLOT_COLORS.length] : '#3e366b30',
-                borderStyle: slots[idx] ? 'solid' : 'dashed',
-                backgroundColor: slots[idx] ? SLOT_COLORS[slots[idx].originalIdx % SLOT_COLORS.length] : 'white',
-                boxShadow: slots[idx] ? `0 6px 0 ${SLOT_COLORS[slots[idx].originalIdx % SLOT_COLORS.length]}50, 0 4px 15px rgba(0,0,0,0.1)` : 'none',
-              }}
-              initial={{ opacity: 0, y: 40 }}
-              animate={slots[idx] ? { opacity: 1, y: 0, scale: [1, 1.1, 1] } : { opacity: 1, y: 0, scale: [1, 1.05, 1] }}
-              transition={slots[idx] ? { type: 'spring', damping: 10 } : { delay: idx * 0.08, scale: { duration: 2.5, repeat: Infinity, ease: 'easeInOut' } }}
-            >
-              {slots[idx] ? (() => {
-                let charPos = 0;
-                for (let si = 0; si < idx; si++) charPos += wordLetters[si].length;
-                const phonemeIdx = blendCharMap[charPos];
-                const isActivePhoneme = activePhonemeIdx >= 0 && phonemeIdx === activePhonemeIdx;
-                return (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={isActivePhoneme ? { scale: [1, 1.35, 1], color: ['#ffffff', '#FFD000', '#ffffff'] } : blending ? { scale: [1, 1.2, 1] } : { scale: 1 }}
-                  transition={isActivePhoneme ? { duration: 0.4 } : blending ? { duration: 0.3, delay: idx * 0.15 } : { type: 'spring' }}
-                  className="font-black text-white pointer-events-none"
-                  style={{ fontSize: 'clamp(1.5rem, 6vw, 10vh)' }}
-                >
-                  {slots[idx].letter}
-                </motion.span>
-                );
-              })() : (
-                <span className="text-white/15 font-bold pointer-events-none" style={{ fontSize: 'clamp(1.2rem, 5vw, 8vh)' }}>
-                  ?
-                </span>
-              )}
-            </motion.div>
-          ))}
-        </motion.div>
+            className="flex items-center justify-center gap-2 md:gap-4"
+            animate={shakeAll ? { x: [0, -10, 10, -10, 10, 0] } : {}}
+            transition={shakeAll ? { duration: 0.4 } : {}}
+          >
+            {wordLetters.map((letter, idx) => (
+              <motion.div
+                key={`slot-${wordIdx}-${idx}`}
+                data-slot-idx={idx}
+                onClick={() => handleSlotTap(idx)}
+                className="relative flex items-center justify-center border-3 cursor-pointer"
+                style={{
+                  width: 'clamp(55px, 12vw, 15vh)',
+                  height: 'clamp(65px, 14vw, 18vh)',
+                  borderRadius: 'clamp(6px, 1.2vw, 10px)',
+                  borderColor: slots[idx] ? SLOT_COLORS[slots[idx].originalIdx % SLOT_COLORS.length] : '#3e366b30',
+                  borderStyle: slots[idx] ? 'solid' : 'dashed',
+                  backgroundColor: slots[idx] ? SLOT_COLORS[slots[idx].originalIdx % SLOT_COLORS.length] : 'white',
+                  boxShadow: slots[idx] ? `0 6px 0 ${SLOT_COLORS[slots[idx].originalIdx % SLOT_COLORS.length]}50, 0 4px 15px rgba(0,0,0,0.1)` : 'none',
+                }}
+                initial={{ opacity: 0, y: 40 }}
+                animate={slots[idx] ? { opacity: 1, y: 0, scale: [1, 1.1, 1] } : { opacity: 1, y: 0, scale: [1, 1.05, 1] }}
+                transition={slots[idx] ? { type: 'spring', damping: 10 } : { delay: idx * 0.08, scale: { duration: 2.5, repeat: Infinity, ease: 'easeInOut' } }}
+              >
+                {slots[idx] ? (() => {
+                  let charPos = 0;
+                  for (let si = 0; si < idx; si++) charPos += wordLetters[si].length;
+                  const phonemeIdx = blendCharMap[charPos];
+                  const isActivePhoneme = activePhonemeIdx >= 0 && phonemeIdx === activePhonemeIdx;
+                  return (
+                    <motion.span
+                      initial={{ scale: 0 }}
+                      animate={isActivePhoneme ? { scale: [1, 1.35, 1], color: ['#ffffff', '#FFD000', '#ffffff'] } : blending ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+                      transition={isActivePhoneme ? { duration: 0.4 } : blending ? { duration: 0.3, delay: idx * 0.15 } : { type: 'spring' }}
+                      className="font-black text-white pointer-events-none"
+                      style={{ fontSize: 'clamp(1.5rem, 6vw, 10vh)' }}
+                    >
+                      {slots[idx].letter}
+                    </motion.span>
+                  );
+                })() : (
+                  <span className="text-white/15 font-bold pointer-events-none" style={{ fontSize: 'clamp(1.2rem, 5vw, 8vh)' }}>
+                    ?
+                  </span>
+                )}
+              </motion.div>
+            ))}
+          </motion.div>
 
-          {/* Drag hint — fixed height wrapper so layout doesn't shift when it disappears */}
-          <div style={{ minHeight: showHint && !blending && !wordDone ? 'auto' : 0 }}>
-            <AnimatePresence>
-              {showHint && !blending && !wordDone && (
-                <motion.div exit={{ opacity: 0 }} className="z-30 pointer-events-none">
-                  <DragHint />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          <AnimatePresence>
+            {showHint && !blending && !wordDone && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute left-1/2 -translate-x-1/2 z-50 pointer-events-none w-full"
+                style={{ top: '35%' }}
+              >
+                <DragHint />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Draggable letters */}
           <div className="shrink-0 z-20">
@@ -631,7 +634,7 @@ const DraggableLetter = ({ letter, onDrop, color, entranceDelay = 0 }) => {
         const t = e.touches?.[0] || e;
         lastPointerRef.current = { x: t.clientX || 0, y: t.clientY || 0 };
         const url = getLetterSoundUrl(letter.letter);
-        if (url) playLetterSound(letter.letter).catch(() => {});
+        if (url) playLetterSound(letter.letter).catch(() => { });
       }}
       onDragEnd={(e) => {
         setIsDragging(false);
@@ -649,13 +652,13 @@ const DraggableLetter = ({ letter, onDrop, color, entranceDelay = 0 }) => {
       <div
         className="flex items-center justify-center shadow-lg font-bold text-white pointer-events-none"
         style={{
-        width: 'clamp(55px, 12vw, 15vh)',
-        height: 'clamp(65px, 14vw, 18vh)',
-        borderRadius: 'clamp(6px, 1.2vw, 10px)',
-        borderBottomWidth: 'clamp(4px, 1vh, 6px)',
-        fontSize: 'clamp(1.6rem, 7vh, 3rem)',
-        backgroundColor: color,
-        boxShadow: isDragging
+          width: 'clamp(55px, 12vw, 15vh)',
+          height: 'clamp(65px, 14vw, 18vh)',
+          borderRadius: 'clamp(6px, 1.2vw, 10px)',
+          borderBottomWidth: 'clamp(4px, 1vh, 6px)',
+          fontSize: 'clamp(1.6rem, 7vh, 3rem)',
+          backgroundColor: color,
+          boxShadow: isDragging
             ? `0 12px 40px ${color}60, 0 4px 15px rgba(0,0,0,0.2)`
             : `0 4px 15px ${color}40, 0 2px 8px rgba(0,0,0,0.1)`,
         }}

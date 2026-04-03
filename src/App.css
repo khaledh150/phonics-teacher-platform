@@ -15,8 +15,8 @@
   --text-light: #f0e6ff;
   --radius-card: 2.2rem;
   --radius-button: 1.6rem;
-  --shadow-hard: 0px 6px 0px rgba(0,0,0,0.1);
-  --shadow-hard-lg: 0px 8px 0px rgba(0,0,0,0.1);
+  --shadow-hard: 0px 6px 0px rgba(0, 0, 0, 0.1);
+  --shadow-hard-lg: 0px 8px 0px rgba(0, 0, 0, 0.1);
 
   /* Gummy button colors */
   --btn-yellow: #FFD000;
@@ -30,11 +30,11 @@
   --btn-green-shadow: #16A34A;
 
   /* Glass morphism */
-  --glass-bg: rgba(255,255,255,0.15);
-  --glass-border: rgba(255,255,255,0.25);
+  --glass-bg: rgba(255, 255, 255, 0.15);
+  --glass-border: rgba(255, 255, 255, 0.25);
 
   /* Gummy card */
-  --card-bg: linear-gradient(145deg, rgba(255,255,255,1) 0%, rgba(245,245,255,1) 100%);
+  --card-bg: linear-gradient(145deg, rgba(255, 255, 255, 1) 0%, rgba(245, 245, 255, 1) 100%);
 }
 
 html {
@@ -52,7 +52,9 @@ body {
 /* ============================================
    JUICY HEADING STYLE - Logo text effect
    ============================================ */
-h1, h2, h3 {
+h1,
+h2,
+h3 {
   -webkit-text-stroke: 3px rgba(26, 17, 71, 0.6);
   paint-order: stroke fill;
   text-shadow: 3px 4px 0px rgba(0, 0, 0, 0.3);
@@ -66,10 +68,12 @@ h1, h2, h3 {
     transform: scale(0.5);
     opacity: 0;
   }
+
   70% {
     transform: scale(1.1);
     opacity: 1;
   }
+
   100% {
     transform: scale(1);
     opacity: 1;
@@ -101,12 +105,12 @@ h1, h2, h3 {
 .choice-card:hover {
   border-color: var(--accent-blue);
   transform: scale(1.02) translateY(-2px);
-  box-shadow: 0px 10px 0px rgba(0,0,0,0.1);
+  box-shadow: 0px 10px 0px rgba(0, 0, 0, 0.1);
 }
 
 .choice-card:active {
   transform: scale(0.97) translateY(3px);
-  box-shadow: 0px 2px 0px rgba(0,0,0,0.1);
+  box-shadow: 0px 2px 0px rgba(0, 0, 0, 0.1);
 }
 
 /* Accent Button - Juicy 3D Bubbly */
@@ -125,13 +129,13 @@ h1, h2, h3 {
 
 .btn-accent:hover {
   transform: translateY(-2px);
-  box-shadow: 0px 10px 0px rgba(0,0,0,0.1);
+  box-shadow: 0px 10px 0px rgba(0, 0, 0, 0.1);
 }
 
 .btn-accent:active {
   transform: translateY(3px);
   border-bottom-width: 2px;
-  box-shadow: 0px 2px 0px rgba(0,0,0,0.1);
+  box-shadow: 0px 2px 0px rgba(0, 0, 0, 0.1);
 }
 
 .btn-accent:disabled {
@@ -146,10 +150,12 @@ h1, h2, h3 {
     transform: scale(0.5);
     opacity: 0;
   }
+
   50% {
     transform: scale(1.2);
     opacity: 1;
   }
+
   100% {
     transform: scale(1);
     opacity: 0;
@@ -166,12 +172,15 @@ h1, h2, h3 {
     transform: scale(0) translateY(100px);
     opacity: 0;
   }
+
   50% {
     transform: scale(1.1) translateY(-20px);
   }
+
   70% {
     transform: scale(0.95) translateY(10px);
   }
+
   100% {
     transform: scale(1) translateY(0);
     opacity: 1;
@@ -184,10 +193,13 @@ h1, h2, h3 {
 
 /* Speaker Pulse Animation */
 @keyframes speaker-pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     opacity: 1;
   }
+
   50% {
     transform: scale(1.1);
     opacity: 0.8;
@@ -204,9 +216,11 @@ h1, h2, h3 {
     transform: translateY(-20px) rotate(0deg);
     opacity: 1;
   }
+
   80% {
     opacity: 0.8;
   }
+
   100% {
     transform: translateY(100vh) rotate(720deg);
     opacity: 0;
@@ -223,9 +237,11 @@ h1, h2, h3 {
     transform: scale(0) translateX(-50px);
     opacity: 0;
   }
+
   60% {
     transform: scale(1.1) translateX(5px);
   }
+
   100% {
     transform: scale(1) translateX(0);
     opacity: 1;
@@ -242,6 +258,7 @@ h1, h2, h3 {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -261,18 +278,24 @@ h1, h2, h3 {
 
 /* Correct/Incorrect Feedback */
 @keyframes correct-flash {
-  0%, 100% {
+
+  0%,
+  100% {
     background-color: rgba(34, 197, 94, 0.2);
   }
+
   50% {
     background-color: rgba(34, 197, 94, 0.4);
   }
 }
 
 @keyframes incorrect-flash {
-  0%, 100% {
+
+  0%,
+  100% {
     background-color: rgba(239, 68, 68, 0.2);
   }
+
   50% {
     background-color: rgba(239, 68, 68, 0.4);
   }
@@ -308,6 +331,7 @@ h1, h2, h3 {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
@@ -450,6 +474,7 @@ input[type="range"]::-moz-range-thumb {
    PRINT STYLES - Global
    ============================================ */
 @media print {
+
   /* Hide all fixed position elements when printing */
   .fixed {
     display: none !important;

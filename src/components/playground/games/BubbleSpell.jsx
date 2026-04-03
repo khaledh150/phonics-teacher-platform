@@ -9,6 +9,7 @@ import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
 import { triggerCelebration, triggerSmallBurst, triggerBurstAt } from '../../../utils/confetti';
 import { playEncouragement } from '../../../utils/encouragement';
 import { SkyFullBackground } from '../../themes/SkyBackground';
+import { getBubbleRadius } from '../../../utils/gameSizes';
 
 import dogBathingData from '../../../assets/materials/dog-bathing-in-bathtub.json';
 import tutorialArmUrl from '../../../assets/materials/tutorial-pointing-arm.webp';
@@ -398,9 +399,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         } catch (e) { console.warn('Bubble textures failed:', e); }
         if (destroyedRef.current) { app.destroy(true); return; }
 
-        // Compute bubble radius from canvas (optimized for phone vs tablet)
-        const isPC = w >= 1024;
-        const bRadius = isPC ? Math.min(w, h) * 0.08 : Math.min(Math.max(22, Math.min(w, h) * 0.07), 35);
+        const bRadius = getBubbleRadius(w, h);
         bubbleRadiusRef.current = bRadius;
 
         const TRAY_H = 80;

@@ -446,7 +446,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
       </AnimatePresence>
 
       {/* Title + Progress — top center */}
-      <div className="w-full flex flex-col items-center pt-3 md:pt-4 lg:pt-5 z-30">
+      <div className="w-full flex flex-col items-center pt-2 md:pt-3 lg:pt-5 z-30">
         <h2 className="text-base md:text-xl lg:text-2xl font-bold text-white/80">Match the Pair!</h2>
         <div className="flex items-center gap-2 mt-1">
           <div className="bg-white/10 backdrop-blur-sm rounded-full px-3 py-0.5 lg:px-4 lg:py-1 flex items-center gap-2">
@@ -466,9 +466,8 @@ const ExerciseMatch = ({ group, onComplete }) => {
             {Array.from({ length: TOTAL_ROUNDS }).map((_, i) => (
               <div
                 key={i}
-                className={`rounded-full transition-all ${
-                  i < round ? 'bg-[#22c55e]' : i === round ? 'bg-[#6B3FA0]' : 'bg-[#3e366b]/20'
-                }`}
+                className={`rounded-full transition-all ${i < round ? 'bg-[#22c55e]' : i === round ? 'bg-[#6B3FA0]' : 'bg-[#3e366b]/20'
+                  }`}
                 style={{ width: i === round ? 10 : 7, height: i === round ? 10 : 7 }}
               />
             ))}
@@ -477,7 +476,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
       </div>
 
       {/* Game area: landscape = side-by-side, portrait = stacked */}
-      <div className="flex-1 w-full flex flex-col landscape:flex-row items-center justify-center px-3 md:px-6 lg:px-10 py-2 md:py-4 lg:py-6 gap-2 landscape:gap-2 md:gap-4 lg:gap-5">
+      <div className="flex-1 w-full flex flex-col landscape:flex-row items-center justify-center px-3 md:px-6 lg:px-10 py-1 md:py-2 lg:py-4 gap-2 landscape:gap-2 md:gap-4 lg:gap-5">
 
         {/* Pictures Grid */}
         <motion.div
@@ -507,16 +506,15 @@ const ExerciseMatch = ({ group, onComplete }) => {
               <motion.button
                 key={word + '-pic'}
                 onClick={() => handlePicClick(word)}
-                className={`rounded-2xl shadow-lg transition-all flex items-center justify-center w-full aspect-[3.2/3] ${
-                  isSelected
+                className={`rounded-2xl shadow-lg transition-all flex items-center justify-center w-full aspect-[3.2/3] ${isSelected
                     ? 'bg-[#4d79ff]/10 border-3 border-[#4d79ff] ring-4 ring-[#4d79ff]/20'
                     : isShaking
-                    ? 'bg-red-50 border-3 border-red-400'
-                    : 'bg-white border-3 border-[#3e366b]/30 hover:border-[#4d79ff] hover:shadow-xl'
-                }`}
+                      ? 'bg-red-50 border-3 border-red-400'
+                      : 'bg-white border-3 border-[#3e366b]/30 hover:border-[#4d79ff] hover:shadow-xl'
+                  }`}
                 style={{
-                  maxWidth: 'clamp(140px, min(24vw, 36vh), 320px)',
-                  padding: 'clamp(10px, 2vh, 24px)',
+                  maxWidth: 'clamp(140px, min(25vw, 38vh), 450px)',
+                  padding: 'clamp(6px, 1.8vh, 20px)',
                 }}
                 initial={{ opacity: 0, y: 20, scale: 0.9 }}
                 animate={isShaking ? { opacity: 1, y: 0, scale: 1, x: [0, -8, 8, -8, 8, 0] } : { opacity: 1, y: 0, scale: 1 }}
@@ -582,17 +580,16 @@ const ExerciseMatch = ({ group, onComplete }) => {
                 key={word}
                 layout
                 onClick={() => handleWordClick(word)}
-                className={`rounded-2xl font-bold shadow-lg transition-all flex flex-col items-center justify-center gap-1 w-full aspect-[3.2/3] ${
-                  isSelected
+                className={`rounded-2xl font-bold shadow-lg transition-all flex flex-col items-center justify-center gap-1 w-full aspect-[3.2/3] ${isSelected
                     ? 'bg-[#4d79ff] text-white border-3 border-[#4d79ff] ring-4 ring-[#4d79ff]/20'
                     : isShaking
-                    ? 'bg-red-50 text-red-500 border-3 border-red-400'
-                    : 'bg-white/10 text-white border-3 border-[#3e366b]/30 hover:border-[#4d79ff] hover:shadow-xl'
-                }`}
+                      ? 'bg-red-50 text-red-500 border-3 border-red-400'
+                      : 'bg-white/10 text-white border-3 border-[#3e366b]/30 hover:border-[#4d79ff] hover:shadow-xl'
+                  }`}
                 style={{
-                  maxWidth: 'clamp(140px, min(24vw, 36vh), 320px)',
-                  fontSize: 'clamp(24px, 6vh, 52px)',
-                  padding: 'clamp(8px, 1.2vh, 18px)',
+                  maxWidth: 'clamp(140px, min(25vw, 38vh), 450px)',
+                  fontSize: 'clamp(24px, 7vh, 68px)',
+                  padding: 'clamp(6px, 1.5vh, 20px)',
                 }}
                 initial={{ opacity: 0, y: 20, scale: 0.9 }}
                 animate={isShaking ? { opacity: 1, y: 0, scale: 1, x: [0, -8, 8, -8, 8, 0] } : { opacity: 1, y: 0, scale: 1 }}

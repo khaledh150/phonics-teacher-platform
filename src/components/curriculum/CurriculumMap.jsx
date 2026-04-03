@@ -65,16 +65,16 @@ const GroupCard = ({ group, idx, isPC, onSelect, onLongPress, longPressGroup, lo
         style={{
           borderRadius: CARD_RADIUS,
           background: 'linear-gradient(145deg, rgba(255,255,255,0.95) 0%, rgba(240,240,250,1) 100%)',
-          border: `clamp(2.5px, 0.7vh, 4.5px) solid #FFFFFF`,
+          border: `clamp(2.5px, 0.7vh, 4.5px) solid ${group.color}`,
           width: CARD_W,
           height: CARD_H,
-          boxShadow: `0 clamp(4px, 1.8vh, 8px) 0 #FFFFFF, 0 clamp(4px, 2.5vh, 16px) rgba(0,0,0,0.2), inset 0 clamp(2px, 1vh, 4px) 0 rgba(255,255,255,0.9)`,
+          boxShadow: `0 clamp(3px, 1.5vh, 6px) 0 ${group.color}, 0 clamp(4px, 2vh, 12px) rgba(0,0,0,0.25), inset 0 clamp(2px, 1vh, 4px) 0 rgba(255,255,255,0.8)`,
         }}
         initial={idx < 8 ? { opacity: 0, scale: 0.5, y: 30 } : false}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ delay: idx < 8 ? idx * 0.05 : 0, type: 'spring', bounce: 0.6, duration: 0.8 }}
         whileHover={{ scale: 1.05, y: -4 }}
-        whileTap={{ scale: 0.95, y: 6, boxShadow: `0 0px 0 #FFFFFF, 0 2px 3px rgba(0,0,0,0.15), inset 0 2px 0 rgba(255,255,255,0.9)` }}
+        whileTap={{ scale: 0.95, y: 6, boxShadow: `0 0px 0 ${group.color}, 0 2px 3px rgba(0,0,0,0.15), inset 0 2px 0 rgba(255,255,255,0.9)` }}
       >
         {/* Image area — fills the card edge to edge */}
         <div className="flex-1 flex items-center justify-center overflow-hidden">
@@ -92,24 +92,15 @@ const GroupCard = ({ group, idx, isPC, onSelect, onLongPress, longPressGroup, lo
           )}
         </div>
 
-        {/* Footer label — group name + sounds */}
-        <div className="flex flex-col items-center justify-center px-2 py-0.5 md:py-1">
-          <span className="font-extrabold text-center tracking-tight leading-tight"
+        {/* Footer label — group name with clean look */}
+        <div className="flex items-center justify-center px-2 py-0.5 md:py-1">
+          <span className="font-extrabold text-center tracking-tight"
             style={{
               color: '#3e366b',
-              fontSize: isPC ? '1.1rem' : 'clamp(0.85rem, 3.5vh, 1.2rem)',
+              fontSize: isPC ? '1.1rem' : 'clamp(0.75rem, 3.2vh, 1.1rem)',
             }}>
             {group.title}
           </span>
-          {group.sounds && (
-            <div className="flex flex-wrap justify-center gap-1 mt-0.5">
-              {group.sounds.map((s, i) => (
-                <span key={i} className="font-black" style={{ color: group.color, fontSize: 'clamp(0.7rem, 2.5vh, 0.95rem)' }}>
-                  {s}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
       </motion.button>
 
@@ -159,9 +150,12 @@ const LEVELS = [
   { id: 6, title: 'Level 6', color: '#ff6b9d', locked: true },
 ];
 
-const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelReset }) => {
+const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelReset, onAppStarted }) => {
   const [selectedLevel, setSelectedLevel] = useState(initialLevel || null);
   const [isPC, setIsPC] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(!!initialLevel);
+  const returnedFromTeachingRef = useRef(!!initialLevel);
+  const welcomePlayingRef = useRef(false);
   const [longPressGroup, setLongPressGroup] = useState(null);
   const longPressTimerRef = useRef(null);
   const justLongPressedRef = useRef(false);
@@ -174,6 +168,7 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
   useEffect(() => {
     if (initialLevel) {
       setSelectedLevel(initialLevel);
+      setHasInteracted(true);
       if (onLevelReset) onLevelReset();
     }
   }, [initialLevel, onLevelReset]);
@@ -186,9 +181,14 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
   }, []);
 
   useEffect(() => {
+    if (!hasInteracted) return;
     if (!selectedLevel) return;
     let cancelled = false;
     const run = async () => {
+      if (welcomePlayingRef.current) {
+        await delay(200);
+        if (cancelled) return;
+      }
       stopVO();
       await delay(50);
       if (cancelled) return;
@@ -196,7 +196,19 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
     };
     run();
     return () => { cancelled = true; stopVO(); };
-  }, [selectedLevel]);
+  }, [selectedLevel, hasInteracted]);
+
+  const handleTapToStart = async () => {
+    setHasInteracted(true);
+    onAppStarted?.();
+    try {
+      await document.documentElement.requestFullscreen?.();
+      await screen.orientation?.lock?.('landscape').catch(() => { });
+    } catch { }
+    welcomePlayingRef.current = true;
+    await playVO('Welcome to Wonder Phonics!');
+    welcomePlayingRef.current = false;
+  };
 
   const handleLevelClick = (level) => {
     if (level.locked) return;
@@ -222,6 +234,55 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
       className={`flex flex-col items-center relative ${!selectedLevel ? 'h-[100dvh] overflow-hidden' : 'min-h-[100dvh] overflow-y-auto overflow-x-hidden'}`}
       style={{ background: 'linear-gradient(135deg, #1e1252 0%, #3a2287 100%)' }}
     >
+      {/* Tap to Start overlay (First Screen) */}
+      <AnimatePresence>
+        {!hasInteracted && (
+          <motion.div
+            key="splash"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 1.1 }}
+            transition={{ duration: 0.8, ease: "easeInOut" }}
+            className="fixed inset-0 z-[200] flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-[#1e1252]"
+            onClick={handleTapToStart}
+          >
+            {/* Enlarged Logo on Splash */}
+            <motion.img
+              src={wonderPhonicsLogo}
+              alt="Wonder Phonics"
+              className="w-auto mx-auto object-contain z-10 px-4"
+              style={{
+                height: isPC ? '420px' : 'clamp(200px, 60vh, 450px)',
+                marginBottom: isPC ? '32px' : 'clamp(10px, 5vh, 32px)',
+                filter: 'drop-shadow(0 15px 20px rgba(0,0,0,0.5))'
+              }}
+              animate={{ scale: [1, 1.03, 1], y: [0, -5, 0] }}
+              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+            />
+
+            <motion.div
+              className="relative bg-gradient-to-b from-[#FFE55C] to-[#FFD000] text-[#3e366b] font-extrabold z-10 mx-6 text-center overflow-hidden"
+              style={{
+                borderRadius: 'clamp(1.5rem, 5vh, 3rem)',
+                border: 'clamp(2px, 0.8vh, 4px) solid #FFF',
+                padding: isPC ? '20px 48px' : 'clamp(10px, 3.5vh, 24px) clamp(24px, 8vh, 48px)',
+                fontSize: isPC ? '2.5rem' : 'clamp(1.4rem, 6vh, 2.5rem)',
+                marginBottom: 'clamp(30px, 10vh, 100px)',
+                boxShadow: '0 clamp(4px, 1.5vh, 8px) 0 #E0B800'
+              }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95, y: 6, boxShadow: '0 0px 0 #E0B800' }}
+            >
+              Tap to Start!
+            </motion.div>
+
+            {/* Copyright Statement */}
+            <span className="fixed bottom-2 left-1/2 -translate-x-1/2 text-[#3e366b]/40 font-bold z-10 whitespace-nowrap" style={{ fontSize: 'clamp(0.6rem, 2.5vh, 0.85rem)' }}>
+              &copy; 2026 Wonder Kids Co. All rights reserved.
+            </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Top Left Controls */}
       <div className="fixed top-3 left-3 md:top-4 md:left-4 z-40 flex items-center gap-2 md:gap-3 pointer-events-auto">
         {selectedLevel && (
@@ -402,7 +463,7 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
             transition={{ duration: 0.6, type: "spring", bounce: 0.2 }}
             className="flex flex-col items-center w-full min-h-[100dvh] relative z-10 scrollbar-hide"
             style={{
-              paddingTop: isPC ? '60px' : 'clamp(40px, 12vh, 80px)',
+              paddingTop: isPC ? '80px' : 'clamp(60px, 15vh, 100px)',
               paddingBottom: isPC ? '40px' : 'clamp(20px, 8vh, 60px)'
             }}
           >

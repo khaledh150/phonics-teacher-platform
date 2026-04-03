@@ -2,11 +2,12 @@ import { Container, Graphics, Text, TextStyle, Sprite as PixiSprite } from 'pixi
 import { playLetterSound } from '../../../utils/letterSounds';
 import { playVO, delay } from '../../../utils/audioPlayer';
 import { triggerSmallBurst, triggerBurstAt } from '../../../utils/confetti';
+import { getBalloonSize } from '../../../utils/gameSizes';
 
 // All phonics sounds for distractor pool
 const ALL_SOUNDS = [
-  'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',
-  'ck','sh','ch','th','qu','ai','ee','oo','ow','oi','ew','er','ar','or',
+  'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+  'ck', 'sh', 'ch', 'th', 'qu', 'ai', 'ee', 'oo', 'ow', 'oi', 'ew', 'er', 'ar', 'or',
 ];
 
 /**
@@ -33,7 +34,7 @@ export async function runSoundBalloonsTutorial(isCancelled, ctx) {
 
   const stageW = app.screen.width;
   const stageH = app.screen.height;
-  const balloonSize = Math.min(Math.max(110, stageW * 0.22), 180);
+  const balloonSize = getBalloonSize(stageW);
   const bSize = balloonSize * 1.05;
   const textures = balloonTextures || [];
 
@@ -137,46 +138,41 @@ export async function runSoundBalloonsTutorial(isCancelled, ctx) {
   app.ticker.add(tutTicker);
 
   const cleanup = () => {
-    try { app.ticker?.remove(tutTicker); } catch(e) { /* app may be destroyed */ }
-    demoBalloons.forEach(db => { try { app.stage?.removeChild(db.container); db.container.destroy({ children: true }); } catch(e){} });
+    try { app.ticker?.remove(tutTicker); } catch (e) { /* app may be destroyed */ }
+    demoBalloons.forEach(db => { try { app.stage?.removeChild(db.container); db.container.destroy({ children: true }); } catch (e) { } });
   };
 
   // VO while balloons rise — shorter delay so hand appears sooner
   await playVO('Pop the balloons that make the sound...');
   if (isCancelled()) { cleanup(); return; }
-  await playLetterSound(targetSound).catch(() => {});
+  await playLetterSound(targetSound).catch(() => { });
   if (isCancelled()) { cleanup(); return; }
   await delay(300);
   if (isCancelled()) { cleanup(); return; }
 
-  // Hand pops 2 target balloons
-  let popsRemaining = 2;
-  for (let pi = 0; pi < 10 && popsRemaining > 0; pi++) {
+  // Hand pops 3 target balloons quickly
+  let popsRemaining = 3;
+  for (let pi = 0; pi < 12 && popsRemaining > 0; pi++) {
     if (isCancelled()) break;
     let bestBalloon = null;
     for (const b of demoBalloons) {
       if (b.popped || b.sound !== targetSound) continue;
-      if (b.container.y > stageH * 0.75 || b.container.y < stageH * 0.1) continue;
+      if (b.container.y > stageH * 0.8 || b.container.y < stageH * 0.05) continue;
       bestBalloon = b;
       break;
     }
-    if (!bestBalloon) { await delay(400); continue; }
+    if (!bestBalloon) { await delay(200); continue; }
 
     const savedSpeed = bestBalloon.speed;
     bestBalloon.speed = 0;
 
     const rect = canvasEl.getBoundingClientRect();
-    const startX = rect.left + rect.width * 0.5;
-    const startY = rect.top + rect.height + 100;
-
-    setTutorialHand({ x: startX, y: startY, visible: true, popping: false });
-    await delay(300);
-    if (isCancelled()) { bestBalloon.speed = savedSpeed; break; }
-
     const endX = rect.left + (bestBalloon.currentX / stageW) * rect.width;
     const endY = rect.top + (bestBalloon.container.y / stageH) * rect.height;
+
+    // Move hand to balloon quickly
     setTutorialHand({ x: endX, y: endY, visible: true, popping: false });
-    await delay(500);
+    await delay(250);
     if (isCancelled()) { bestBalloon.speed = savedSpeed; break; }
 
     // Pop!
@@ -185,13 +181,10 @@ export async function runSoundBalloonsTutorial(isCancelled, ctx) {
     bestBalloon.popped = true;
     bestBalloon.popScale = 1;
     triggerBurstAt(bestBalloon.currentX / stageW, bestBalloon.container.y / stageH);
-    await playLetterSound(targetSound).catch(() => {});
     popsRemaining--;
 
-    await delay(400);
+    await delay(200);
     if (isCancelled()) break;
-    setTutorialHand(null);
-    await delay(300);
   }
   setTutorialHand(null);
   if (isCancelled()) { cleanup(); return; }
@@ -202,19 +195,19 @@ export async function runSoundBalloonsTutorial(isCancelled, ctx) {
   if (isCancelled()) { cleanup(); return; }
 
   // Fade out
-  try { app.ticker?.remove(tutTicker); } catch(e) { /* */ }
+  try { app.ticker?.remove(tutTicker); } catch (e) { /* */ }
   await new Promise((resolve) => {
     if (!app.ticker) { resolve(); return; }
     let t = 0;
     const fadeTicker = (ticker) => {
-      if (isCancelled()) { try { app.ticker?.remove(fadeTicker); } catch(e){} resolve(); return; }
+      if (isCancelled()) { try { app.ticker?.remove(fadeTicker); } catch (e) { } resolve(); return; }
       t += ticker.deltaTime;
       for (const db of demoBalloons) db.container.alpha = Math.max(0, db.container.alpha - 0.04 * ticker.deltaTime);
-      if (t > 30) { try { app.ticker?.remove(fadeTicker); } catch(e){} resolve(); }
+      if (t > 30) { try { app.ticker?.remove(fadeTicker); } catch (e) { } resolve(); }
     };
     app.ticker.add(fadeTicker);
   });
-  demoBalloons.forEach(db => { try { app.stage.removeChild(db.container); db.container.destroy({ children: true }); } catch(e){} });
+  demoBalloons.forEach(db => { try { app.stage.removeChild(db.container); db.container.destroy({ children: true }); } catch (e) { } });
   if (isCancelled()) return;
 
   setShowTutorialOverlay(false);

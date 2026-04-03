@@ -8,6 +8,7 @@ import { triggerCelebration, triggerSmallBurst } from '../../../utils/confetti';
 import { playEncouragement } from '../../../utils/encouragement';
 import confetti from 'canvas-confetti';
 import { SkyFullBackground } from '../../themes/SkyBackground';
+import { getDropItemSize } from '../../../utils/gameSizes';
 import tutorialArmUrl from '../../../assets/materials/tutorial-pointing-arm.webp';
 import { runCatchTheDropTutorial } from '../tutorials/catchTheDropTutorial';
 
@@ -240,7 +241,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
 
   // Helper: create a drop item container with bubble + text
   const createDropItem = useCallback((word, w) => {
-    const itemSize = Math.max(110, Math.min(180, w * 0.25));
+    const itemSize = getDropItemSize(w);
     const itemContainer = new Container();
 
     const textures = itemBubbleTexturesRef.current;
