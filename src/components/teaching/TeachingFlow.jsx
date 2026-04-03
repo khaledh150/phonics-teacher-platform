@@ -29,6 +29,8 @@ const LilyPadHop = lazy(() => import('../playground/games/LilyPadHop'));
 const MagicSandTracing = lazy(() => import('../playground/games/MagicSandTracing'));
 const CarnivalWheel = lazy(() => import('../playground/games/CarnivalWheel'));
 const ScratchDiscover = lazy(() => import('../playground/games/ScratchDiscover'));
+const HungryFrogs = lazy(() => import('../playground/games/HungryFrogs'));
+const PhonicsSpellGame = lazy(() => import('../playground/games/PhonicsSpellGame'));
 
 const toggleFullscreen = () => {
   if (!document.fullscreenElement) {
@@ -709,7 +711,33 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
       </AnimatePresence>
 
       <Suspense fallback={<div className="fixed inset-0 bg-[#1a1147] flex items-center justify-center z-[90]"><div className="text-white text-2xl animate-pulse">Loading...</div></div>}>
-        {/* Playground overlays rendered here... */}
+        {showPlayground && !activeGame && (
+          <PlaygroundHub
+            group={group}
+            onBack={() => setShowPlayground(false)}
+            onSelectGame={(gameId) => setActiveGame(gameId)}
+          />
+        )}
+        {showPlayground && activeGame && (() => {
+          const GAME_MAP = {
+            'flashlight': MagicFlashlight,
+            'bubble-spell': BubbleSpell,
+            'monster-feeder': MonsterFeeder,
+            'whack-a-sound': WhackASound,
+            'catch-drop': CatchTheDrop,
+            'bouncy-memory': BouncyMemory,
+            'shadow-match': ShadowMatch,
+            'lily-pad-hop': LilyPadHop,
+            'sand-tracing': MagicSandTracing,
+            'carnival-wheel': CarnivalWheel,
+            'scratch-discover': ScratchDiscover,
+            'hungry-frogs': HungryFrogs,
+            'phonics-spell': PhonicsSpellGame,
+          };
+          const GameComponent = GAME_MAP[activeGame];
+          if (!GameComponent) return null;
+          return <GameComponent group={group} onBack={() => setActiveGame(null)} />;
+        })()}
       </Suspense>
     </div>
   );

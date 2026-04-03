@@ -395,7 +395,7 @@ const FlashcardViewer = ({ group, onComplete }) => {
       </div>
 
       {/* UNIVERSAL HORIZONTAL LAYOUT (VH SCALED) */}
-      <div className="h-full w-full flex flex-row items-center justify-evenly px-4 py-8" style={{ perspective: '1500px' }}>
+      <div className="h-full w-full flex flex-row items-center justify-center gap-[clamp(8px,3vw,24px)] px-4 py-8" style={{ perspective: '1500px' }}>
         
         {/* LEFT: 3D Squishy Image Card */}
         <div className="flex-[0.4] flex items-center justify-center translate-y-[clamp(10px, 2vh, 30px)]">
@@ -415,8 +415,8 @@ const FlashcardViewer = ({ group, onComplete }) => {
               <div 
                 className="bg-white relative overflow-hidden"
                 style={{
-                  width: 'clamp(140px, 45vh, 450px)',
-                  height: 'clamp(140px, 45vh, 450px)',
+                  width: 'clamp(100px, min(40vh, 35vw), 450px)',
+                  height: 'clamp(100px, min(40vh, 35vw), 450px)',
                   borderRadius: 'clamp(1.5rem, 5vh, 3rem)',
                   border: 'clamp(4px, 1vh, 8px) solid #FFF',
                   boxShadow: '0 clamp(8px, 3vh, 20px) rgba(0,0,0,0.3)'

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Maximize, Volume2 } from 'lucide-react';
+import { Volume2, Pencil } from 'lucide-react';
+import GameControlBar from '../../shared/GameControlBar';
+import GameResultCard from '../../shared/GameResultCard';
 import { playVO, stopVO, delay, playLetterVO } from '../../../utils/audioPlayer';
 import { stopAllAudio, playLetterSound, getDisplaySound } from '../../../utils/letterSounds';
 import { triggerSmallBurst, triggerCelebration } from '../../../utils/confetti';
@@ -35,11 +37,6 @@ const STICKERS = {
   swimRing:  createStickerUrl(50, 318, 125, 125),
   surfboard: createStickerUrl(258, 155, 100, 170),
   flower:    createStickerUrl(365, 50, 95, 110),
-};
-
-const toggleFullscreen = () => {
-  if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
-  else document.exitFullscreen?.();
 };
 
 const TOTAL_ROUNDS = 5;
@@ -96,6 +93,17 @@ class SandParticles {
 
 // ─── Caches ───────────────────────────────────────────────────────────────
 const pathCache = {};
+// Singleton temp SVG for getBBox calls — avoid repeated DOM append/remove
+let _tempSvg = null;
+const getTempSvg = () => {
+  if (!_tempSvg || !_tempSvg.parentNode) {
+    _tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    _tempSvg.setAttribute('viewBox', `0 0 ${SVG_SIZE} ${SVG_SIZE}`);
+    _tempSvg.style.cssText = `position:absolute;left:-9999px;width:${SVG_SIZE}px;height:${SVG_SIZE}px;visibility:hidden`;
+    document.body.appendChild(_tempSvg);
+  }
+  return _tempSvg;
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
@@ -161,12 +169,9 @@ async function extractTracingPaths(char, isUppercase, canvasW, canvasH) {
   const parser = new DOMParser();
   const svgDoc = parser.parseFromString(rawText, 'image/svg+xml');
 
-  const tempSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  tempSvg.setAttribute('viewBox', `0 0 ${SVG_SIZE} ${SVG_SIZE}`);
-  tempSvg.style.cssText = `position:absolute;left:-9999px;width:${SVG_SIZE}px;height:${SVG_SIZE}px;visibility:hidden`;
-  document.body.appendChild(tempSvg);
+  const tempSvg = getTempSvg();
 
-  try {
+  {
     const allPaths = [...svgDoc.querySelectorAll('path')];
 
     // ── Phase 1: Extract letter outlines (#FFFFFF → clip mask) ──
@@ -669,9 +674,8 @@ async function extractTracingPaths(char, isUppercase, canvasW, canvasH) {
     pathCache[cacheKey] = result;
     return result;
 
-  } finally {
-    document.body.removeChild(tempSvg);
   }
+  // Don't remove tempSvg — it's a singleton reused across calls
 }
 
 // ─── Create a filtered SVG data URL (transparent bg, zoomed viewBox) ──────
@@ -1234,34 +1238,14 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
           letterCompletedTrigger={letterCompletedTrigger}
           isIdle={false}
         />
-        <motion.button onClick={toggleFullscreen}
-          className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000]"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}>
-          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
-        </motion.button>
-        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
-          transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-          className="bg-[#2d1b69] border-t-4 border-[#FFD000] p-8 md:p-12 text-center max-w-md mx-4"
-          style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}>
-          <motion.span className="text-7xl md:text-8xl block mb-4"
-            animate={{ y: [0, -8, 0], rotate: [0, 5, -5, 0] }}
-            transition={{ duration: 2, repeat: Infinity }}>
-            ✏️⭐
-          </motion.span>
-          <h2 className="text-2xl md:text-3xl font-bold text-[#4ECDC4] mb-2">Tracing Star!</h2>
-          <p className="text-white/60 text-sm md:text-base mb-6">You traced all the letters!</p>
-          <div className="flex flex-col gap-3">
-            <motion.button onClick={onPlayAgain}
-              className="px-8 py-3 md:px-10 md:py-4 bg-[#22c55e] text-white font-bold text-base md:text-lg"
-              style={{ borderRadius: '1.6rem', borderBottom: '5px solid #16a34a', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
-              whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95, y: 4 }}>Play Again</motion.button>
-            <motion.button onClick={handleBack}
-              className="px-8 py-2.5 md:px-10 md:py-3 bg-white/20 text-white font-bold text-sm md:text-base"
-              style={{ borderRadius: '1.6rem', borderBottom: '4px solid rgba(0,0,0,0.05)' }}
-              whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95, y: 4 }}>Back to Playground</motion.button>
-          </div>
-        </motion.div>
+        <GameResultCard
+          title="Tracing Star!"
+          subtitle="You traced all the letters!"
+          accentColor="#F59E0B"
+          icon={Pencil}
+          onPlayAgain={onPlayAgain}
+          onBack={handleBack}
+        />
       </div>
     );
   }
@@ -1279,20 +1263,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
       <div className="absolute inset-0 bg-black/10 pointer-events-none" style={{ zIndex: 0 }} />
 
       {/* Nav */}
-      <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
-        <motion.button onClick={handleBack}
-          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000]"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}>
-          <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
-        </motion.button>
-        <motion.button onClick={toggleFullscreen}
-          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000]"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}>
-          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
-        </motion.button>
-      </div>
+      <GameControlBar onBack={handleBack} />
 
       {/* Progress + Speaker */}
       <div className="fixed top-3 right-3 z-[70] flex items-center gap-2">

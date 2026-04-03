@@ -1,11 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Lock, Maximize } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Lock, Pencil, Droplets, Puzzle, Ticket, Ghost, Hammer, Search, RotateCw, Flashlight, Sparkles, Gamepad2, Mic } from 'lucide-react';
 import { playVO, stopVO, delay } from '../../utils/audioPlayer';
 import { stopAllAudio } from '../../utils/letterSounds';
 import frogSheet from '../../assets/characters/set-cute-drawing-frogs.svg';
 import hotairBalloonImg from '../../assets/backgrounds/sky/hotair-balloon.webp';
 import ScrollNavOverlay from '../shared/ScrollNavOverlay';
+import GameControlBar from '../shared/GameControlBar';
 
 // Inline frog sprite component (same pattern as LilyPadHop)
 const FrogSprite = ({ size = 60 }) => (
@@ -16,13 +17,17 @@ const FrogSprite = ({ size = 60 }) => (
   </svg>
 );
 
+const LUCIDE_ICONS = {
+  Pencil, Droplets, Puzzle, Ticket, Ghost, Hammer, Search, RotateCw, Flashlight, Mic,
+};
+
 // Order: Sand Tracing, Bubble Spell, Catch the Drop, Lily Pad Hop, Match & Remember,
 //        Scratch & Find, Monster Feeder, Whack-a-Sound, Shadow Match, Carnival Wheel, Magic Flashlight
 const GAMES = [
   {
     id: 'sand-tracing',
     title: 'Sand Tracing',
-    icon: '✏️',
+    icon: 'Pencil',
     color: '#F59E0B',
     borderColor: '#D97706',
     unlocked: true,
@@ -31,7 +36,7 @@ const GAMES = [
   {
     id: 'bubble-spell',
     title: 'Bubble Spell',
-    icon: '🫧',
+    icon: 'Droplets',
     color: '#4ECDC4',
     borderColor: '#38B2AC',
     unlocked: true,
@@ -58,7 +63,7 @@ const GAMES = [
   {
     id: 'bouncy-memory',
     title: 'Match & Remember',
-    icon: '🧩',
+    icon: 'Puzzle',
     color: '#8B5CF6',
     borderColor: '#7C3AED',
     unlocked: true,
@@ -67,7 +72,7 @@ const GAMES = [
   {
     id: 'scratch-discover',
     title: 'Scratch & Find',
-    icon: '🎟️',
+    icon: 'Ticket',
     color: '#10B981',
     borderColor: '#059669',
     unlocked: true,
@@ -76,7 +81,7 @@ const GAMES = [
   {
     id: 'monster-feeder',
     title: 'Monster Feeder',
-    icon: '👾',
+    icon: 'Ghost',
     color: '#FF6B9D',
     borderColor: '#E0527E',
     unlocked: true,
@@ -85,7 +90,7 @@ const GAMES = [
   {
     id: 'whack-a-sound',
     title: 'Whack-a-Sound',
-    icon: '🔨',
+    icon: 'Hammer',
     color: '#F59E0B',
     borderColor: '#D97706',
     unlocked: true,
@@ -94,7 +99,7 @@ const GAMES = [
   {
     id: 'shadow-match',
     title: 'Shadow Match',
-    icon: '🔍',
+    icon: 'Search',
     color: '#6B3FA0',
     borderColor: '#5A2D91',
     unlocked: true,
@@ -103,7 +108,7 @@ const GAMES = [
   {
     id: 'carnival-wheel',
     title: 'Carnival Wheel',
-    icon: '🎡',
+    icon: 'RotateCw',
     color: '#EF4444',
     borderColor: '#DC2626',
     unlocked: true,
@@ -112,7 +117,7 @@ const GAMES = [
   {
     id: 'flashlight',
     title: 'Magic Flashlight',
-    icon: '🔦',
+    icon: 'Flashlight',
     color: '#FFD000',
     borderColor: '#E0B800',
     unlocked: true,
@@ -127,6 +132,15 @@ const GAMES = [
     unlocked: true,
     description: 'Feed words to the frog!',
   },
+  {
+    id: 'phonics-spell',
+    title: 'Say & Spell',
+    icon: 'Mic',
+    color: '#8B5CF6',
+    borderColor: '#7C3AED',
+    unlocked: true,
+    description: 'Say each sound, then blend!',
+  },
 ];
 
 const containerVariants = {
@@ -138,7 +152,7 @@ const containerVariants = {
 
 const cardVariants = {
   hidden: { opacity: 0, y: 40, scale: 0.8 },
-  show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 20 } },
+  show: { opacity: 1, y: 0, scale: 1, transition: { type: 'spring', bounce: 0.6, duration: 0.9 } },
 };
 
 // Split games into rows of 5
@@ -171,14 +185,6 @@ const PlaygroundHub = ({ group, onBack, onSelectGame }) => {
     };
   }, []);
 
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen?.();
-    } else {
-      document.exitFullscreen?.();
-    }
-  };
-
   const handleBack = () => {
     window.speechSynthesis.cancel();
     stopAllAudio();
@@ -192,39 +198,12 @@ const PlaygroundHub = ({ group, onBack, onSelectGame }) => {
     >
       {/* Floating sparkle decorations */}
       {[0, 1, 2].map((i) => (
-        <div
-          key={i}
-          className="absolute text-yellow-300/20 pointer-events-none"
-          style={{
-            left: `${15 + i * 30}%`,
-            top: `${20 + (i % 2) * 30}%`,
-            fontSize: `${22 + i * 4}px`,
-          }}
-        >
-          ✦
-        </div>
+        <Sparkles key={i} className="absolute text-yellow-300/15 pointer-events-none"
+          style={{ left: `${15 + i * 30}%`, top: `${20 + (i % 2) * 30}%`, width: `${22 + i * 4}px`, height: `${22 + i * 4}px` }} />
       ))}
 
       {/* Back + Fullscreen buttons */}
-      <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
-        <motion.button
-          onClick={handleBack}
-          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}
-        >
-          <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
-        </motion.button>
-        <motion.button
-          onClick={toggleFullscreen}
-          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}
-          title="Toggle Fullscreen"
-        >
-          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
-        </motion.button>
-      </div>
+      <GameControlBar onBack={handleBack} />
 
       {/* Title */}
       <motion.div
@@ -234,16 +213,15 @@ const PlaygroundHub = ({ group, onBack, onSelectGame }) => {
         transition={{ type: 'spring', stiffness: 200, damping: 15 }}
       >
 
-        <h1
-          className="text-3xl md:text-5xl lg:text-6xl font-black text-[#FFD000]"
-          style={{ textShadow: 'none', WebkitTextStroke: '0' }}
-        >
-          <span className="mr-2">🎮</span>
+        <h1 className="text-3xl md:text-5xl lg:text-6xl font-black bg-clip-text text-transparent bg-gradient-to-r from-white to-[#E2D4FF] flex items-center justify-center gap-3">
+          <Gamepad2 className="text-[#FFD000] w-8 h-8 md:w-12 md:h-12" />
           Bonus Playground
-          <span className="ml-2">🎮</span>
         </h1>
-        <p className="text-white/80 text-sm md:text-base mt-2 font-semibold">
-          {group.icon} {group.title} Games
+        <p className="text-white/80 text-sm md:text-base mt-2 font-semibold flex items-center justify-center gap-2">
+          <span className="flex items-center justify-center bg-white/20 rounded-full w-5 h-5">
+            <Sparkles className="w-3 h-3 text-[#FFD000]" />
+          </span>
+          {group.title} Games
         </p>
       </motion.div>
 
@@ -263,63 +241,91 @@ const PlaygroundHub = ({ group, onBack, onSelectGame }) => {
                 initial="hidden"
                 animate="show"
               >
-              {row.map((game) => (
+              {row.map((game) => {
+                const IconComponent = LUCIDE_ICONS[game.icon];
+                return (
                 <motion.button
                   key={game.id}
                   variants={cardVariants}
                   onClick={() => game.unlocked && onSelectGame(game.id)}
                   disabled={!game.unlocked}
-                  className={`relative flex flex-row items-center gap-3 md:gap-4 shrink-0 rounded-[1.8rem] font-bold transition-all ${
-                    game.unlocked ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
+                  className={`relative flex flex-row items-center gap-3 md:gap-4 shrink-0 font-bold transition-all overflow-hidden ${
+                    game.unlocked ? 'cursor-pointer' : 'cursor-not-allowed'
                   }`}
                   style={{
-                    backgroundColor: game.unlocked ? game.color : '#3a3260',
-                    borderBottom: `5px solid ${game.unlocked ? game.borderColor : '#2a2250'}`,
-                    boxShadow: '0px 6px 0px rgba(0,0,0,0.12)',
+                    background: game.unlocked
+                      ? 'linear-gradient(145deg, rgba(255,255,255,1) 0%, rgba(245,245,255,1) 100%)'
+                      : 'linear-gradient(145deg, rgba(200,200,220,1) 0%, rgba(180,180,200,1) 100%)',
+                    border: `clamp(2px, 0.6vh, 4px) solid ${game.unlocked ? game.color : '#888'}`,
+                    borderRadius: 'clamp(1rem, 4vh, 2.5rem)',
+                    boxShadow: game.unlocked
+                      ? `0 clamp(3px, 1.5vh, 6px) 0 ${game.color}, 0 clamp(4px, 2vh, 10px) clamp(6px, 2.5vh, 15px) rgba(0,0,0,0.2), inset 0 clamp(2px, 1vh, 4px) 0 rgba(255,255,255,0.9)`
+                      : `0 clamp(3px, 1.5vh, 6px) 0 #888, 0 clamp(4px, 2vh, 10px) clamp(6px, 2.5vh, 15px) rgba(0,0,0,0.2)`,
                     width: 'clamp(240px, 45vw, 320px)',
                     height: 'clamp(165px, 33vw, 225px)',
                     paddingLeft: 'clamp(14px, 3vw, 24px)',
                     paddingRight: 'clamp(14px, 3vw, 24px)',
                   }}
                   whileHover={game.unlocked ? { scale: 1.05, y: -4 } : {}}
-                  whileTap={game.unlocked ? { scale: 0.95, y: 4 } : {}}
+                  whileTap={game.unlocked ? { scale: 0.95, y: 6, boxShadow: `0 0px 0 ${game.color}` } : {}}
                 >
+                  {/* White shine overlay */}
+                  <div className="absolute top-0 left-0 right-0 pointer-events-none"
+                    style={{ height: '45%', borderRadius: 'clamp(1rem, 4vh, 2.5rem) clamp(1rem, 4vh, 2.5rem) 0 0', background: 'linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 100%)' }} />
+
                   {/* Lock overlay */}
                   {!game.unlocked && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-[1.8rem] bg-black/20 z-10">
-                      <Lock className="w-8 h-8 md:w-10 md:h-10 text-white/60" />
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/10 z-10"
+                      style={{ borderRadius: 'clamp(1rem, 4vh, 2.5rem)' }}>
+                      <Lock className="w-8 h-8 md:w-10 md:h-10 text-[#888]" />
                     </div>
                   )}
 
-                  <div className="shrink-0 flex items-center justify-center">
+                  <div className="shrink-0 flex items-center justify-center relative z-[1]">
                     {game.icon === 'frog-sprite' ? (
-                      <FrogSprite size={70} />
+                      <motion.div className="flex items-center justify-center bg-[#f0ecfc] rounded-full"
+                        style={{ width: 'clamp(40px, 10vw, 65px)', height: 'clamp(40px, 10vw, 65px)' }}
+                        animate={{ y: [-2, 2, -2], rotate: [-3, 3, -3] }}
+                        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}>
+                        <FrogSprite size={45} />
+                      </motion.div>
                     ) : game.icon === 'hotair-balloon' ? (
-                      <img src={hotairBalloonImg} alt="" className="select-none" style={{ width: 70, height: 70, objectFit: 'contain' }} draggable={false} />
-                    ) : (
-                      <span style={{ fontSize: 'clamp(2.5rem, 7vw, 3.5rem)' }}>{game.icon}</span>
-                    )}
+                      <motion.div className="flex items-center justify-center bg-[#f0ecfc] rounded-full"
+                        style={{ width: 'clamp(40px, 10vw, 65px)', height: 'clamp(40px, 10vw, 65px)' }}
+                        animate={{ y: [-2, 2, -2], rotate: [-3, 3, -3] }}
+                        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}>
+                        <img src={hotairBalloonImg} alt="" className="select-none" style={{ width: '50%', height: '50%', objectFit: 'contain' }} draggable={false} />
+                      </motion.div>
+                    ) : IconComponent ? (
+                      <motion.div className="flex items-center justify-center bg-[#f0ecfc] rounded-full"
+                        style={{ width: 'clamp(40px, 10vw, 65px)', height: 'clamp(40px, 10vw, 65px)' }}
+                        animate={{ y: [-2, 2, -2], rotate: [-3, 3, -3] }}
+                        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}>
+                        <IconComponent style={{ width: '50%', height: '50%', color: game.color }} />
+                      </motion.div>
+                    ) : null}
                   </div>
-                  <div className="flex flex-col items-start min-w-0">
+                  <div className="flex flex-col items-start min-w-0 relative z-[1]">
                     <span
                       className="text-sm md:text-base lg:text-lg leading-tight font-extrabold"
-                      style={{ color: game.unlocked ? '#fff' : '#888' }}
+                      style={{ color: game.unlocked ? game.color : '#888' }}
                     >
                       {game.title}
                     </span>
                     {game.unlocked && game.description && (
-                      <span className="text-xs md:text-sm text-white/70 mt-0.5 leading-tight font-medium">
+                      <span className="text-xs md:text-sm mt-0.5 leading-tight font-medium" style={{ color: 'rgba(62,54,107,0.7)' }}>
                         {game.description}
                       </span>
                     )}
                     {!game.unlocked && (
-                      <span className="text-xs md:text-sm text-white/40 mt-0.5 font-medium">
+                      <span className="text-xs md:text-sm text-[#888]/60 mt-0.5 font-medium">
                         Coming Soon
                       </span>
                     )}
                   </div>
                 </motion.button>
-              ))}
+                );
+              })}
               </motion.div>
             </div>
           </div>

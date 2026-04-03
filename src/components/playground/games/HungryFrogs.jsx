@@ -1,19 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Maximize, Volume2 } from 'lucide-react';
+import { Volume2, Leaf } from 'lucide-react';
+import GameControlBar from '../../shared/GameControlBar';
+import GameResultCard from '../../shared/GameResultCard';
 import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
 import { stopAllAudio, playBlendingSequence, playLetterSound, getDisplaySound } from '../../../utils/letterSounds';
 import { speakAsync } from '../../../utils/speech';
 import { triggerSmallBurst, triggerCelebration } from '../../../utils/confetti';
 import { playEncouragement } from '../../../utils/encouragement';
 import { getWordImage } from '../../../utils/assetHelpers';
-import confetti from 'canvas-confetti';
 import frogSheet from '../../../assets/characters/set-cute-drawing-frogs.svg';
 
-const toggleFullscreen = () => {
-  if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
-  else document.exitFullscreen?.();
-};
 
 const STAGE1_ROUNDS = 5;       // number of sounds to cycle through
 const TIME_PER_SOUND = 30;     // seconds per sound
@@ -1288,70 +1285,17 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
 // ═════════════════════════════════════════════════════════════════════════════
 // RESULTS SCREEN
 // ═════════════════════════════════════════════════════════════════════════════
-const ResultsScreen = ({ onBack, onPlayAgain, fliesCaught = 0 }) => {
-  // Confetti rain
-  useEffect(() => {
-    let running = true;
-    const rain = () => {
-      if (!running) return;
-      confetti({
-        particleCount: 3, angle: 270, spread: 120,
-        origin: { x: Math.random(), y: -0.1 },
-        gravity: 0.6, scalar: 0.8, ticks: 200,
-        colors: ['#FFD000', '#FF6B9D', '#4ECDC4', '#8B5CF6', '#22C55E'],
-      });
-      requestAnimationFrame(rain);
-    };
-    rain();
-    return () => { running = false; };
-  }, []);
-
-  return (
-    <motion.div
-      className="absolute inset-0 z-50 flex items-center justify-center"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-    >
-      <motion.div
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-        className="bg-white/90 backdrop-blur-sm border-t-4 border-[#2ECC71] p-8 md:p-12 text-center max-w-md mx-4"
-        style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
-      >
-        <motion.div
-          animate={{ y: [0, -10, 0] }}
-          transition={{ duration: 2, repeat: Infinity }}
-          className="mb-4"
-        >
-          <Sprite sprite="frogOnPad" size={130} style={{ margin: '0 auto' }} />
-        </motion.div>
-        <h2 className="text-2xl md:text-3xl font-bold text-[#1E8449] mb-2">Frog Master!</h2>
-        <p className="text-[#3e366b]/60 text-sm md:text-base mb-6">
-          You caught {fliesCaught} flies and fed {FROGS_COUNT} frogs!
-        </p>
-        <div className="flex gap-3 justify-center">
-          <motion.button
-            onClick={onBack}
-            className="px-5 py-3 bg-[#6B3FA0] text-white font-bold rounded-2xl text-sm md:text-base"
-            style={{ borderBottom: '4px solid #5A2D91', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-            whileTap={{ scale: 0.95, y: 3 }}
-          >
-            Back
-          </motion.button>
-          <motion.button
-            onClick={onPlayAgain}
-            className="px-5 py-3 bg-[#2ECC71] text-white font-bold rounded-2xl text-sm md:text-base"
-            style={{ borderBottom: '4px solid #1E8449', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-            whileTap={{ scale: 0.95, y: 3 }}
-          >
-            Play Again
-          </motion.button>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-};
+const ResultsScreen = ({ onBack, onPlayAgain, fliesCaught = 0 }) => (
+  <GameResultCard
+    title="Frog Master!"
+    subtitle={`You caught ${fliesCaught} flies and fed ${FROGS_COUNT} frogs!`}
+    accentColor="#2ECC71"
+    icon={Leaf}
+    onPlayAgain={onPlayAgain}
+    onBack={onBack}
+    backLabel="Back"
+  />
+);
 
 // ═════════════════════════════════════════════════════════════════════════════
 // MAIN GAME ORCHESTRATOR
@@ -1385,24 +1329,7 @@ const HungryFrogsGame = ({ group, onBack, onPlayAgain }) => {
       <PondBackground />
 
       {/* Back + Fullscreen */}
-      <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
-        <motion.button
-          onClick={handleBack}
-          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}
-        >
-          <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
-        </motion.button>
-        <motion.button
-          onClick={toggleFullscreen}
-          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}
-        >
-          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
-        </motion.button>
-      </div>
+      <GameControlBar onBack={handleBack} />
 
       {/* HUD — stage name */}
       {stageName && (
@@ -1416,18 +1343,6 @@ const HungryFrogsGame = ({ group, onBack, onPlayAgain }) => {
             </span>
           </div>
         </div>
-      )}
-
-      {/* Fullscreen button on results */}
-      {gameStage === 'results' && (
-        <motion.button
-          onClick={toggleFullscreen}
-          className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}
-        >
-          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
-        </motion.button>
       )}
 
       {/* Stages */}

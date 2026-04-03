@@ -17,6 +17,24 @@
   --radius-button: 1.6rem;
   --shadow-hard: 0px 6px 0px rgba(0,0,0,0.1);
   --shadow-hard-lg: 0px 8px 0px rgba(0,0,0,0.1);
+
+  /* Gummy button colors */
+  --btn-yellow: #FFD000;
+  --btn-yellow-light: #FFE55C;
+  --btn-yellow-shadow: #D4A000;
+  --btn-purple: #7C3AED;
+  --btn-purple-light: #A78BFA;
+  --btn-purple-shadow: #5B21B6;
+  --btn-green: #22C55E;
+  --btn-green-light: #34D399;
+  --btn-green-shadow: #16A34A;
+
+  /* Glass morphism */
+  --glass-bg: rgba(255,255,255,0.15);
+  --glass-border: rgba(255,255,255,0.25);
+
+  /* Gummy card */
+  --card-bg: linear-gradient(145deg, rgba(255,255,255,1) 0%, rgba(245,245,255,1) 100%);
 }
 
 html {

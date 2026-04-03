@@ -69,18 +69,18 @@ const activeAudios = new Set();
  * Play a letter sound MP3. Returns a promise that resolves when done.
  */
 export const playLetterSound = (sound) => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const url = getLetterSoundUrl(sound);
     if (!url) {
-      reject(new Error(`No sound file for: ${sound}`));
+      resolve();
       return;
     }
     const audio = new Audio(url);
     audio.volume = 1.0;
     activeAudios.add(audio);
     audio.onended = () => { activeAudios.delete(audio); resolve(); };
-    audio.onerror = () => { activeAudios.delete(audio); reject(); };
-    audio.play().catch((e) => { activeAudios.delete(audio); reject(e); });
+    audio.onerror = () => { activeAudios.delete(audio); resolve(); };
+    audio.play().catch(() => { activeAudios.delete(audio); resolve(); });
   });
 };
 
