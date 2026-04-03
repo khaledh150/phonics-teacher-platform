@@ -61,12 +61,12 @@ const CLOUD_SRC_MAP = { cloud1: cloud1Url, cloud2: cloud2Url, small: cloudSmallU
 // ─── Bird lane definitions ───────────────────────────────────────────────────
 
 const BIRD_LANES = [
-  { birdIdx: 0, yPct: 6,  speed: 28, size: 110, goRight: true,  startPct: 0.1 },
-  { birdIdx: 2, yPct: 22, speed: 35, size: 95,  goRight: false, startPct: 0.6 },
-  { birdIdx: 4, yPct: 42, speed: 22, size: 120, goRight: true,  startPct: 0.4 },
-  { birdIdx: 1, yPct: 14, speed: 40, size: 85,  goRight: true,  startPct: 0.75 },
-  { birdIdx: 3, yPct: 55, speed: 30, size: 100, goRight: false, startPct: 0.3 },
-  { birdIdx: 5, yPct: 68, speed: 26, size: 90,  goRight: true,  startPct: 0.8 },
+  { birdIdx: 0, yPct: 6,  speed: 28, size: 80, goRight: true,  startPct: 0.1 },
+  { birdIdx: 2, yPct: 22, speed: 35, size: 80,  goRight: false, startPct: 0.6 },
+  { birdIdx: 4, yPct: 42, speed: 22, size: 80, goRight: true,  startPct: 0.4 },
+  { birdIdx: 1, yPct: 14, speed: 40, size: 80,  goRight: true,  startPct: 0.75 },
+  { birdIdx: 3, yPct: 55, speed: 30, size: 80, goRight: false, startPct: 0.3 },
+  { birdIdx: 5, yPct: 68, speed: 26, size: 80,  goRight: true,  startPct: 0.8 },
 ];
 
 // ─── DOM Birds (requestAnimationFrame driven) ───────────────────────────────
@@ -121,7 +121,12 @@ const SkyBirdsInner = ({ zIndex = 11 }) => {
           key={i}
           ref={el => { birdEls.current[i] = el; }}
           className="absolute"
-          style={{ top: `${lane.yPct}%`, width: lane.size, height: lane.size, willChange: 'transform' }}
+          style={{ 
+            top: `${lane.yPct}%`, 
+            width: `clamp(${lane.size * 0.6}px, 8vw, ${lane.size * 1.2}px)`, 
+            height: `clamp(${lane.size * 0.6}px, 8vw, ${lane.size * 1.2}px)`, 
+            willChange: 'transform' 
+          }}
         >
           <Lottie
             animationData={BIRDS[lane.birdIdx % BIRDS.length]}
@@ -137,7 +142,10 @@ const SkyBirdsInner = ({ zIndex = 11 }) => {
 /**
  * SkyOverlay — Birds-only DOM overlay. Use when you already have a sky background.
  */
-export const SkyOverlay = React.memo(SkyBirdsInner);
+export const SkyOverlay = React.memo(({ zIndex = 11 }) => {
+  const isPC = typeof window !== 'undefined' && window.innerWidth >= 1024;
+  return <SkyBirdsInner zIndex={zIndex} sizeMult={isPC ? 1 : 0.7} />;
+});
 
 // ─── DOM Scrolling Clouds (rAF-driven, continuous wrap-around) ───────────────
 

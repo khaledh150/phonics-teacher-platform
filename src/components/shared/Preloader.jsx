@@ -46,7 +46,7 @@ const Preloader = ({ isVisible, onExitComplete, messages: customMessages }) => {
           <AnimatePresence mode="wait">
             <motion.p
               key={messageIndex}
-              className="mt-8 text-2xl md:text-3xl font-semibold text-white"
+              className="mt-6 md:mt-8 text-lg md:text-2xl font-bold text-white text-center px-4"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}

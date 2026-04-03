@@ -321,45 +321,49 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
             onClick={handleHomeClick}
             className="rounded-full bg-gradient-to-b from-[#FFE55C] to-[#FFD000] relative overflow-hidden flex items-center justify-center p-1"
             style={{ 
-              width: 'clamp(36px, 10vh, 56px)', height: 'clamp(36px, 10vh, 56px)', 
-              border: 'clamp(2px, 0.5vh, 3px) solid #FFF', 
-              boxShadow: '0 clamp(3px, 1vh, 5px) 0 #D4A000, 0 clamp(4px, 1.5vh, 8px) rgba(0,0,0,0.2)' 
+              width: 'clamp(35px, 6vw, 65px)', height: 'clamp(36px, 10vh, 56px)', 
+              border: 'clamp(2.5px, 0.6vh, 3.5px) solid #FFFFFF', 
+              boxShadow: '0 clamp(3px, 1vh, 5px) 0 rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.1)' 
             }}
             whileHover={{ scale: 1.1, y: -2 }}
-            whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #D4A000' }}
+            whileTap={{ scale: 0.9, y: 3 }}
           >
-            <div className="absolute top-0 left-1/4 right-1/4 h-1/4 bg-white/60 rounded-full" />
-            <Home style={{ width: '45%', height: '45%' }} className="text-[#3e366b]" />
+            <div className="absolute top-0 left-1/4 right-1/4 h-1/4 bg-white/60 rounded-full pointer-events-none" />
+            <Home style={{ width: '70%', height: '70%' }} className="text-[#3e366b]" />
           </motion.button>
           
-          <motion.button
-            onClick={toggleFullscreen}
-            className="rounded-full bg-gradient-to-b from-[#FFE55C] to-[#FFD000] relative overflow-hidden hidden sm:flex items-center justify-center p-1"
-            style={{ 
-              width: 'clamp(36px, 10vh, 56px)', height: 'clamp(36px, 10vh, 56px)', 
-              border: 'clamp(2px, 0.5vh, 3px) solid #FFF', 
-              boxShadow: '0 clamp(3px, 1vh, 5px) 0 #D4A000, 0 clamp(4px, 1.5vh, 8px) rgba(0,0,0,0.2)' 
-            }}
-            whileHover={{ scale: 1.1, y: -2 }}
-            whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #D4A000' }}
-          >
-            <div className="absolute top-0 left-1/4 right-1/4 h-1/4 bg-white/60 rounded-full" />
-            <Maximize style={{ width: '45%', height: '45%' }} className="text-[#3e366b]" />
-          </motion.button>
+            <motion.button
+              onClick={toggleFullscreen}
+              className="rounded-full bg-gradient-to-b from-[#FFE55C] to-[#FFD000] relative overflow-hidden hidden sm:flex items-center justify-center p-1"
+              style={{ 
+                width: 'clamp(36px, 10vh, 56px)', height: 'clamp(36px, 10vh, 56px)', 
+                border: 'clamp(2.5px, 0.6vh, 3.5px) solid #FFFFFF', 
+                boxShadow: '0 clamp(3px, 1vh, 5px) 0 rgba(0,0,0,0.15), 0 4px 12px rgba(0,0,0,0.1)' 
+              }}
+              whileHover={{ scale: 1.1, y: -2 }}
+              whileTap={{ scale: 0.9, y: 3 }}
+            >
+              <div className="absolute top-0 left-1/4 right-1/4 h-1/4 bg-white/60 rounded-full pointer-events-none" />
+              <Maximize style={{ width: '70%', height: '70%' }} className="text-[#3e366b]" />
+            </motion.button>
         </div>
 
-        {/* Group label - top center, beautiful solid pill without blur */}
-        <div className="absolute top-3 right-3 md:top-4 md:right-4 flex items-center justify-center pointer-events-auto">
+        {/* Group label - Positioned top-right consistently, but moves below speaker in SoundBalloons */}
+        <div 
+          className="absolute right-3 md:right-4 z-40 flex flex-col items-end pointer-events-auto transition-all duration-500"
+          style={{ top: STEPS[stepIndex] === 'balloons' ? '28%' : '3%' }}
+        >
           <motion.div
-            className="rounded-full text-white font-extrabold flex items-center justify-center bg-[rgba(255,255,255,0.15)]"
+            className="rounded-full text-white font-extrabold flex items-center justify-center bg-white/10 backdrop-blur-sm"
             style={{ 
-              padding: 'clamp(4px, 1vh, 8px) clamp(12px, 3vh, 24px)',
-              fontSize: 'clamp(0.7rem, 2.5vh, 1.1rem)',
-              border: 'clamp(1px, 0.3vh, 2px) solid rgba(255,255,255,0.2)',
-              gap: 'clamp(4px, 1vh, 10px)'
+              padding: 'clamp(4px, 1vh, 6px) clamp(10px, 2.5vh, 18px)',
+              fontSize: 'clamp(0.65rem, 2vh, 0.9rem)',
+              border: '1px solid rgba(255,255,255,0.2)',
+              gap: 'clamp(4px, 1vh, 8px)',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
             }}
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
           >
             <div className="flex items-center justify-center bg-white/20 rounded-full" style={{ width: 'clamp(16px, 4vh, 24px)', height: 'clamp(16px, 4vh, 24px)' }}>
               <Sparkles className="text-[#FFD000]" style={{ width: '60%', height: '60%' }} />
@@ -381,19 +385,20 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
                   height: 'clamp(32px, 8vh, 48px)',
                   padding: '0 clamp(12px, 3vh, 24px)',
                   borderRadius: 'clamp(1rem, 4vh, 2rem)',
-                  background: 'linear-gradient(180deg, #A78BFA 0%, #7C3AED 100%)',
-                  border: 'clamp(1px, 0.3vh, 2px) solid #C4B5FD',
+                  background: 'linear-gradient(180deg, #FFE55C 0%, #FFD000 100%)',
+                  border: 'clamp(2px, 0.5vh, 3px) solid #3e366b',
                   boxShadow: '0 clamp(2px, 1vh, 4px) 0 #5B21B6, 0 clamp(4px, 1.5vh, 8px) rgba(0,0,0,0.3)',
-                  fontSize: 'clamp(0.7rem, 2.5vh, 1rem)',
+                  fontSize: 'clamp(1rem, 3.5vh, 9vh)',
                   gap: 'clamp(2px, 0.5vh, 6px)'
                 }}
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 whileHover={{ y: -2, filter: 'brightness(1.1)' }}
-                whileTap={{ y: 2, boxShadow: '0 0px 0 #5B21B6' }}
+                whileTap={{ y: 2, boxShadow: '0 0px 0 #D4A000' }}
               >
-                <ChevronLeft style={{ width: 'clamp(14px, 3.5vh, 20px)', height: 'clamp(14px, 3.5vh, 20px)' }} />
-                Back
+                <div className="absolute top-0 left-1/4 right-1/4 h-1/4 bg-white/60 rounded-full pointer-events-none" />
+                <ChevronLeft className="text-[#3e366b]" style={{ width: 'clamp(14px, 3.5vh, 20px)', height: 'clamp(14px, 3.5vh, 20px)' }} />
+                <span className="text-[#3e366b]">Back</span>
               </motion.button>
             )}
           </div>
@@ -546,7 +551,7 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="fixed inset-0 z-[80] flex items-center justify-center overflow-hidden"
-            style={{ background: 'radial-gradient(ellipse at center, rgba(62,54,107,0.85) 0%, rgba(0,0,0,0.9) 100%)' }}
+            style={{ background: 'rgba(30, 18, 82, 0.9)' }}
           >
             <motion.div
               initial={{ scale: 0.5, y: 50, opacity: 0 }}
@@ -673,36 +678,36 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
               >
                 Go Home?
               </h3>
-              <p className="text-[#A78BFA] font-bold" style={{ fontSize: 'clamp(0.85rem, 2.5vh, 1rem)', marginBottom: 'clamp(16px, 4vh, 24px)' }}>
+              <p className="text-white/90 font-bold" style={{ fontSize: 'clamp(0.85rem, 2.5vh, 1rem)', marginBottom: 'clamp(16px, 4vh, 24px)' }}>
                 Your progress here will be lost.
               </p>
               
               <div className="flex justify-center" style={{ gap: 'clamp(10px, 2.5vh, 20px)' }}>
-                <motion.button
+                 <motion.button
                   onClick={() => setShowExitConfirm(false)}
-                  className="bg-transparent text-white font-bold rounded-full relative"
+                  className="bg-[#3e366b]/40 text-white font-bold rounded-full relative"
                   style={{ 
                     padding: 'clamp(8px, 2vh, 12px) clamp(16px, 4vh, 32px)',
                     fontSize: 'clamp(0.9rem, 2.5vh, 1.1rem)',
-                    border: 'clamp(2px, 0.5vh, 3px) solid rgba(255,255,255,0.3)',
+                    border: 'clamp(2px, 0.5vh, 3px) solid rgba(255,255,255,0.4)',
                   }}
                   whileHover={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
                   whileTap={{ scale: 0.95, y: 2 }}
                 >
                   Stay
                 </motion.button>
-                <motion.button
+                 <motion.button
                   onClick={confirmExit}
-                  className="bg-gradient-to-b from-[#FFE55C] to-[#FFD000] text-[#3e366b] font-extrabold rounded-full relative"
+                  className="bg-gradient-to-b from-[#FFE55C] to-[#FFD000] text-white font-extrabold rounded-full relative"
                   style={{ 
                     padding: 'clamp(8px, 2vh, 12px) clamp(16px, 4vh, 32px)',
                     fontSize: 'clamp(0.9rem, 2.5vh, 1.1rem)',
                     border: 'clamp(2px, 0.5vh, 3px) solid #FFF',
-                    boxShadow: '0 clamp(3px, 1vh, 5px) 0 #D4A000, inset 0 2px 0 rgba(255,255,255,0.8)' 
+                    boxShadow: '0 clamp(3px, 1vh, 5px) 0 #D4A000, 0 2px 10px rgba(0,0,0,0.2)' 
                   }}
                   whileTap={{ scale: 0.95, y: 3, boxShadow: '0 0px 0 #D4A000' }}
                 >
-                  Go Home
+                  <span style={{ filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.3))' }}>Go Home</span>
                 </motion.button>
               </div>
             </motion.div>

@@ -328,15 +328,17 @@ const SentenceScramble = ({ group, onComplete }) => {
           initial={{ scale: 0, rotate: -10 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-          className="bg-[#2d1b69] p-6 md:p-10 text-center max-w-sm md:max-w-md mx-4"
-          style={{ borderRadius: '2.2rem', boxShadow: '0px 10px 0px rgba(0,0,0,0.12)' }}
-        >
+          className="bg-[#2d1b69] p-6 md:p-10 text-center max-w-sm md:max-w-md mx-4 border-[4px] border-[#8B5CF6] relative z-10"
+          style={{ 
+            borderRadius: '2.5rem', 
+            boxShadow: '0 12px 0 #1a1147, 0 20px 40px rgba(0,0,0,0.5)',
+          }}>
           <motion.span className="text-6xl md:text-8xl block mb-3"
             animate={{ y: [0, -8, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
           >&#128218;</motion.span>
-          <h2 className="text-2xl md:text-3xl font-bold text-[#6B3FA0] mb-2">Sentence Master!</h2>
-          <p className="text-[#ae90fd] font-semibold text-lg mb-8">You built {sentences.length} sentences!</p>
+          <h2 className="text-2xl md:text-3xl font-black text-white mb-2" style={{ textShadow: '0 2px 0 rgba(0,0,0,0.2)' }}>Sentence Master!</h2>
+          <p className="text-[#e0e7ff] font-extrabold text-lg mb-8">You built {sentences.length} sentences!</p>
           <motion.button
             onClick={() => onComplete()}
             className="px-8 py-3 bg-[#22c55e] text-white font-bold text-base md:text-lg"
@@ -383,10 +385,10 @@ const SentenceScramble = ({ group, onComplete }) => {
       </div>
 
       {/* Main content — portrait: stacked, landscape: side-by-side */}
-      <div className="flex-1 flex flex-col landscape:flex-row items-center justify-center px-4 landscape:px-8 pt-10 md:pt-12 landscape:pt-14 min-h-0 gap-2 landscape:gap-8">
+      <div className="flex-1 flex flex-col landscape:flex-row items-center landscape:items-start justify-center px-4 landscape:px-8 pt-18 md:pt-24 landscape:pt-32 min-h-0 gap-2 landscape:gap-4 lg:gap-8">
 
         {/* LEFT in landscape / TOP in portrait: Picture */}
-        <div className="flex flex-col items-center justify-center landscape:flex-1 gap-2">
+        <div className="flex flex-col items-center justify-center landscape:flex-[0.4] landscape:pl-[5%] gap-2 mt-4 landscape:mt-0">
 
           {sentenceImage && (
             <motion.img
@@ -394,7 +396,7 @@ const SentenceScramble = ({ group, onComplete }) => {
               src={sentenceImage}
               alt={currentKeyword}
               className="rounded-2xl shadow-lg object-contain bg-white border-3 border-[#ae90fd]/30"
-              style={{ width: 'clamp(220px, min(45vw, 60vh), 400px)', height: 'clamp(220px, min(45vw, 60vh), 400px)' }}
+              style={{ width: 'clamp(120px, min(24vw, 40vh), 250px)', height: 'clamp(120px, min(24vw, 40vh), 250px)', padding: 'clamp(8px, 1.5vh, 16px)' }}
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3 }}
@@ -403,13 +405,13 @@ const SentenceScramble = ({ group, onComplete }) => {
         </div>
 
         {/* RIGHT in landscape / BOTTOM in portrait: shelf + source words */}
-        <div className="flex flex-col items-center justify-center landscape:flex-1 gap-4 landscape:gap-5 min-h-0 w-full landscape:w-auto">
+        <div className="flex flex-col items-center justify-start landscape:flex-[0.6] gap-4 landscape:gap-6 min-h-0 w-full landscape:w-auto">
           {/* Shelf (answer zone) */}
           <div className="w-full max-w-3xl">
             <motion.div
-              className="rounded-2xl p-4 md:p-5 flex flex-wrap items-center justify-center gap-3 md:gap-4 transition-all duration-500"
+              className="rounded-xl p-4 md:p-5 flex flex-wrap items-center justify-center gap-3 md:gap-4 transition-all duration-500"
               style={{
-                minHeight: 'clamp(60px, 12vw, 90px)',
+                minHeight: 'clamp(50px, 10vh, 75px)',
                 borderWidth: showBorders ? 3 : 0,
                 borderColor: isCorrect ? '#22c55e' : checkWrong ? '#E60023' : '#3e366b30',
                 borderStyle: isCorrect ? 'solid' : 'dashed',
@@ -437,8 +439,8 @@ const SentenceScramble = ({ group, onComplete }) => {
                       className="px-5 py-3 md:px-6 md:py-3.5 lg:px-7 lg:py-4 font-bold text-white shadow-md select-none"
                       style={{
                         backgroundColor: isCorrect ? '#22c55e' : BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length],
-                        fontSize: 'clamp(1rem, 4vw, 1.6rem)',
-                        borderRadius: showBorders ? '0.75rem' : '0.5rem',
+                        fontSize: 'clamp(1rem, 3.8vh, 10vh)',
+                        borderRadius: showBorders ? 'clamp(0.5rem, 2vh, 1rem)' : '0.5rem',
                         border: showBorders ? undefined : 'none',
                         boxShadow: showBorders ? undefined : 'none',
                       }}
@@ -474,13 +476,13 @@ const SentenceScramble = ({ group, onComplete }) => {
                 <motion.button
                   key={word.id}
                   onClick={() => handleWordTap(word)}
-                  className="rounded-xl md:rounded-2xl font-bold text-white shadow-lg select-none cursor-pointer text-center"
+                  className="rounded-lg md:rounded-xl font-bold text-white shadow-lg select-none cursor-pointer text-center"
                   style={{
                     backgroundColor: BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length],
-                    fontSize: 'clamp(1.1rem, 4.5vw, 1.8rem)',
+                    fontSize: 'clamp(1.2rem, 4.2vh, 10vh)',
                     boxShadow: `0 4px 15px ${BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length]}50, 0 2px 8px rgba(0,0,0,0.1)`,
-                    width: 'clamp(5rem, 20vw, 10rem)',
-                    padding: 'clamp(0.6rem, 2vw, 1rem) 0',
+                    width: 'clamp(4.5rem, 18vw, 13rem)',
+                    padding: 'clamp(0.4rem, 1.2vh, 0.7rem) 0',
                   }}
                   initial={{ opacity: 0, scale: 0.5, rotate: Math.random() * 10 - 5 }}
                   animate={{ opacity: 1, scale: 1, rotate: 0 }}

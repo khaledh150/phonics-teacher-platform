@@ -11,7 +11,7 @@ import CrabCompanion from './CrabCompanion';
 import BeachBackground from '../../themes/BeachBackground';
 
 // ─── Individual SVG imports from tracing-letter folder ──────────────────────
-const tracingRawModules = import.meta.glob('../../assets/materials/tracing-letter/*.svg', { query: '?raw', eager: true });
+const tracingRawModules = import.meta.glob('../../../assets/materials/tracing-letter/*.svg', { query: '?raw', eager: true });
 const tracingSvgText = {}; // key: "A_U" or "a_L" → raw SVG text
 for (const [path, mod] of Object.entries(tracingRawModules)) {
   const m = path.match(/\/([A-Za-z])-(?:uppercase|lowercase)\.svg$/);
@@ -85,7 +85,7 @@ class SandParticles {
       ctx.globalAlpha = p.life * 0.9;
       ctx.fillStyle = `hsl(${p.hue}, 85%, ${50 + (1 - p.life) * 25}%)`;
       ctx.shadowColor = `hsla(${p.hue}, 90%, 60%, ${p.life * 0.6})`;
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 4;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
       ctx.fill();
@@ -1235,10 +1235,15 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
           isIdle={false}
         />
         <motion.button onClick={toggleFullscreen}
-          className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000]"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}>
-          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+          className="fixed top-3 left-3 z-[70] flex items-center justify-center rounded-full bg-gradient-to-b from-[#FFE55C] to-[#FFD000] relative overflow-hidden"
+          style={{ 
+            width: 'clamp(36px, 10vh, 56px)', height: 'clamp(36px, 10vh, 56px)', 
+            border: 'clamp(2.5px, 0.6vh, 3.5px) solid #3e366b', 
+            boxShadow: '0 4px 0 #D4A000, 0 4px 12px rgba(0,0,0,0.1)' 
+          }}
+          whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #D4A000' }}>
+          <div className="absolute top-0 left-1/4 right-1/4 h-1/4 bg-white/60 rounded-full pointer-events-none" />
+          <Maximize style={{ width: "65%", height: "65%" }} className="text-[#3e366b]" />
         </motion.button>
         <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 15 }}
@@ -1281,16 +1286,26 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
       {/* Nav */}
       <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
         <motion.button onClick={handleBack}
-          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000]"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}>
-          <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+          className="flex items-center justify-center rounded-full bg-gradient-to-b from-[#FFE55C] to-[#FFD000] relative overflow-hidden"
+          style={{ 
+            width: 'clamp(36px, 10vh, 56px)', height: 'clamp(36px, 10vh, 56px)', 
+            border: 'clamp(2.5px, 0.6vh, 3.5px) solid #3e366b', 
+            boxShadow: '0 4px 0 #D4A000, 0 4px 12px rgba(0,0,0,0.1)' 
+          }}
+          whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #D4A000' }}>
+          <div className="absolute top-0 left-1/4 right-1/4 h-1/4 bg-white/60 rounded-full pointer-events-none" />
+          <ArrowLeft style={{ width: "65%", height: "65%" }} className="text-[#3e366b]" />
         </motion.button>
         <motion.button onClick={toggleFullscreen}
-          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000]"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}>
-          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+          className="flex items-center justify-center rounded-full bg-gradient-to-b from-[#FFE55C] to-[#FFD000] relative overflow-hidden"
+          style={{ 
+            width: 'clamp(36px, 10vh, 56px)', height: 'clamp(36px, 10vh, 56px)', 
+            border: 'clamp(2.5px, 0.6vh, 3.5px) solid #3e366b', 
+            boxShadow: '0 4px 0 #D4A000, 0 4px 12px rgba(0,0,0,0.1)' 
+          }}
+          whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #D4A000' }}>
+          <div className="absolute top-0 left-1/4 right-1/4 h-1/4 bg-white/60 rounded-full pointer-events-none" />
+          <Maximize style={{ width: "65%", height: "65%" }} className="text-[#3e366b]" />
         </motion.button>
       </div>
 
@@ -1315,7 +1330,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
           }}
           className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#6B3FA0]"
           style={{ borderBottom: '4px solid #4A2B70', boxShadow: '0px 4px 0px rgba(0,0,0,0.15)' }}
-          whileTap={{ scale: 0.95, y: 3 }} whileHover={{ scale: 1.1 }}>
+          whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #D4A000' }}>
           <Volume2 className="w-[18px] h-[18px] lg:w-5 lg:h-5 text-white" />
         </motion.button>
       </div>
@@ -1412,8 +1427,8 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
                       className="absolute pointer-events-none z-[60] flex items-center justify-center"
                       style={{
                         left: `${cursorPctX}%`, top: `${cursorPctY}%`,
-                        width: 140, height: 140,
-                        marginLeft: -70, marginTop: -70,
+                        width: 100, height: 100,
+                        marginLeft: -50, marginTop: -50,
                         transition: isActivelyTracing ? 'none' : 'left 0.15s ease, top 0.15s ease',
                       }}
                   initial={{ scale: 0, opacity: 0 }}
@@ -1439,7 +1454,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
                   <motion.img src={STICKERS.shovel} alt=""
                     className="select-none"
                     style={{
-                      width: 100, height: 100,
+                      width: 70, height: 70,
                       objectFit: 'contain',
                       filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.4))',
                     }}

@@ -605,7 +605,7 @@ const CatchTheFlyStage = ({ group, onComplete, onScoreUpdate }) => {
 
   const flySize = Math.min(window.innerWidth * 0.12, 130);
   // Frog grows slightly per catch, capped so it doesn't overflow
-  const baseFrogSize = typeof window !== 'undefined' ? Math.min(window.innerWidth * 0.45, 450) : 300;
+  const baseFrogSize = typeof window !== 'undefined' ? Math.min(window.innerWidth * 0.3, 320) : 250;
   const frogScale = 1 + Math.min(frogGrowth * 0.012, 0.25); // max +25%
 
   // Spawn a swarm of flies
@@ -1142,11 +1142,11 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
 
   return (
     <>
-      {/* Mother frog — RIGHT side, smaller, with letter on belly */}
+      {/* Mother frog — CENTER of screen */}
       <motion.div
         ref={frogZoneRef}
         className="absolute z-30"
-        style={{ right: 'clamp(20px, 4vw, 80px)', top: '50%', transform: 'translateY(-50%)' }}
+        style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
         animate={frogShakeWrong ? { x: [0, -15, 15, -10, 10, -5, 5, 0] } : {}}
         transition={{ duration: 0.5 }}
       >
@@ -1280,7 +1280,7 @@ const ResultsScreen = ({ onBack, onPlayAgain, fliesCaught = 0 }) => {
             onClick={onBack}
             className="px-5 py-3 bg-[#6B3FA0] text-white font-bold rounded-2xl text-sm md:text-base"
             style={{ borderBottom: '4px solid #5A2D91', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-            whileTap={{ scale: 0.95, y: 3 }}
+            whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #D4A000' }}
           >
             Back
           </motion.button>
@@ -1288,7 +1288,7 @@ const ResultsScreen = ({ onBack, onPlayAgain, fliesCaught = 0 }) => {
             onClick={onPlayAgain}
             className="px-5 py-3 bg-[#2ECC71] text-white font-bold rounded-2xl text-sm md:text-base"
             style={{ borderBottom: '4px solid #1E8449', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-            whileTap={{ scale: 0.95, y: 3 }}
+            whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #D4A000' }}
           >
             Play Again
           </motion.button>
@@ -1333,19 +1333,19 @@ const HungryFrogsGame = ({ group, onBack, onPlayAgain }) => {
       <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
         <motion.button
           onClick={handleBack}
-          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}
+          className="rounded-full bg-gradient-to-b from-[#FFE55C] to-[#FFD000] flex items-center justify-center" 
+          style={{ width: 'clamp(32px, 8vh, 48px)', height: 'clamp(32px, 8vh, 48px)', border: '2px solid #FFF', boxShadow: '0 clamp(2px, 0.8vh, 4px) 0 #D4A000, 0 clamp(3px, 1vh, 6px) rgba(0,0,0,0.2)' }}
+          whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #D4A000' }}
         >
-          <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+          <ArrowLeft style={{ width: "50%", height: "50%" }} className="text-[#3e366b]" />
         </motion.button>
         <motion.button
           onClick={toggleFullscreen}
-          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}
+          className="rounded-full bg-gradient-to-b from-[#FFE55C] to-[#FFD000] flex items-center justify-center" 
+          style={{ width: 'clamp(32px, 8vh, 48px)', height: 'clamp(32px, 8vh, 48px)', border: '2px solid #FFF', boxShadow: '0 clamp(2px, 0.8vh, 4px) 0 #D4A000, 0 clamp(3px, 1vh, 6px) rgba(0,0,0,0.2)' }}
+          whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #D4A000' }}
         >
-          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+          <Maximize style={{ width: "50%", height: "50%" }} className="text-[#3e366b]" />
         </motion.button>
       </div>
 
@@ -1368,10 +1368,10 @@ const HungryFrogsGame = ({ group, onBack, onPlayAgain }) => {
         <motion.button
           onClick={toggleFullscreen}
           className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}
+          style={{ width: 'clamp(32px, 8vh, 48px)', height: 'clamp(32px, 8vh, 48px)', border: '2px solid #FFF', boxShadow: '0 clamp(2px, 0.8vh, 4px) 0 #D4A000, 0 clamp(3px, 1vh, 6px) rgba(0,0,0,0.2)' }}
+          whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #D4A000' }}
         >
-          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+          <Maximize style={{ width: "50%", height: "50%" }} className="text-[#3e366b]" />
         </motion.button>
       )}
 

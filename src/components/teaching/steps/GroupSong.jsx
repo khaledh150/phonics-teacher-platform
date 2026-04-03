@@ -207,8 +207,8 @@ const GroupSong = ({ group, onComplete }) => {
       </div>
 
       {/* Bottom zone — controls */}
-      <div className="absolute inset-x-0 bottom-0 flex items-center justify-center px-4 pb-10 md:pb-12 lg:pb-14"
-        style={{ height: '22%' }}>
+      <div className="absolute inset-x-0 bottom-0 flex items-center justify-center px-4 pb-16 md:pb-20 lg:pb-24"
+        style={{ height: '24%' }}>
         <div className="flex items-center gap-4">
           {playMode === 'idle' || playMode === 'done' ? (
             <motion.button

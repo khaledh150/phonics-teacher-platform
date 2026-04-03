@@ -398,9 +398,9 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         } catch (e) { console.warn('Bubble textures failed:', e); }
         if (destroyedRef.current) { app.destroy(true); return; }
 
-        // Compute bubble radius from canvas (1.5x bigger)
-        // Bigger on phones (min 50), scales up on larger screens
-        const bRadius = Math.min(Math.max(50, Math.min(w, h) * 0.09), 65);
+        // Compute bubble radius from canvas (optimized for phone vs tablet)
+        const isPC = w >= 1024;
+        const bRadius = isPC ? Math.min(w, h) * 0.08 : Math.min(Math.max(22, Math.min(w, h) * 0.07), 35);
         bubbleRadiusRef.current = bRadius;
 
         const TRAY_H = 80;
@@ -607,7 +607,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         x: startX,
         y: startY,
         vx: (Math.random() - 0.5) * 1.2,
-        vy: -(0.35 + Math.random() * 0.5),
+        vy: -(0.2 + Math.random() * 0.3),
         shimmerPhase: Math.random() * Math.PI * 2,
         popped: false,
         popScale: 1,
@@ -793,11 +793,11 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#5BA3D9] to-[#87CEEB]">
         <motion.button
           onClick={toggleFullscreen}
-          className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}
+          className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000]"
+          style={{ width: 'clamp(32px, 8vh, 48px)', height: 'clamp(32px, 8vh, 48px)', border: '2px solid #FFF', boxShadow: '0 clamp(2px, 0.8vh, 4px) 0 rgba(0,0,0,0.1), 0 clamp(3px, 1vh, 6px) rgba(0,0,0,0.2)' }}
+          whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #D4A000' }}
         >
-          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+          <Maximize style={{ width: "50%", height: "50%" }} className="text-[#3e366b]" />
         </motion.button>
         <motion.div
           initial={{ scale: 0 }}
@@ -853,32 +853,35 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
         <motion.button
           onClick={handleBack}
-          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}
+          className="rounded-full bg-gradient-to-b from-[#FFE55C] to-[#FFD000] flex items-center justify-center p-1" 
+          style={{ width: 'clamp(32px, 8vh, 48px)', height: 'clamp(32px, 8vh, 48px)', border: '2px solid #FFFFFF', boxShadow: '0 clamp(2px, 0.8vh, 4px) 0 rgba(0,0,0,0.15), 0 clamp(3px, 1vh, 6px) rgba(0,0,0,0.2)' }}
+          whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.9, y: 3 }}
         >
-          <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+          <div className="absolute top-0 left-1/4 right-1/4 h-1/4 bg-white/40 rounded-full pointer-events-none" />
+          <ArrowLeft style={{ width: "70%", height: "70%" }} className="text-[#3e366b]" />
         </motion.button>
         <motion.button
           onClick={toggleFullscreen}
-          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}
+          className="rounded-full bg-gradient-to-b from-[#FFE55C] to-[#FFD000] flex items-center justify-center p-1" 
+          style={{ width: 'clamp(32px, 8vh, 48px)', height: 'clamp(32px, 8vh, 48px)', border: '2px solid #FFFFFF', boxShadow: '0 clamp(2px, 0.8vh, 4px) 0 rgba(0,0,0,0.15), 0 clamp(3px, 1vh, 6px) rgba(0,0,0,0.2)' }}
+          whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.9, y: 3 }}
           title="Toggle Fullscreen"
         >
-          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+          <div className="absolute top-0 left-1/4 right-1/4 h-1/4 bg-white/40 rounded-full pointer-events-none" />
+          <Maximize style={{ width: "70%", height: "70%" }} className="text-[#3e366b]" />
         </motion.button>
       </div>
 
       {/* Speaker button — top right */}
       <motion.button
         onClick={handleReplayWord}
-        className="fixed top-3 right-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#6B3FA0]"
-        style={{ borderBottom: '4px solid #4A2B70', boxShadow: '0px 4px 0px rgba(0,0,0,0.15)' }}
-        whileTap={{ scale: 0.95, y: 3 }}
-        whileHover={{ scale: 1.1 }}
+        className="fixed top-3 right-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-gradient-to-b from-[#A78BFA] to-[#7C3AED]"
+        style={{ border: '2.5px solid #FFFFFF', boxShadow: '0 4px 0 rgba(0,0,0,0.1), 0 6px 12px rgba(0,0,0,0.1)' }}
+        whileHover={{ scale: 1.1, y: -2 }} 
+        whileTap={{ scale: 0.9, y: 3 }}
       >
-        <Volume2 className="w-[18px] h-[18px] lg:w-5 lg:h-5 text-white" />
+        <div className="absolute top-0 left-1/4 right-1/4 h-1/4 bg-white/40 rounded-full pointer-events-none" />
+        <Volume2 style={{ width: 'clamp(20px, 5vh, 26px)', height: 'clamp(20px, 5vh, 26px)' }} className="text-white" />
       </motion.button>
 
       {/* Progress dots */}
@@ -1013,7 +1016,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
                   return (
                     <motion.div
                       key={idx}
-                      className={`w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-xl flex items-center justify-center text-xl md:text-2xl lg:text-3xl font-black uppercase ${
+                      className={`w-9 h-9 md:w-12 md:h-12 lg:w-14 lg:h-14 rounded-lg md:rounded-xl flex items-center justify-center text-lg md:text-xl lg:text-2xl font-black uppercase ${
                         isSpelled
                           ? 'bg-[#4ECDC4] text-white'
                           : 'bg-white/40 text-[#3e366b]/50 border-2 border-dashed border-[#3e366b]/40'
@@ -1043,9 +1046,9 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
           bottom: 'clamp(20px, 3vh, 50px)',
           left: '50%',
           transform: 'translateX(-50%)',
-          width: 'clamp(440px, 65vw, 620px)',
-          height: 'clamp(360px, 52vw, 500px)',
-          maxHeight: '45vh',
+          width: 'clamp(500px, 75vw, 720px)',
+          height: 'clamp(400px, 60vw, 580px)',
+          maxHeight: '55vh',
         }}
       >
         <Lottie
@@ -1057,7 +1060,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       </div>
 
       {/* Spelling tray at bottom — hidden during tutorial */}
-      <div className={`absolute bottom-0 left-0 right-0 z-30 bg-white/20 backdrop-blur-md border-t border-white/30 py-4 md:py-5 px-4 ${showTutorialOverlay ? 'opacity-0 pointer-events-none' : ''}`}>
+      <div className={`absolute bottom-0 left-0 right-0 z-30 bg-white/20 backdrop-blur-md border-t border-white/30 py-2 md:py-3 px-3 ${showTutorialOverlay ? 'opacity-0 pointer-events-none' : ''}`}>
         <div className="relative flex items-center justify-center">
           <AnimatePresence mode="wait">
             <motion.div
@@ -1073,7 +1076,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
                 return (
                   <motion.div
                     key={idx}
-                    className={`w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-xl flex items-center justify-center text-xl md:text-2xl lg:text-3xl font-black uppercase ${
+                    className={`w-9 h-9 md:w-12 md:h-12 lg:w-14 lg:h-14 rounded-lg md:rounded-xl flex items-center justify-center text-lg md:text-xl lg:text-2xl font-black uppercase ${
                       isSpelled
                         ? 'bg-[#4ECDC4] text-white'
                         : 'bg-white/40 text-[#3e366b]/50 border-2 border-dashed border-[#3e366b]/40'

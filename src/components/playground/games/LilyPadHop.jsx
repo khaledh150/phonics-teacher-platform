@@ -122,8 +122,8 @@ const WaterPlant = ({ flip, scale = 1 }) => (
 
 // ─── Game ────────────────────────────────────────────────────────────────────
 
-const ROW_HEIGHT = 210;
-const BOTTOM_PADDING = 200;
+const ROW_HEIGHT = 160;
+const BOTTOM_PADDING = 140;
 
 const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
   const rounds = useMemo(() => {
@@ -380,10 +380,10 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
         <motion.button
           onClick={toggleFullscreen}
           className="fixed top-3 left-3 z-[70] p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000]"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}
+          style={{ width: 'clamp(32px, 8vh, 48px)', height: 'clamp(32px, 8vh, 48px)', border: '2px solid #FFF', boxShadow: '0 clamp(2px, 0.8vh, 4px) 0 #D4A000, 0 clamp(3px, 1vh, 6px) rgba(0,0,0,0.2)' }}
+          whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #D4A000' }}
         >
-          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+          <Maximize style={{ width: "50%", height: "50%" }} className="text-[#3e366b]" />
         </motion.button>
         <motion.div
           initial={{ scale: 0 }}
@@ -496,18 +496,18 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
         <motion.button
           onClick={handleBack}
           className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000]"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}
+          style={{ width: 'clamp(32px, 8vh, 48px)', height: 'clamp(32px, 8vh, 48px)', border: '2px solid #FFF', boxShadow: '0 clamp(2px, 0.8vh, 4px) 0 #D4A000, 0 clamp(3px, 1vh, 6px) rgba(0,0,0,0.2)' }}
+          whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #D4A000' }}
         >
-          <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+          <ArrowLeft style={{ width: "50%", height: "50%" }} className="text-[#3e366b]" />
         </motion.button>
         <motion.button
           onClick={toggleFullscreen}
           className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000]"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}
+          style={{ width: 'clamp(32px, 8vh, 48px)', height: 'clamp(32px, 8vh, 48px)', border: '2px solid #FFF', boxShadow: '0 clamp(2px, 0.8vh, 4px) 0 #D4A000, 0 clamp(3px, 1vh, 6px) rgba(0,0,0,0.2)' }}
+          whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #D4A000' }}
         >
-          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+          <Maximize style={{ width: "50%", height: "50%" }} className="text-[#3e366b]" />
         </motion.button>
       </div>
 
@@ -531,7 +531,7 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
           onClick={handleSpeakerTap}
           className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#6B3FA0]"
           style={{ borderBottom: '4px solid #4A2B70', boxShadow: '0px 4px 0px rgba(0,0,0,0.15)' }}
-          whileTap={{ scale: 0.95, y: 3 }}
+          whileHover={{ scale: 1.1, y: -2 }} whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #D4A000' }}
           whileHover={{ scale: 1.1 }}
         >
           <Volume2 className="w-[18px] h-[18px] lg:w-5 lg:h-5 text-white" />
@@ -613,7 +613,7 @@ const LilyPadHopGame = ({ group, onBack, onPlayAgain }) => {
         >
           <motion.div
             className="bg-[#FFD000] px-6 py-2 md:px-8 md:py-3 rounded-2xl"
-            style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
+            style={{ width: 'clamp(32px, 8vh, 48px)', height: 'clamp(32px, 8vh, 48px)', border: '2px solid #FFF', boxShadow: '0 clamp(2px, 0.8vh, 4px) 0 #D4A000, 0 clamp(3px, 1vh, 6px) rgba(0,0,0,0.2)' }}
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
           >

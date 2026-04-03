@@ -173,12 +173,14 @@ const getWordFontSize = (word, base, vw, max) => {
   return `clamp(${(parseFloat(base) * scale).toFixed(1)}rem, ${(parseFloat(vw) * scale).toFixed(1)}vw, ${(parseFloat(max) * scale).toFixed(1)}rem)`;
 };
 
-const getWordFontSizeLg = (word, baseRem) => {
+const getWordFontSizeLg = (word) => {
   const len = word.length;
-  if (len <= 4) return `${baseRem}rem`;
-  if (len <= 5) return `${baseRem * 0.75}rem`;
-  const scale = Math.max(0.45, 4 / len);
-  return `${(baseRem * scale).toFixed(1)}rem`;
+  const base = 'clamp(7.5rem, 32vh, 15rem)'; 
+  if (len <= 4) return base;
+  if (len <= 5) return `calc(${base} * 0.7)`;
+  if (len <= 6) return `calc(${base} * 0.55)`;
+  const scale = Math.max(0.3, 4 / len);
+  return `calc(${base} * ${scale.toFixed(2)})`;
 };
 
 const FlashcardViewer = ({ group, onComplete }) => {
@@ -437,11 +439,8 @@ const FlashcardViewer = ({ group, onComplete }) => {
         </div>
       </div>
 
-      {/* Small screens: top half = pic, fixed center = speaker, bottom half = word */}
-      {/* Big screens (lg+): horizontal row — pic left | speaker center | word right */}
-
-      {/* --- SMALL/MEDIUM SCREEN LAYOUT (below lg) --- */}
-      <div className="h-full w-full flex flex-col lg:hidden">
+      {/* --- PORTRAIT LAYOUT (only when taller than wide) --- */}
+      <div className="h-full w-full flex flex-col landscape:hidden">
         {/* Top half: picture */}
         <div className="flex-1 flex items-center justify-center pb-10 md:pb-12 pt-10 md:pt-12 px-6">
           <AnimatePresence mode="wait" custom={direction}>
@@ -462,27 +461,27 @@ const FlashcardViewer = ({ group, onComplete }) => {
                   style={{
                     width: 'clamp(200px, 50vw, 350px)',
                     height: 'clamp(200px, 50vw, 350px)',
-                    padding: 'clamp(8px, 2vw, 16px)',
+                    padding: 'clamp(4px, 1vh, 10px)', // Reduced padding
                     boxShadow: '0px 8px 0px rgba(0,0,0,0.1)',
                   }}
                   animate={{ scale: [1, 1.02, 1] }}
                   transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
                 />
               ) : (
-                <motion.div
-                  className="rounded-3xl shadow-2xl bg-white flex items-center justify-center border-4 border-[#ae90fd]"
-                  style={{
-                    width: 'clamp(200px, 50vw, 350px)',
-                    height: 'clamp(200px, 50vw, 350px)',
-                    boxShadow: '0px 8px 0px rgba(0,0,0,0.1)',
+                <motion.button
+                  onClick={handleBlendOnce}
+                  className="flex items-center justify-center rounded-full bg-gradient-to-b from-[#A78BFA] to-[#7C3AED] relative overflow-hidden"
+                  style={{ 
+                    width: 'clamp(36px, 10vh, 50px)', height: 'clamp(36px, 10vh, 50px)',
+                    border: 'clamp(2px, 0.5vh, 3px) solid #3e366b', 
+                    boxShadow: '0 4px 0 #5B21B6, 0 4px 10px rgba(0,0,0,0.1)' 
                   }}
-                  animate={{ scale: [1, 1.02, 1] }}
-                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                  whileTap={{ scale: 0.95, y: 3 }}
+                  whileHover={{ scale: 1.1 }}
                 >
-                  <span style={{ fontSize: 'clamp(5rem, 12vw, 8rem)' }} className="text-[#ae90fd]">
-                    {currentItem.word.charAt(0).toUpperCase()}
-                  </span>
-                </motion.div>
+                  <div className="absolute top-0 left-1/4 right-1/4 h-1/4 bg-white/40 rounded-full pointer-events-none" />
+                  <Volume2 className="w-[60%] h-[60%] text-white" />
+                </motion.button>
               )}
             </motion.div>
           </AnimatePresence>
@@ -519,10 +518,10 @@ const FlashcardViewer = ({ group, onComplete }) => {
         </div>
       </div>
 
-      {/* --- LARGE SCREEN LAYOUT (lg+) --- */}
-      <div className="h-full w-full hidden lg:flex flex-row items-center justify-center px-24 py-12">
-        {/* Image left */}
-        <div className="flex-1 flex items-center justify-center">
+      {/* --- LANDSCAPE LAYOUT (side by side) --- */}
+      <div className="h-full w-full hidden landscape:flex flex-row items-center justify-center px-4 md:px-8 py-6 gap-2">
+        {/* LEFT: Image */}
+        <div className="flex-[0.4] flex items-center justify-center translate-y-[clamp(10px, 2vh, 30px)] z-10 pl-8 pr-4">
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={currentItem.word + '-img-lg'}
@@ -537,28 +536,26 @@ const FlashcardViewer = ({ group, onComplete }) => {
                   src={imagePath}
                   alt={currentItem.word}
                   onError={() => setImageError(true)}
-                  className="object-contain rounded-3xl shadow-2xl bg-white border-4 border-[#ae90fd]"
+                  className="object-contain rounded-[2rem] shadow-2xl bg-white border-[3px] border-[#ae90fd]"
                   style={{
-                    width: '420px',
-                    height: '420px',
-                    padding: '20px',
-                    boxShadow: '0px 8px 0px rgba(0,0,0,0.1)',
+                    width: 'clamp(140px, 55vh, 400px)',
+                    height: 'clamp(140px, 55vh, 400px)',
+                    padding: 'clamp(4px, 1vh, 12px)', // Reduced padding
+                    boxShadow: '0 clamp(4px, 1vh, 8px) 0 rgba(0,0,0,0.1)',
                   }}
                   animate={{ scale: [1, 1.02, 1] }}
                   transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
                 />
               ) : (
                 <motion.div
-                  className="rounded-3xl shadow-2xl bg-white flex items-center justify-center border-4 border-[#ae90fd]"
+                  className="rounded-[2rem] shadow-2xl bg-white flex items-center justify-center border-[3px] border-[#ae90fd]"
                   style={{
-                    width: '420px',
-                    height: '420px',
-                    boxShadow: '0px 8px 0px rgba(0,0,0,0.1)',
+                    width: 'clamp(140px, 55vh, 400px)',
+                    height: 'clamp(140px, 55vh, 400px)',
+                    boxShadow: '0 clamp(4px, 1vh, 8px) 0 rgba(0,0,0,0.1)',
                   }}
-                  animate={{ scale: [1, 1.02, 1] }}
-                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
                 >
-                  <span className="text-[10rem] text-[#ae90fd]">
+                  <span className="text-[10vh] md:text-[14vh] text-[#ae90fd] font-bold">
                     {currentItem.word.charAt(0).toUpperCase()}
                   </span>
                 </motion.div>
@@ -567,27 +564,31 @@ const FlashcardViewer = ({ group, onComplete }) => {
           </AnimatePresence>
         </div>
 
-        {/* Speaker center */}
-        <div className="mx-8 xl:mx-12">
+        {/* CENTER: Squishy Speaker Pill (Centered) */}
+        <div className="flex-[0.2] flex items-center justify-center translate-y-[clamp(10px, 2vh, 30px)] z-20">
           <motion.button
             onClick={() => { clearReminder(); handleBlendOnce(); }}
-            className={`p-5 transition-colors ${showReminder ? 'bg-[#E60023]' : 'bg-[#6B3FA0]'}`}
-            style={{
-              borderRadius: '1.6rem',
-              borderBottom: showReminder ? '5px solid #B8001B' : '5px solid #4A2B70',
-              boxShadow: showReminder ? '0px 6px 0px rgba(0,0,0,0.1), 0 0 20px rgba(230,0,35,0.5)' : '0px 6px 0px rgba(0,0,0,0.12)',
+            className={`flex items-center justify-center relative overflow-hidden bg-gradient-to-b from-[#A78BFA] to-[#7C3AED]`}
+            style={{ 
+              width: 'clamp(44px, 12vh, 64px)', height: 'clamp(44px, 12vh, 64px)',
+              borderRadius: '1.2rem',
+              border: 'clamp(2.5px, 0.6vh, 3.5px) solid #3e366b',
+              boxShadow: showReminder 
+                ? '0 4px 0 #5B21B6, 0 0 20px rgba(139,92,246,0.5)' 
+                : '0 4px 0 #5B21B6, 0 6px 12px rgba(0,0,0,0.1)' 
             }}
             whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95, y: 4 }}
-            animate={isSpeaking ? { scale: [1, 1.15, 1, 1.15, 1] } : showReminder ? { scale: [1, 1.12, 1] } : {}}
-            transition={isSpeaking ? { duration: 1, repeat: Infinity, ease: 'easeInOut' } : showReminder ? { duration: 0.8, repeat: Infinity, ease: 'easeInOut' } : {}}
+            whileTap={{ scale: 0.95, y: 3 }}
+            animate={showReminder ? { scale: [1, 1.05, 1] } : isBlending ? { scale: [1, 1.1, 1] } : {}}
+            transition={{ duration: 1.5, repeat: Infinity }}
           >
-            <Volume2 className="w-10 h-10 text-white" />
+            <div className="absolute top-0 left-1/4 right-1/4 h-1/4 bg-white/40 rounded-full pointer-events-none" />
+            <Volume2 style={{ width: '70%', height: '70%' }} className="text-white" />
           </motion.button>
         </div>
 
-        {/* Word right */}
-        <div className="flex-1 flex items-center justify-center pr-8 xl:pr-12">
+        {/* RIGHT: Phoneme Highlighted Text */}
+        <div className="flex-[0.5] flex items-center justify-center translate-y-[clamp(10px, 2vh, 30px)] z-10 pl-4 pr-10 md:pr-16">
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={currentItem.word + '-text-lg'}
@@ -600,7 +601,7 @@ const FlashcardViewer = ({ group, onComplete }) => {
             >
               <h1
                 className="font-bold tracking-wide"
-                style={{ fontSize: getWordFontSizeLg(currentItem.word, 14), lineHeight: 1.1 }}
+                style={{ fontSize: getWordFontSizeLg(currentItem.word), lineHeight: 1.1 }}
               >
                 <HighlightedWord
                   word={currentItem.word}
@@ -614,8 +615,8 @@ const FlashcardViewer = ({ group, onComplete }) => {
         </div>
       </div>
 
-      {/* Speaker button - FIXED CENTER for small/medium screens only, same level as yellow arrows */}
-      <div className="fixed left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-40 lg:hidden">
+      {/* Speaker button - FIXED CENTER for small screens (PORTRAIT ONLY) */}
+      <div className="fixed left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 z-40 landscape:hidden">
         <motion.button
           onClick={() => { clearReminder(); handleBlendOnce(); }}
           className={`p-4 md:p-5 transition-colors ${showReminder ? 'bg-[#E60023]' : 'bg-[#6B3FA0]'}`}

@@ -317,36 +317,33 @@ const SoundLearning = ({ group, onComplete }) => {
         </div>
       </div>
 
-      {/* Speaker button - upper area */}
-      <div className="fixed left-1/2 -translate-x-1/2 z-40" style={{ top: '18%' }}>
+      {/* Speaker button - mid-right and centered vertically to avoid video overlap */}
+      <div className="fixed left-[62%] top-[45%] -translate-x-1/2 -translate-y-1/2 z-40">
         <motion.button
           onClick={() => { clearReminder(); speakOnce(currentSound); }}
-          className={`p-4 md:p-5 lg:p-5 transition-colors ${showReminder ? 'bg-[#E60023]' : 'bg-[#6B3FA0]'}`}
+          className={`relative overflow-hidden flex items-center justify-center bg-gradient-to-b from-[#A78BFA] to-[#7C3AED]`}
           style={{
-            borderRadius: '1.6rem',
-            borderBottom: showReminder ? '5px solid #B8001B' : '5px solid #4A2B70',
+            width: 'clamp(44px, 11vh, 68px)',
+            height: 'clamp(44px, 11vh, 68px)',
+            borderRadius: '1.2rem',
+            border: 'clamp(2px, 0.5vh, 4px) solid #3e366b',
             boxShadow: showReminder
-              ? '0px 6px 0px rgba(0,0,0,0.1), 0 0 20px rgba(230,0,35,0.5)'
-              : '0px 6px 0px rgba(0,0,0,0.12)',
+              ? '0px 4px 0px #5B21B6, 0 0 24px rgba(139,92,246,0.6)'
+              : '0px 4px 0px #5B21B6',
           }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9, y: 4 }}
+          whileHover={{ scale: 1.15 }}
+          whileTap={{ scale: 0.9, y: 3 }}
           animate={
             isSpeaking
-              ? { scale: [1, 1.15, 1, 1.15, 1] }
+              ? { scale: [1, 1.25, 1, 1.25, 1], rotate: [0, -5, 5, 0] }
               : showReminder
               ? { scale: [1, 1.12, 1] }
               : {}
           }
-          transition={
-            isSpeaking
-              ? { duration: 1, repeat: Infinity, ease: 'easeInOut' }
-              : showReminder
-              ? { duration: 0.8, repeat: Infinity, ease: 'easeInOut' }
-              : {}
-          }
+          transition={{ duration: isSpeaking ? 0.6 : 1.2, repeat: Infinity }}
         >
-          <Volume2 className="w-8 h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 text-white" />
+          <div className="absolute top-0 left-1/4 right-1/4 h-1/4 bg-white/40 rounded-full pointer-events-none" />
+          <Volume2 className="w-[70%] h-[70%] text-white" />
         </motion.button>
       </div>
 

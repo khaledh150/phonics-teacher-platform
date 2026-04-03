@@ -477,12 +477,12 @@ const ExerciseMatch = ({ group, onComplete }) => {
       </div>
 
       {/* Game area: landscape = side-by-side, portrait = stacked */}
-      <div className="flex-1 w-full flex flex-col landscape:flex-row items-center justify-center px-3 md:px-6 lg:px-10 py-2 md:py-4 lg:py-6 gap-2 landscape:gap-4 md:gap-4 lg:gap-5">
+      <div className="flex-1 w-full flex flex-col landscape:flex-row items-center justify-center px-3 md:px-6 lg:px-10 py-2 md:py-4 lg:py-6 gap-2 landscape:gap-2 md:gap-4 lg:gap-5">
 
         {/* Pictures Grid */}
         <motion.div
           key={`pics-${gameKey}`}
-          className="grid grid-cols-2 justify-items-center gap-2 md:gap-3 lg:gap-4 w-full landscape:w-1/2 max-w-2xl lg:max-w-3xl"
+          className="grid grid-cols-2 landscape:grid-cols-3 justify-items-center gap-2 md:gap-3 lg:gap-4 w-full landscape:w-1/2 max-w-2xl lg:max-w-3xl"
           initial={{ opacity: 0, y: 40, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: 'spring', stiffness: 200, damping: 20 }}
@@ -497,7 +497,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
               <div
                 key={word + '-pic'}
                 className="w-full"
-                style={{ maxWidth: 'clamp(140px, min(32vw, 26vh), 220px)', visibility: 'hidden' }}
+                style={{ maxWidth: 'clamp(100px, min(15vw, 22vh), 180px)', visibility: 'hidden' }}
               >
                 <div className="aspect-[5/4]" />
               </div>
@@ -507,16 +507,16 @@ const ExerciseMatch = ({ group, onComplete }) => {
               <motion.button
                 key={word + '-pic'}
                 onClick={() => handlePicClick(word)}
-                className={`rounded-2xl shadow-lg transition-all flex items-center justify-center w-full aspect-[5/4] ${
+                className={`rounded-2xl shadow-lg transition-all flex items-center justify-center w-full aspect-[3.2/3] ${
                   isSelected
                     ? 'bg-[#4d79ff]/10 border-3 border-[#4d79ff] ring-4 ring-[#4d79ff]/20'
                     : isShaking
                     ? 'bg-red-50 border-3 border-red-400'
-                    : 'bg-white border-3 border-[#ffd700]/70 hover:border-[#4d79ff] hover:shadow-xl'
+                    : 'bg-white border-3 border-[#3e366b]/30 hover:border-[#4d79ff] hover:shadow-xl'
                 }`}
                 style={{
-                  maxWidth: 'clamp(140px, min(32vw, 26vh), 220px)',
-                  padding: 'clamp(4px, 1.5vw, 10px)',
+                  maxWidth: 'clamp(140px, min(24vw, 36vh), 320px)',
+                  padding: 'clamp(10px, 2vh, 24px)',
                 }}
                 initial={{ opacity: 0, y: 20, scale: 0.9 }}
                 animate={isShaking ? { opacity: 1, y: 0, scale: 1, x: [0, -8, 8, -8, 8, 0] } : { opacity: 1, y: 0, scale: 1 }}
@@ -532,7 +532,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
                   />
                 ) : (
                   <div className="w-full h-full rounded-xl bg-gradient-to-br from-[#ae90fd]/15 to-[#4d79ff]/15 flex items-center justify-center">
-                    <span style={{ fontSize: 'clamp(28px, 8vw, 56px)' }} className="text-[#ae90fd] font-bold">
+                    <span style={{ fontSize: 'clamp(32px, 10vw, 64px)' }} className="text-[#ae90fd] font-bold">
                       {word.charAt(0).toUpperCase()}
                     </span>
                   </div>
@@ -557,7 +557,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
         {/* Words Grid */}
         <motion.div
           key={`words-${gameKey}`}
-          className="grid grid-cols-2 justify-items-center gap-2 md:gap-3 lg:gap-4 w-full landscape:w-1/2 max-w-2xl lg:max-w-3xl"
+          className="grid grid-cols-2 landscape:grid-cols-3 justify-items-center gap-2 md:gap-3 lg:gap-4 w-full landscape:w-1/2 max-w-2xl lg:max-w-3xl"
           initial={{ opacity: 0, y: 40, scale: 0.9 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ delay: 0.2, type: 'spring', stiffness: 200, damping: 20 }}
@@ -571,7 +571,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
               <div
                 key={word}
                 className="w-full"
-                style={{ maxWidth: 'clamp(140px, min(32vw, 26vh), 220px)', visibility: 'hidden' }}
+                style={{ maxWidth: 'clamp(100px, min(15vw, 22vh), 180px)', visibility: 'hidden' }}
               >
                 <div className="aspect-[5/4]" />
               </div>
@@ -582,17 +582,17 @@ const ExerciseMatch = ({ group, onComplete }) => {
                 key={word}
                 layout
                 onClick={() => handleWordClick(word)}
-                className={`rounded-2xl font-bold shadow-lg transition-all flex flex-col items-center justify-center gap-1 w-full aspect-[5/4] ${
+                className={`rounded-2xl font-bold shadow-lg transition-all flex flex-col items-center justify-center gap-1 w-full aspect-[3.2/3] ${
                   isSelected
                     ? 'bg-[#4d79ff] text-white border-3 border-[#4d79ff] ring-4 ring-[#4d79ff]/20'
                     : isShaking
                     ? 'bg-red-50 text-red-500 border-3 border-red-400'
-                    : 'bg-white/10 text-white border-3 border-[#ae90fd]/60 hover:border-[#4d79ff] hover:shadow-xl'
+                    : 'bg-white/10 text-white border-3 border-[#3e366b]/30 hover:border-[#4d79ff] hover:shadow-xl'
                 }`}
                 style={{
-                  maxWidth: 'clamp(140px, min(32vw, 26vh), 220px)',
-                  fontSize: 'clamp(18px, min(5.5vw, 5vh), 36px)',
-                  padding: 'clamp(6px, 1.5vw, 12px)',
+                  maxWidth: 'clamp(140px, min(24vw, 36vh), 320px)',
+                  fontSize: 'clamp(24px, 6vh, 52px)',
+                  padding: 'clamp(8px, 1.2vh, 18px)',
                 }}
                 initial={{ opacity: 0, y: 20, scale: 0.9 }}
                 animate={isShaking ? { opacity: 1, y: 0, scale: 1, x: [0, -8, 8, -8, 8, 0] } : { opacity: 1, y: 0, scale: 1 }}
@@ -600,8 +600,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
                 whileHover={{ y: -3, scale: 1.03 }}
                 whileTap={{ scale: 0.95 }}
               >
-                <Volume2 style={{ width: 'clamp(14px, 4vw, 24px)', height: 'clamp(14px, 4vw, 24px)' }} className="opacity-30" />
-                <span>{word}</span>
+                <span className="text-center">{word}</span>
               </motion.button>
             );
           })}

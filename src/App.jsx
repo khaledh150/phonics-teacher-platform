@@ -117,7 +117,7 @@ function App() {
           <CurriculumMap
             onSelectGroup={handleSelectGroup}
             onOpenPlayground={handleOpenPlayground}
-            initialLevel={returnToGroups ? 1 : null}
+            initialLevel={selectedGroup?.level || 1}
             onLevelReset={() => setReturnToGroups(false)}
             onAppStarted={() => setAppStarted(true)}
           />

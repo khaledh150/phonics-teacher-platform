@@ -127,6 +127,15 @@ const GAMES = [
     unlocked: true,
     description: 'Feed words to the frog!',
   },
+  {
+    id: 'phonics-spell',
+    title: 'Say & Spell',
+    icon: '🎙️',
+    color: '#8B5CF6',
+    borderColor: '#7C3AED',
+    unlocked: true,
+    description: 'Say each sound, then blend!',
+  },
 ];
 
 const containerVariants = {
@@ -187,7 +196,7 @@ const PlaygroundHub = ({ group, onBack, onSelectGame }) => {
   };
 
   return (
-    <div className="h-screen w-screen overflow-y-auto relative flex flex-col items-center"
+    <div className="h-screen w-screen overflow-y-auto overflow-x-hidden scrollbar-hide relative flex flex-col items-center"
       style={{ background: 'linear-gradient(135deg, #1a1147 0%, #2d1b69 30%, #4a2c8a 60%, #6B3FA0 100%)' }}
     >
       {/* Floating sparkle decorations */}
@@ -205,24 +214,35 @@ const PlaygroundHub = ({ group, onBack, onSelectGame }) => {
         </div>
       ))}
 
-      {/* Back + Fullscreen buttons */}
+      {/* Back + Fullscreen buttons — gummy style matching CurriculumMap */}
       <div className="fixed top-3 left-3 z-[70] flex items-center gap-2">
         <motion.button
           onClick={handleBack}
-          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}
+          className="flex items-center justify-center rounded-full bg-gradient-to-b from-[#FFE55C] to-[#FFD000] relative overflow-hidden"
+          style={{
+            width: 'clamp(36px, 10vh, 56px)', height: 'clamp(36px, 10vh, 56px)',
+            border: 'clamp(2.5px, 0.6vh, 3.5px) solid #3e366b',
+            boxShadow: '0 4px 0 #D4A000, 0 4px 12px rgba(0,0,0,0.1)'
+          }}
+          whileHover={{ scale: 1.1, y: -2 }}
+          whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #D4A000' }}
         >
-          <ArrowLeft className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+          <div className="absolute top-0 left-1/4 right-1/4 h-1/4 bg-white/60 rounded-full pointer-events-none" />
+          <ArrowLeft style={{ width: '65%', height: '65%' }} className="text-[#3e366b]" />
         </motion.button>
         <motion.button
           onClick={toggleFullscreen}
-          className="p-2 md:p-2.5 lg:p-3 rounded-[1.2rem] bg-[#FFD000] transition-all"
-          style={{ borderBottom: '4px solid #E0B800', boxShadow: '0px 6px 0px rgba(0,0,0,0.1)' }}
-          whileTap={{ scale: 0.95, y: 3 }}
-          title="Toggle Fullscreen"
+          className="flex items-center justify-center rounded-full bg-gradient-to-b from-[#FFE55C] to-[#FFD000] relative overflow-hidden"
+          style={{
+            width: 'clamp(36px, 10vh, 56px)', height: 'clamp(36px, 10vh, 56px)',
+            border: 'clamp(2.5px, 0.6vh, 3.5px) solid #3e366b',
+            boxShadow: '0 4px 0 #D4A000, 0 4px 12px rgba(0,0,0,0.1)'
+          }}
+          whileHover={{ scale: 1.1, y: -2 }}
+          whileTap={{ scale: 0.9, y: 3, boxShadow: '0 0px 0 #D4A000' }}
         >
-          <Maximize className="w-[18px] h-[18px] lg:w-6 lg:h-6 text-[#3e366b]" />
+          <div className="absolute top-0 left-1/4 right-1/4 h-1/4 bg-white/60 rounded-full pointer-events-none" />
+          <Maximize style={{ width: '65%', height: '65%' }} className="text-[#3e366b]" />
         </motion.button>
       </div>
 
@@ -269,51 +289,54 @@ const PlaygroundHub = ({ group, onBack, onSelectGame }) => {
                   variants={cardVariants}
                   onClick={() => game.unlocked && onSelectGame(game.id)}
                   disabled={!game.unlocked}
-                  className={`relative flex flex-row items-center gap-3 md:gap-4 shrink-0 rounded-[1.8rem] font-bold transition-all ${
+                  className={`relative flex flex-row items-center gap-3 shrink-0 font-bold select-none ${
                     game.unlocked ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'
                   }`}
                   style={{
-                    backgroundColor: game.unlocked ? game.color : '#3a3260',
-                    borderBottom: `5px solid ${game.unlocked ? game.borderColor : '#2a2250'}`,
-                    boxShadow: '0px 6px 0px rgba(0,0,0,0.12)',
-                    width: 'clamp(240px, 45vw, 320px)',
-                    height: 'clamp(165px, 33vw, 225px)',
-                    paddingLeft: 'clamp(14px, 3vw, 24px)',
-                    paddingRight: 'clamp(14px, 3vw, 24px)',
+                    background: 'linear-gradient(145deg, rgba(255,255,255,1) 0%, rgba(245,245,255,1) 100%)',
+                    border: `clamp(2px, 0.6vh, 4px) solid ${game.unlocked ? game.color : '#888'}`,
+                    boxShadow: game.unlocked
+                      ? `0 clamp(3px, 1.5vh, 6px) 0 ${game.color}, 0 clamp(4px, 2vh, 10px) clamp(6px, 2.5vh, 15px) rgba(0,0,0,0.2), inset 0 clamp(2px, 1vh, 4px) 0 rgba(255,255,255,0.9)`
+                      : '0 clamp(3px, 1.5vh, 6px) 0 #777, 0 clamp(4px, 2vh, 10px) rgba(0,0,0,0.2)',
+                    width: 'clamp(150px, 42vh, 280px)',
+                    height: 'clamp(105px, 30vh, 210px)',
+                    borderRadius: 'clamp(1rem, 4vh, 2.5rem)',
+                    paddingLeft: 'clamp(10px, 2vw, 20px)',
+                    paddingRight: 'clamp(10px, 2vw, 20px)',
                   }}
                   whileHover={game.unlocked ? { scale: 1.05, y: -4 } : {}}
-                  whileTap={game.unlocked ? { scale: 0.95, y: 4 } : {}}
+                  whileTap={game.unlocked ? { scale: 0.95, y: 6, boxShadow: `0 0px 0 ${game.color}` } : {}}
                 >
                   {/* Lock overlay */}
                   {!game.unlocked && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-[1.8rem] bg-black/20 z-10">
+                    <div className="absolute inset-0 flex items-center justify-center rounded-[clamp(1rem,4vh,2.5rem)] bg-black/20 z-10">
                       <Lock className="w-8 h-8 md:w-10 md:h-10 text-white/60" />
                     </div>
                   )}
 
                   <div className="shrink-0 flex items-center justify-center">
                     {game.icon === 'frog-sprite' ? (
-                      <FrogSprite size={70} />
+                      <FrogSprite size={45} />
                     ) : game.icon === 'hotair-balloon' ? (
-                      <img src={hotairBalloonImg} alt="" className="select-none" style={{ width: 70, height: 70, objectFit: 'contain' }} draggable={false} />
+                      <img src={hotairBalloonImg} alt="" className="select-none" style={{ width: 45, height: 45, objectFit: 'contain' }} draggable={false} />
                     ) : (
-                      <span style={{ fontSize: 'clamp(2.5rem, 7vw, 3.5rem)' }}>{game.icon}</span>
+                      <span style={{ fontSize: 'clamp(1.5rem, 5vh, 2.5rem)' }}>{game.icon}</span>
                     )}
                   </div>
                   <div className="flex flex-col items-start min-w-0">
                     <span
-                      className="text-sm md:text-base lg:text-lg leading-tight font-extrabold"
-                      style={{ color: game.unlocked ? '#fff' : '#888' }}
+                      className="leading-tight font-extrabold"
+                      style={{ color: game.unlocked ? game.color : '#888', fontSize: 'clamp(0.85rem, 3.5vh, 1.3rem)' }}
                     >
                       {game.title}
                     </span>
                     {game.unlocked && game.description && (
-                      <span className="text-xs md:text-sm text-white/70 mt-0.5 leading-tight font-medium">
+                      <span className="text-[#3e366b]/60 mt-0.5 leading-tight font-medium" style={{ fontSize: 'clamp(0.6rem, 2.2vh, 0.95rem)' }}>
                         {game.description}
                       </span>
                     )}
                     {!game.unlocked && (
-                      <span className="text-xs md:text-sm text-white/40 mt-0.5 font-medium">
+                      <span className="text-xs md:text-sm text-[#888] mt-0.5 font-medium">
                         Coming Soon
                       </span>
                     )}
