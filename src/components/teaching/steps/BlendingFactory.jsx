@@ -341,6 +341,7 @@ const BlendingFactory = ({ group, onComplete }) => {
   }, [allDone]);
 
   const findSlotAtPoint = useCallback((x, y) => {
+    // First try exact hit via elementsFromPoint
     const els = document.elementsFromPoint(x, y);
     for (const el of els) {
       const slotIdx = el.getAttribute('data-slot-idx');
@@ -350,7 +351,22 @@ const BlendingFactory = ({ group, onComplete }) => {
         if (parentIdx !== null) return parseInt(parentIdx, 10);
       }
     }
-    return -1;
+    // Fallback: find nearest slot within generous proximity (touch can be imprecise)
+    const slotEls = document.querySelectorAll('[data-slot-idx]');
+    let bestIdx = -1;
+    let bestDist = Infinity;
+    const threshold = 60; // px tolerance
+    for (const el of slotEls) {
+      const rect = el.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dist = Math.hypot(x - cx, y - cy);
+      if (dist < bestDist && dist < rect.width / 2 + threshold) {
+        bestDist = dist;
+        bestIdx = parseInt(el.getAttribute('data-slot-idx'), 10);
+      }
+    }
+    return bestIdx;
   }, []);
 
   const handleDrop = useCallback((letterId, letterObj, nativeEvent) => {
@@ -500,10 +516,11 @@ const BlendingFactory = ({ group, onComplete }) => {
               key={`slot-${wordIdx}-${idx}`}
               data-slot-idx={idx}
               onClick={() => handleSlotTap(idx)}
-              className="relative flex items-center justify-center rounded-xl md:rounded-2xl border-3 cursor-pointer"
+              className="relative flex items-center justify-center border-3 cursor-pointer"
               style={{
                 width: 'clamp(55px, 12vw, 15vh)',
                 height: 'clamp(65px, 14vw, 18vh)',
+                borderRadius: 'clamp(6px, 1.2vw, 10px)',
                 borderColor: slots[idx] ? SLOT_COLORS[slots[idx].originalIdx % SLOT_COLORS.length] : '#3e366b30',
                 borderStyle: slots[idx] ? 'solid' : 'dashed',
                 backgroundColor: slots[idx] ? SLOT_COLORS[slots[idx].originalIdx % SLOT_COLORS.length] : 'white',
@@ -581,14 +598,23 @@ const DraggableLetter = ({ letter, onDrop, color, entranceDelay = 0 }) => {
   useEffect(() => {
     if (!isDragging) return;
     const onMove = (e) => {
-      const t = e.touches?.[0] || e;
+      const t = e.touches?.[0] || e.changedTouches?.[0] || e;
       lastPointerRef.current = { x: t.clientX, y: t.clientY };
     };
     window.addEventListener('pointermove', onMove);
     window.addEventListener('touchmove', onMove, { passive: true });
+    // Capture final position on touch end (touchmove can miss last frame)
+    const onEnd = (e) => {
+      const t = e.changedTouches?.[0] || e;
+      if (t.clientX !== undefined) lastPointerRef.current = { x: t.clientX, y: t.clientY };
+    };
+    window.addEventListener('pointerup', onEnd);
+    window.addEventListener('touchend', onEnd, { passive: true });
     return () => {
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('pointerup', onEnd);
+      window.removeEventListener('touchend', onEnd);
     };
   }, [isDragging]);
 
@@ -597,8 +623,9 @@ const DraggableLetter = ({ letter, onDrop, color, entranceDelay = 0 }) => {
       className="cursor-grab active:cursor-grabbing select-none touch-none"
       drag
       dragSnapToOrigin
-      dragElastic={0.3}
+      dragElastic={0.8}
       dragMomentum={false}
+      dragTransition={{ bounceStiffness: 500, bounceDamping: 30 }}
       onDragStart={(e) => {
         setIsDragging(true);
         const t = e.touches?.[0] || e;
@@ -620,11 +647,11 @@ const DraggableLetter = ({ letter, onDrop, color, entranceDelay = 0 }) => {
       style={{ zIndex: isDragging ? 100 : 10 }}
     >
       <div
-        className="flex items-center justify-center rounded-xl md:rounded-2xl shadow-lg font-bold text-white pointer-events-none"
+        className="flex items-center justify-center shadow-lg font-bold text-white pointer-events-none"
         style={{
         width: 'clamp(55px, 12vw, 15vh)',
         height: 'clamp(65px, 14vw, 18vh)',
-        borderRadius: '1.2rem',
+        borderRadius: 'clamp(6px, 1.2vw, 10px)',
         borderBottomWidth: 'clamp(4px, 1vh, 6px)',
         fontSize: 'clamp(1.6rem, 7vh, 3rem)',
         backgroundColor: color,
