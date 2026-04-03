@@ -22,9 +22,27 @@ import { playCorrectSfx, playWrongSfx } from '../../../utils/sfx';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const AZURE_KEY = import.meta.env.VITE_AZURE_SPEECH_KEY;
-const AZURE_REGION = import.meta.env.VITE_AZURE_SPEECH_REGION || 'southeastasia';
-const AZURE_ENDPOINT = import.meta.env.VITE_AZURE_ENDPOINT;
+// Azure keys loaded at runtime — never baked into the build bundle.
+// In production, set these via window.__AZURE_CONFIG__ or fetch from a backend.
+// In dev, read from .env via import.meta.env (only available during dev server, not in built output).
+const getAzureConfig = () => {
+  // Runtime config (for production — set by a script tag or API call)
+  if (window.__AZURE_CONFIG__) return window.__AZURE_CONFIG__;
+  // Dev mode — Vite injects these only during dev server
+  if (import.meta.env.DEV) {
+    return {
+      key: import.meta.env.VITE_AZURE_SPEECH_KEY || '',
+      region: import.meta.env.VITE_AZURE_SPEECH_REGION || 'southeastasia',
+      endpoint: import.meta.env.VITE_AZURE_ENDPOINT || '',
+    };
+  }
+  return { key: '', region: 'southeastasia', endpoint: '' };
+};
+
+const AZURE = getAzureConfig();
+const AZURE_KEY = AZURE.key;
+const AZURE_REGION = AZURE.region;
+const AZURE_ENDPOINT = AZURE.endpoint;
 
 const WORDS_PER_SESSION = 3;
 const PASS_THRESHOLD = 55;
@@ -315,11 +333,14 @@ const StarScore = ({ score }) => {
 const PhonicsSpellGameInner = ({ group, onBack, onPlayAgain }) => {
   // Build session words with phoneme data
   const [sessionWords] = useState(() => {
-    const wordsWithPhonemes = (group.words || []).map((w) => ({
-      ...w,
-      phonemes: wordToPhonemes(w.word, group.sounds),
-      letters: wordToPhonemes(w.word, group.sounds), // letters = phonemes for Jolly Phonics
-    }));
+    if (!group?.words?.length) return [];
+    const wordsWithPhonemes = group.words
+      .filter((w) => w.word && w.word.length > 0)
+      .map((w) => ({
+        ...w,
+        phonemes: wordToPhonemes(w.word, group.sounds),
+        letters: wordToPhonemes(w.word, group.sounds),
+      }));
     const shuffled = [...wordsWithPhonemes].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, WORDS_PER_SESSION);
   });
@@ -391,14 +412,14 @@ const PhonicsSpellGameInner = ({ group, onBack, onPlayAgain }) => {
     setTimeout(() => { if (mountedRef.current) setFeedback(null); }, 2500);
   }, []);
 
-  // ── Request mic permission ──
-  const handleMicPermission = useCallback(async () => {
+  // ── Start game (request mic if needed) ──
+  const handleStart = useCallback(async () => {
     const allowed = await requestMicPermission();
     setMicAllowed(allowed);
-    if (allowed) {
-      setPhase(PHASE.SEGMENT);
-    } else {
-      showFeedbackMsg('Microphone access needed! Please allow it in your browser.', 'error');
+    // Always proceed to segment phase — dev mode works without mic
+    setPhase(PHASE.SEGMENT);
+    if (!allowed && AZURE_KEY) {
+      showFeedbackMsg('Microphone access needed for scoring.', 'warn');
     }
   }, [showFeedbackMsg]);
 
@@ -626,7 +647,7 @@ const PhonicsSpellGameInner = ({ group, onBack, onPlayAgain }) => {
               Say each letter sound one by one, then blend them into the word!
             </p>
 
-            <GummyButton variant="yellow" onClick={handleMicPermission}>
+            <GummyButton variant="yellow" onClick={handleStart}>
               <Mic style={{ width: 20, height: 20 }} className="mr-2" />
               Let's Go!
             </GummyButton>
@@ -810,4 +831,16 @@ const PhonicsSpellGameInner = ({ group, onBack, onPlayAgain }) => {
 };
 
 // ── Wrapper with gameKey for replay ──
-co
+const PhonicsSpellGame = ({ group, onBack }) => {
+  const [gameKey, setGameKey] = useState(0);
+  return (
+    <PhonicsSpellGameInner
+      key={gameKey}
+      group={group}
+      onBack={onBack}
+      onPlayAgain={() => setGameKey((k) => k + 1)}
+    />
+  );
+};
+
+export default PhonicsSpellGame;
