@@ -124,7 +124,7 @@ const ALL_SOUNDS = [
 let balloonIdCounter = 0;
 
 // --- Main Component ---
-const SoundBalloons = ({ group, onComplete }) => {
+const SoundBalloons = ({ group, onComplete, onReady, active }) => {
   const [showResults, setShowResults] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [gameStarted, setGameStarted] = useState(false);
@@ -153,6 +153,9 @@ const SoundBalloons = ({ group, onComplete }) => {
 
   const sounds = group.sounds;
   const idleReminderRef = useRef(null);
+
+  // Signal readiness to parent when PixiJS canvas is initialized
+  useEffect(() => { if (pixiReady) onReady?.(); }, [pixiReady]);
 
   const clearIdleReminder = useCallback(() => {
     clearTimeout(idleReminderRef.current);
@@ -243,9 +246,10 @@ const SoundBalloons = ({ group, onComplete }) => {
           height: h,
           backgroundAlpha: 1,
           backgroundColor: 0x87CEEB,
-          antialias: true,
-          resolution: 1,
+          antialias: false,
+          resolution: window.devicePixelRatio < 2 ? 1 : 0.8,
           autoDensity: true,
+          powerPreference: 'high-performance',
         });
 
         if (destroyed) { app.destroy(true); return; }
@@ -524,6 +528,7 @@ const SoundBalloons = ({ group, onComplete }) => {
 
   // Tutorial + 3-2-1-GO countdown (waits for pixi to be ready)
   useEffect(() => {
+    if (!active) return;
     if (gameStarted || !pixiReady) return;
     let cancelled = false;
     const isCancelled = () => cancelled;
@@ -567,7 +572,7 @@ const SoundBalloons = ({ group, onComplete }) => {
     };
     run();
     return () => { cancelled = true; stopVO(); clearIdleReminder(); setTutorialHand(null); setShowCountdown(false); setShowTutorialOverlay(false); };
-  }, [gameStarted, pixiReady, sounds, announceSound]);
+  }, [active, gameStarted, pixiReady, sounds, announceSound]);
 
   // Play instruction VO + target sound once game starts (separate effect so it isn't cancelled by gameStarted state change)
   useEffect(() => {

@@ -92,14 +92,21 @@ const GroupCard = ({ group, idx, isPC, onSelect, onLongPress, longPressGroup, lo
           )}
         </div>
 
-        {/* Footer label — group name with clean look */}
-        <div className="flex items-center justify-center px-2 py-0.5 md:py-1">
-          <span className="font-extrabold text-center tracking-tight"
+        {/* Footer label — group name + sounds */}
+        <div className="flex flex-col items-center justify-center px-2 py-0.5 md:py-1" style={{ gap: '1px' }}>
+          <span className="font-extrabold text-center tracking-tight leading-tight"
             style={{
               color: '#3e366b',
-              fontSize: isPC ? '1.1rem' : 'clamp(0.75rem, 3.2vh, 1.1rem)',
+              fontSize: isPC ? '1rem' : 'clamp(0.65rem, 2.8vh, 1rem)',
             }}>
             {group.title}
+          </span>
+          <span className="font-extrabold text-center leading-tight truncate max-w-full"
+            style={{
+              color: group.color,
+              fontSize: isPC ? '0.85rem' : 'clamp(0.6rem, 2.5vh, 0.85rem)',
+            }}>
+            {group.sounds.map(s => getDisplaySound(s)).join(', ')}
           </span>
         </div>
       </motion.button>
@@ -150,12 +157,13 @@ const LEVELS = [
   { id: 6, title: 'Level 6', color: '#ff6b9d', locked: true },
 ];
 
-const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelReset, onAppStarted }) => {
+const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelReset, onAppStarted, skipSplash }) => {
   const [selectedLevel, setSelectedLevel] = useState(initialLevel || null);
   const [isPC, setIsPC] = useState(false);
-  const [hasInteracted, setHasInteracted] = useState(!!initialLevel);
+  const [hasInteracted, setHasInteracted] = useState(!!initialLevel || !!skipSplash);
   const returnedFromTeachingRef = useRef(!!initialLevel);
   const welcomePlayingRef = useRef(false);
+  const [showTransitionLoader, setShowTransitionLoader] = useState(false);
   const [longPressGroup, setLongPressGroup] = useState(null);
   const longPressTimerRef = useRef(null);
   const justLongPressedRef = useRef(false);
@@ -199,7 +207,7 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
   }, [selectedLevel, hasInteracted]);
 
   const handleTapToStart = async () => {
-    setHasInteracted(true);
+    setShowTransitionLoader(true);
     onAppStarted?.();
     try {
       await document.documentElement.requestFullscreen?.();
@@ -208,11 +216,19 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
     welcomePlayingRef.current = true;
     await playVO('Welcome to Wonder Phonics!');
     welcomePlayingRef.current = false;
+    setHasInteracted(true);
+    // Brief loader for smooth transition
+    setTimeout(() => setShowTransitionLoader(false), 300);
   };
 
-  const handleLevelClick = (level) => {
+  const handleLevelClick = async (level) => {
     if (level.locked) return;
+    setShowTransitionLoader(true);
+    stopVO();
+    await delay(200);
     setSelectedLevel(level.id);
+    // Hide after groups render
+    setTimeout(() => setShowTransitionLoader(false), 400);
   };
 
   const handleSelectGroup = (group) => {
@@ -279,6 +295,23 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
             <span className="fixed bottom-2 left-1/2 -translate-x-1/2 text-[#3e366b]/40 font-bold z-10 whitespace-nowrap" style={{ fontSize: 'clamp(0.6rem, 2.5vh, 0.85rem)' }}>
               &copy; 2026 Wonder Kids Co. All rights reserved.
             </span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Transition loading overlay */}
+      <AnimatePresence>
+        {showTransitionLoader && (
+          <motion.div
+            className="fixed inset-0 z-[150] flex flex-col items-center justify-center bg-gradient-to-br from-[#1a1147] via-[#2d1b69] to-[#1a1147]"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 0.5, ease: 'easeInOut' }}
+          >
+            <motion.div animate={{ y: [0, -20, 0] }} transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}>
+              <BookOpen className="w-20 h-20 md:w-28 md:h-28 text-white" strokeWidth={1.5} />
+            </motion.div>
+            <p className="mt-6 text-lg md:text-2xl font-bold text-white animate-pulse">Loading...</p>
           </motion.div>
         )}
       </AnimatePresence>

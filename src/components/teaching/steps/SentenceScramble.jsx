@@ -74,7 +74,10 @@ function shuffle(arr) {
   return a;
 }
 
-const SentenceScramble = ({ group, onComplete }) => {
+const SentenceScramble = ({ group, onComplete, onReady, active }) => {
+  // Signal readiness to parent (DOM-based step, ready immediately)
+  useEffect(() => { onReady?.(); }, []);
+
   const { sentenceData, sentences } = useMemo(() => {
     // Only include sentences that have a matching picture
     const data = group.words
@@ -93,6 +96,7 @@ const SentenceScramble = ({ group, onComplete }) => {
   const [isCorrect, setIsCorrect] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [allDone, setAllDone] = useState(false);
+  const [resultCountdown, setResultCountdown] = useState(5);
   const [checkWrong, setCheckWrong] = useState(false);
   // Reading animation state
   const [readingPhase, setReadingPhase] = useState(null); // 'dictation' | 'reading' | null
@@ -123,6 +127,7 @@ const SentenceScramble = ({ group, onComplete }) => {
 
   // VO on mount — no sentence dictation (don't reveal answer before user tries)
   useEffect(() => {
+    if (!active) return;
     cancelledRef.current = false;
     const run = async () => {
       await playVO("Let's build a sentence!");
@@ -135,7 +140,7 @@ const SentenceScramble = ({ group, onComplete }) => {
     };
     run();
     return () => { cancelledRef.current = true; stopVO(); clearIdleReminder(); };
-  }, []);
+  }, [active]);
 
   // Per-sentence VO reminder — no dictation (don't reveal answer)
   useEffect(() => {
@@ -287,6 +292,27 @@ const SentenceScramble = ({ group, onComplete }) => {
     }, 500);
   };
 
+  // 5-second auto-advance when all done (use ref to avoid re-triggering on onComplete identity change)
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; });
+  useEffect(() => {
+    if (!allDone) return;
+    setResultCountdown(5);
+    let cancelled = false;
+    let count = 5;
+    const countdownInterval = setInterval(() => {
+      count -= 1;
+      if (count <= 0) {
+        clearInterval(countdownInterval);
+        setResultCountdown(0);
+        if (!cancelled) setTimeout(() => onCompleteRef.current(), 0);
+      } else {
+        setResultCountdown(count);
+      }
+    }, 1000);
+    return () => { cancelled = true; clearInterval(countdownInterval); };
+  }, [allDone]);
+
   const handleWordTap = (word) => {
     speakWithVoice(word.text, { rate: 0.85 });
     if (!isLocked) {
@@ -339,15 +365,17 @@ const SentenceScramble = ({ group, onComplete }) => {
           >&#128218;</motion.span>
           <h2 className="text-2xl md:text-3xl font-black text-white mb-2" style={{ textShadow: '0 2px 0 rgba(0,0,0,0.2)' }}>Sentence Master!</h2>
           <p className="text-[#e0e7ff] font-extrabold text-lg mb-8">You built {sentences.length} sentences!</p>
-          <motion.button
-            onClick={() => onComplete()}
-            className="px-8 py-3 bg-[#22c55e] text-white font-bold text-base md:text-lg"
-            style={{ borderRadius: '1.6rem', borderBottom: '5px solid #16a34a', boxShadow: '0px 6px 0px rgba(0,0,0,0.12)' }}
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.95, y: 4 }}
+          <motion.div
+            className="flex items-center justify-center gap-2 text-white/70 text-sm font-medium"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
           >
-            Complete &#10003;
-          </motion.button>
+            <span>Next step in</span>
+            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white font-bold text-base">
+              {resultCountdown}
+            </span>
+          </motion.div>
         </motion.div>
       </div>
     );
@@ -415,7 +443,7 @@ const SentenceScramble = ({ group, onComplete }) => {
           {/* Shelf (answer zone) */}
           <div className="w-full max-w-3xl">
             <motion.div
-              className="rounded-xl p-4 md:p-5 flex flex-wrap items-center justify-center gap-3 md:gap-4 transition-all duration-500"
+              className="rounded-xl p-4 md:p-5 flex flex-wrap items-center justify-center gap-1 md:gap-1.5 transition-all duration-500"
               style={{
                 minHeight: 'clamp(50px, 10vh, 75px)',
                 borderWidth: showBorders ? 3 : 0,
@@ -442,23 +470,24 @@ const SentenceScramble = ({ group, onComplete }) => {
                     <motion.button
                       key={word.id}
                       onClick={() => isLocked ? speakWithVoice(word.text, { rate: 0.85 }) : handleRemoveFromShelf(word)}
-                      className="px-5 py-3 md:px-7 md:py-4 lg:px-9 lg:py-5 font-bold text-white shadow-lg select-none"
+                      className="font-bold select-none px-1"
                       style={{
-                        backgroundColor: isCorrect ? '#22c55e' : BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length],
                         fontSize: 'clamp(1.4rem, 5.5vh, 3rem)',
-                        borderRadius: showBorders ? 'clamp(0.5rem, 1.6vh, 0.9rem)' : '0.4rem',
-                        border: showBorders ? undefined : 'none',
-                        boxShadow: showBorders ? undefined : 'none',
+                        color: isCorrect ? '#22c55e' : '#ffffff',
+                        textShadow: isHighlighted ? '0 0 20px rgba(255,210,0,0.8)' : '0 2px 8px rgba(0,0,0,0.3)',
+                        background: 'none',
+                        border: 'none',
+                        boxShadow: 'none',
                       }}
                       initial={{ opacity: 0, scale: 0.5, y: 15 }}
                       animate={{
                         opacity: 1,
-                        scale: isHighlighted ? 1.2 : 1,
-                        y: isHighlighted ? -8 : 0,
-                        backgroundColor: isHighlighted && isDictationPhase ? '#FFD000'
+                        scale: isHighlighted ? 1.15 : 1,
+                        y: isHighlighted ? -4 : 0,
+                        color: isHighlighted && isDictationPhase ? '#FFD000'
                           : isHighlighted && isInReadingPhase ? '#FF6600'
                             : isCorrect ? '#22c55e'
-                              : BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length],
+                              : '#ffffff',
                       }}
                       exit={{ opacity: 0, scale: 0.5, transition: { duration: 0.15 } }}
                       whileTap={!isLocked ? { scale: 0.95 } : {}}

@@ -37,11 +37,13 @@ export const triggerCelebration = () => {
  */
 export const triggerSmallBurst = () => {
   confetti({
-    particleCount: 40,
-    spread: 60,
+    particleCount: 25,
+    spread: 55,
     origin: { y: 0.65 },
     colors: CELEBRATION_COLORS,
-    scalar: 0.8,
+    scalar: 0.7,
+    ticks: 80,
+    gravity: 1.2,
   });
 };
 

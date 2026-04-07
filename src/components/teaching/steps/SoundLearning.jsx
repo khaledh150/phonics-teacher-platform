@@ -101,7 +101,7 @@ const playMultiLetterVO = async (sound) => {
   }
 };
 
-const SoundLearning = ({ group, onComplete }) => {
+const SoundLearning = ({ group, onComplete, onReady, active }) => {
   const [soundIndex, setSoundIndex] = useState(0);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [videoError, setVideoError] = useState(false);
@@ -121,6 +121,9 @@ const SoundLearning = ({ group, onComplete }) => {
   const reminderRef = useRef(null);
   const [showReminder, setShowReminder] = useState(false);
   const autoAdvanceRef = useRef(null);
+
+  // Signal readiness to parent (DOM-based step, ready immediately)
+  useEffect(() => { onReady?.(); }, []);
 
   // Start idle reminder timer — plays "Tap the speaker" VO after 6s of no interaction
   const startReminderTimer = useCallback(() => {
@@ -203,19 +206,15 @@ const SoundLearning = ({ group, onComplete }) => {
     if (cancelledRef.current) return;
     await playOnce(sound);
     if (cancelledRef.current) return;
-    // Auto-advance ONLY if no video available — when video exists, let user control pace
-    const hasVideo = !!(getSoundYouTube(group.id, sound) || getSoundVideo(group.id, sound));
-    if (!hasVideo) {
-      clearTimeout(autoAdvanceRef.current);
-      autoAdvanceRef.current = setTimeout(() => {
-        if (!cancelledRef.current) goNextRef.current?.();
-      }, 1500);
-    } else {
-      startReminderTimer();
-    }
+    // Auto-advance after VO sequence completes — video is optional, user can play manually
+    clearTimeout(autoAdvanceRef.current);
+    autoAdvanceRef.current = setTimeout(() => {
+      if (!cancelledRef.current) goNextRef.current?.();
+    }, 1500);
   }, [playOnce, group, startReminderTimer]);
 
   useEffect(() => {
+    if (!active) return; // Wait for preloader to finish before starting VO
     setVideoError(false);
     setMusicError(false);
     clearReminder();
@@ -249,7 +248,7 @@ const SoundLearning = ({ group, onComplete }) => {
       clearTimeout(autoAdvanceRef.current);
       window.speechSynthesis.cancel();
     };
-  }, [currentSound, speakSound, clearReminder]);
+  }, [active, currentSound, speakSound, clearReminder]);
 
   const goNext = () => {
     cancelledRef.current = true;
@@ -362,7 +361,7 @@ const SoundLearning = ({ group, onComplete }) => {
               className="flex flex-col items-center w-full"
             >
               <div
-                className="w-full rounded-2xl overflow-hidden shadow-xl bg-white/10 border-3 border-[#ae90fd]"
+                className="w-full rounded-2xl overflow-hidden shadow-xl bg-white/10 border-3 border-[#ae90fd] relative z-[35]"
                 style={{
                   maxWidth: 'clamp(280px, min(85vw, 45vw), 560px)',
                   aspectRatio: '16/9',

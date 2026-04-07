@@ -338,9 +338,10 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
           width: w,
           height: h,
           backgroundAlpha: 0,
-          antialias: true,
-          resolution: 1,
+          antialias: false,
+          resolution: window.devicePixelRatio < 2 ? 1 : 0.8,
           autoDensity: true,
+          powerPreference: 'high-performance',
         });
         if (destroyedRef.current) { app.destroy(true); return; }
 
@@ -845,6 +846,21 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
 
   return (
     <div className="h-screen w-screen overflow-hidden relative flex flex-col">
+      {/* Loading overlay — stays until PixiJS + textures are fully loaded */}
+      <AnimatePresence>
+        {!pixiReady && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-[#1a1147] via-[#2d1b69] to-[#1a1147]"
+            exit={{ opacity: 0, scale: 1.1 }}
+            transition={{ duration: 0.5, ease: 'easeInOut' }}
+          >
+            <motion.div animate={{ y: [0, -20, 0] }} transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}>
+              <span className="text-7xl">🫧</span>
+            </motion.div>
+            <p className="mt-6 text-lg md:text-2xl font-bold text-white animate-pulse">Setting up the game...</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Sky background: blue sky + clouds + birds (all behind canvas) */}
       <SkyFullBackground />
 

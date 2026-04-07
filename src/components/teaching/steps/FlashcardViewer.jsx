@@ -164,12 +164,13 @@ const HighlightedWord = ({ word, activePhonemeIndex, highlightAll, groupSounds }
 };
 
 // Scale font size down for longer words so they don't overflow
+// Portrait mode: slightly smaller to balance with picture on small screens
 const getWordFontSize = (word, base, vw, max) => {
   const len = word.length;
-  if (len <= 4) return `clamp(${base}, ${vw}, ${max})`;
-  if (len <= 5) return `clamp(${parseFloat(base) * 0.75}rem, ${parseFloat(vw) * 0.75}vw, ${parseFloat(max) * 0.75}rem)`;
+  if (len <= 4) return `clamp(${parseFloat(base) * 0.7}rem, ${parseFloat(vw) * 0.8}vw, ${parseFloat(max) * 0.8}rem)`;
+  if (len <= 5) return `clamp(${parseFloat(base) * 0.55}rem, ${parseFloat(vw) * 0.6}vw, ${parseFloat(max) * 0.6}rem)`;
   // 6+ chars — scale aggressively
-  const scale = Math.max(0.45, 4 / len);
+  const scale = Math.max(0.35, 3.5 / len);
   return `clamp(${(parseFloat(base) * scale).toFixed(1)}rem, ${(parseFloat(vw) * scale).toFixed(1)}vw, ${(parseFloat(max) * scale).toFixed(1)}rem)`;
 };
 
@@ -183,7 +184,7 @@ const getWordFontSizeLg = (word) => {
   return `calc(${base} * ${scale.toFixed(2)})`;
 };
 
-const FlashcardViewer = ({ group, onComplete }) => {
+const FlashcardViewer = ({ group, onComplete, onReady, active }) => {
   const [[currentIndex, direction], setCurrentIndex] = useState([0, 0]);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isBlending, setIsBlending] = useState(false);
@@ -191,6 +192,9 @@ const FlashcardViewer = ({ group, onComplete }) => {
   const [activePhoneme, setActivePhoneme] = useState(null); // index of phoneme being played, -1 = full word
   const speechTimeoutRef = useRef(null);
   const blendingRef = useRef(false);
+
+  // Signal readiness to parent (DOM-based step, ready immediately)
+  useEffect(() => { onReady?.(); }, []);
 
   const words = group.words;
   const currentItem = words[currentIndex];
@@ -324,6 +328,7 @@ const FlashcardViewer = ({ group, onComplete }) => {
   }, [runOneBlendCycle]);
 
   useEffect(() => {
+    if (!active) return;
     setImageError(false);
     setActivePhoneme(null);
     setIsBlending(false);
@@ -355,7 +360,7 @@ const FlashcardViewer = ({ group, onComplete }) => {
       clearReminder();
       window.speechSynthesis.cancel();
     };
-  }, [currentIndex, handleBlendAndSpeak, clearReminder]);
+  }, [active, currentIndex, handleBlendAndSpeak, clearReminder]);
 
   useEffect(() => {
     return () => {

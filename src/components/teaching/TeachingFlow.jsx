@@ -68,6 +68,8 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showPreloader, setShowPreloader] = useState(true);
   const [stepReady, setStepReady] = useState(false);
+  const [stepComponentReady, setStepComponentReady] = useState(false);
+  const minTimeElapsedRef = useRef(false);
   const [showGroupFinish, setShowGroupFinish] = useState(false);
   const [showPlayground, setShowPlayground] = useState(false);
   const [activeGame, setActiveGame] = useState(null);
@@ -86,20 +88,45 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
     return () => window.removeEventListener('resize', check);
   }, []);
 
+  // Readiness-based preloader: wait for BOTH minimum time AND step component ready
+  const tryHidePreloader = useCallback(() => {
+    if (minTimeElapsedRef.current && stepComponentReady) {
+      setShowPreloader(false);
+    }
+  }, [stepComponentReady]);
+
   useEffect(() => {
+    // Reset for each new step
+    minTimeElapsedRef.current = false;
+    setStepComponentReady(false);
+    setStepReady(false);
+
     let cancelled = false;
     const run = async () => {
       if (stepIndex === 0) {
         await playVO("Let's learn!");
         if (cancelled) return;
-        await delay(300);
+        await delay(200);
         if (cancelled) return;
       }
-      setShowPreloader(false);
+      minTimeElapsedRef.current = true;
+      tryHidePreloader();
     };
-    const timer = setTimeout(() => { if (!cancelled) run(); }, 1500);
-    return () => { cancelled = true; clearTimeout(timer); stopVO(); };
-  }, [stepIndex]);
+    // Start VO after brief display, min 400ms
+    const timer = setTimeout(() => { if (!cancelled) run(); }, 400);
+    // Safety fallback: force hide after 6 seconds regardless
+    const fallback = setTimeout(() => { if (!cancelled) setShowPreloader(false); }, 6000);
+    return () => { cancelled = true; clearTimeout(timer); clearTimeout(fallback); stopVO(); };
+  }, [stepIndex, tryHidePreloader]);
+
+  // When step component signals ready, try to hide preloader
+  useEffect(() => {
+    if (stepComponentReady) tryHidePreloader();
+  }, [stepComponentReady, tryHidePreloader]);
+
+  const handleStepReady = useCallback(() => {
+    setStepComponentReady(true);
+  }, []);
 
   const autoAdvanceTimerRef = useRef(null);
   const advancingRef = useRef(false);
@@ -268,19 +295,19 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
   const renderStep = () => {
     switch (currentStep) {
       case 'sounds':
-        return <SoundLearning group={group} onComplete={handleStepComplete} />;
+        return <SoundLearning group={group} onComplete={handleStepComplete} onReady={handleStepReady} active={stepReady} />;
       case 'song':
-        return <GroupSong group={group} onComplete={handleStepComplete} />;
+        return <GroupSong group={group} onComplete={handleStepComplete} onReady={handleStepReady} active={stepReady} />;
       case 'words':
-        return <FlashcardViewer group={group} onComplete={handleStepComplete} />;
+        return <FlashcardViewer group={group} onComplete={handleStepComplete} onReady={handleStepReady} active={stepReady} />;
       case 'balloons':
-        return <SoundBalloons group={group} onComplete={handleNextStep} />;
+        return <SoundBalloons group={group} onComplete={handleNextStep} onReady={handleStepReady} active={stepReady} />;
       case 'exercise':
-        return <ExerciseMatch group={group} onComplete={handleNextStep} />;
+        return <ExerciseMatch group={group} onComplete={handleNextStep} onReady={handleStepReady} active={stepReady} />;
       case 'blending':
-        return <BlendingFactory group={group} onComplete={handleNextStep} />;
+        return <BlendingFactory group={group} onComplete={handleNextStep} onReady={handleStepReady} active={stepReady} />;
       case 'sentences':
-        return <SentenceScramble group={group} onComplete={handleNextStep} />;
+        return <SentenceScramble group={group} onComplete={handleNextStep} onReady={handleStepReady} active={stepReady} />;
       default:
         return null;
     }
@@ -289,20 +316,18 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
   return (
     <div className="h-[100dvh] w-screen overflow-hidden relative" style={{ background: 'linear-gradient(135deg, #1e1252 0%, #3a2287 100%)' }}>
 
-      {/* Step Content - full screen */}
+      {/* Step Content - always rendered (behind preloader) so it can init assets */}
       <AnimatePresence mode="wait">
-        {stepReady && (
-          <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -40 }}
-            transition={{ duration: 0.7, ease: 'easeInOut' }}
-            className="h-[100dvh] w-full z-10 relative"
-          >
-            {renderStep()}
-          </motion.div>
-        )}
+        <motion.div
+          key={currentStep}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.3, ease: 'easeInOut' }}
+          className="h-[100dvh] w-full z-10 relative"
+        >
+          {renderStep()}
+        </motion.div>
       </AnimatePresence>
 
       {/* Preloader */}

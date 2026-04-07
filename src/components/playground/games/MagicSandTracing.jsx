@@ -58,17 +58,17 @@ const ASCENDERS = new Set(['b', 'd', 'f', 'h', 'k', 'l', 't']);
 // ─── Sand particles ───────────────────────────────────────────────────────
 class SandParticles {
   constructor() { this.p = []; }
-  emit(x, y, count = 6) {
+  emit(x, y, count = 3) {
     for (let i = 0; i < count; i++) {
       // Scatter sideways and slightly downward — sand settles, doesn't fly up
       const a = Math.PI * 0.1 + Math.random() * Math.PI * 0.8; // 18°-162° (downward arc)
-      const spd = 1.2 + Math.random() * 2.5;
+      const spd = 1.0 + Math.random() * 2.0;
       this.p.push({
         x, y,
         vx: Math.cos(a) * spd * (Math.random() > 0.5 ? 1 : -1),
         vy: Math.abs(Math.sin(a)) * spd * 0.5 + 0.3,
-        life: 1, decay: 0.015 + Math.random() * 0.02,
-        size: 6 + Math.random() * 10, hue: 35 + Math.random() * 25,
+        life: 1, decay: 0.02 + Math.random() * 0.025,
+        size: 3 + Math.random() * 6, hue: 35 + Math.random() * 25,
       });
     }
   }
@@ -634,7 +634,7 @@ async function extractTracingPaths(char, isUppercase, canvasW, canvasH) {
     // For letters where the main vertical stroke should come first but SVG
     // digit ordering puts the horizontal bar first (T, I uppercase).
     // Rule: put the longest (tallest) non-dot stroke first.
-    const VERTICAL_FIRST_LETTERS = ['T_U', 'I_U'];
+    const VERTICAL_FIRST_LETTERS = ['T_U', 'I_U', 'K_U', 'k_L', 'R_U', 'P_U', 'p_L'];
     if (VERTICAL_FIRST_LETTERS.includes(svgKey) && strokes.length > 1) {
       let tallestIdx = 0;
       let tallestH = 0;
@@ -851,7 +851,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
     const measure = () => {
       if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
-      const side = Math.min(rect.width, rect.height) * 0.92;
+      const side = Math.min(rect.width, rect.height) * 0.96;
       setCanvasSize({
         w: Math.round(Math.max(side, 100)),
         h: Math.round(Math.max(side, 100)),
@@ -983,6 +983,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
     }, 8000);
   }, []);
 
+  // Play "Trace the letter!" + alphabet VO once per new round (not per upper/lower switch)
   useEffect(() => {
     let cancelled = false;
     mountedRef.current = true;
@@ -992,7 +993,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
       await delay(200);
       if (cancelled) return;
       const s = currentSoundRef.current;
-      if (s && s.length === 1) await playLetterVO(s).catch(() => {});
+      if (s) await playLetterVO(s).catch(() => {});
       if (cancelled) return;
       startIdleReminder();
       if (!cancelled) setInstructionLock(false);
@@ -1007,7 +1008,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
       clearTimeout(crabIdleTimerRef.current);
       cancelAnimationFrame(animFrameRef.current);
     };
-  }, [startIdleReminder]);
+  }, [roundNumber, startIdleReminder]);
 
   // ── Stroke complete ──
   const handleStrokeComplete = useCallback(async () => {
@@ -1119,7 +1120,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
 
     if (distCursor <= GRAB_RADIUS || distStart <= GRAB_RADIUS) {
       if (currentStroke.isDot) {
-        particlesRef.current.emit(startPt.x, startPt.y, 12);
+        particlesRef.current.emit(startPt.x, startPt.y, 6);
         redrawCanvas();
         handleStrokeComplete();
         return;
@@ -1156,7 +1157,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
           y: cursorPosRef.current.y + (pathPt.y - cursorPosRef.current.y) * 0.75,
         };
         setCursorPos({ ...cursorPosRef.current });
-        particlesRef.current.emit(cursorPosRef.current.x, cursorPosRef.current.y, 8);
+        particlesRef.current.emit(cursorPosRef.current.x, cursorPosRef.current.y, 4);
       }
 
       redrawCanvas();
@@ -1166,12 +1167,12 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
       // where arrow is physically near the start of a circular stroke)
       const endPt = currentStroke.pts[currentStroke.pts.length - 1];
       const pctDone = newIdx / (currentStroke.pts.length - 1);
-      const minProgressMet = pctDone >= 0.65;
+      const minProgressMet = pctDone >= 0.75;
       const nearArrow = minProgressMet && currentStroke.arrowPt
-        ? dist(currentStroke.pts[newIdx], currentStroke.arrowPt) < trailWidth * 0.5
+        ? dist(currentStroke.pts[newIdx], currentStroke.arrowPt) < trailWidth * 0.4
         : false;
       const nearEnd = minProgressMet && endPt
-        ? dist(currentStroke.pts[newIdx], endPt) < trailWidth * 0.5
+        ? dist(currentStroke.pts[newIdx], endPt) < trailWidth * 0.4
         : false;
       const isComplete = nearArrow || nearEnd || pctDone >= COMPLETION_THRESHOLD;
 
@@ -1280,6 +1281,8 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
       onPointerUp={handlePointerUp} onPointerLeave={handlePointerUp}
       style={{ touchAction: 'none' }}>
 
+      {/* Loading overlay — only on initial game load, not on letter/case transitions */}
+
       <BeachBackground />
       <div className="absolute inset-0 bg-black/10 pointer-events-none" style={{ zIndex: 0 }} />
 
@@ -1349,7 +1352,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
       <div className="flex-1 flex items-center justify-center p-2 relative z-10">
         <div className="flex flex-col items-center justify-center w-full h-full max-h-[95vh]">
           <div ref={containerRef} className="relative flex items-center justify-center"
-            style={{ width: '100%', height: '100%', maxWidth: 'min(85vw, 600px)', maxHeight: 'min(70vh, 550px)' }}>
+            style={{ width: '100%', height: '100%', maxWidth: 'min(90vw, 650px)', maxHeight: 'min(78vh, 600px)' }}>
 
             {/* Frozen completed letters — slide to left edge, vertically centered */}
             {frozenLetters.map((frozen, idx) => {
@@ -1380,24 +1383,20 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
             })}
 
             {/* Active letter canvas — centered, lowercase positioned for real writing */}
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
               <motion.div
                 key={`canvas-${roundNumber}-${activeLetterIdx}-${letterCase}`}
-                initial={{ x: 80, opacity: 0, scale: 0.8 }}
+                initial={{ opacity: 0 }}
                 animate={{
-                  x: 0, opacity: 1,
+                  opacity: 1,
                   scale: isUppercase ? 1 : 0.85,
-                  // Lowercase baseline positioning:
-                  // Descenders (g,j,p,q,y) sit lower — their tails go below the line
-                  // Ascenders (b,d,f,h,k,l,t) sit at same height as uppercase
-                  // Short letters (a,c,e,m,n,o,r,s,u,v,w,x,z) sit a bit lower (mid-height)
                   y: isUppercase ? 0
                     : DESCENDERS.has(currentChar) ? canvasSize.h * 0.08
                     : ASCENDERS.has(currentChar) ? 0
                     : canvasSize.h * 0.04,
                 }}
-                exit={{ x: -80, opacity: 0, scale: 0.6 }}
-                transition={{ duration: 0.4, ease: 'easeInOut' }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
                 className="relative flex-shrink-0"
                 style={{
                   width: canvasSize.w, height: canvasSize.h,

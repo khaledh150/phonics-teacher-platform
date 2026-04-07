@@ -6,11 +6,14 @@ import { speakWithVoice } from '../../../utils/speech';
 import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
 import { getDisplaySound } from '../../../utils/letterSounds';
 
-const GroupSong = ({ group, onComplete }) => {
+const GroupSong = ({ group, onComplete, onReady, active }) => {
   const [currentSoundIdx, setCurrentSoundIdx] = useState(0);
   const [playMode, setPlayMode] = useState('idle'); // idle, playing-all, done
   const audioRef = useRef(null);
   const videoRef = useRef(null);
+
+  // Signal readiness to parent (DOM-based step, ready immediately)
+  useEffect(() => { onReady?.(); }, []);
 
   const sounds = group.sounds;
   const currentSound = sounds[currentSoundIdx];
@@ -85,6 +88,7 @@ const GroupSong = ({ group, onComplete }) => {
 
   // VO on mount + auto-start sing-along
   useEffect(() => {
+    if (!active) return;
     let cancelled = false;
     const run = async () => {
       await playVO('Sing along time!');
@@ -97,7 +101,7 @@ const GroupSong = ({ group, onComplete }) => {
     };
     run();
     return () => { cancelled = true; stopVO(); };
-  }, []);
+  }, [active]);
 
   return (
     <div className="h-full w-full relative overflow-hidden">

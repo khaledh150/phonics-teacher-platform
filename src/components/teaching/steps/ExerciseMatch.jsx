@@ -226,7 +226,10 @@ const FinalCelebration = () => (
   </motion.div>
 );
 
-const ExerciseMatch = ({ group, onComplete }) => {
+const ExerciseMatch = ({ group, onComplete, onReady, active }) => {
+  // Signal readiness to parent (DOM-based step, ready immediately)
+  useEffect(() => { onReady?.(); }, []);
+
   // Build randomized rounds: shuffle all words, distribute into rounds so every word is played
   const roundsRef = useRef([]);
   const buildRounds = useCallback(() => {
@@ -292,6 +295,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
 
   // Init on mount — build fresh randomized rounds each time
   useEffect(() => {
+    if (!active) return;
     const rounds = buildRounds();
     setRound(0);
     setAllComplete(false);
@@ -312,7 +316,7 @@ const ExerciseMatch = ({ group, onComplete }) => {
     };
     run();
     return () => { cancelled = true; stopVO(); clearIdleReminder(); };
-  }, [buildRounds]);
+  }, [active, buildRounds]);
 
   // VO + confetti + 5-second auto-advance on all rounds complete
   useEffect(() => {

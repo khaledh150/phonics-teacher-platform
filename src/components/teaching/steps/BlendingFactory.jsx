@@ -122,7 +122,10 @@ const splitIntoBlocks = (word, groupSounds) => {
   return blocks;
 };
 
-const BlendingFactory = ({ group, onComplete }) => {
+const BlendingFactory = ({ group, onComplete, onReady, active }) => {
+  // Signal readiness to parent (DOM-based step, ready immediately)
+  useEffect(() => { onReady?.(); }, []);
+
   const words = useMemo(() => {
     const withImages = group.words.filter(w => getWordImage(group.id, w.image || w.word) !== null);
     const list = withImages.length > 0 ? [...withImages] : [...group.words];
@@ -186,6 +189,7 @@ const BlendingFactory = ({ group, onComplete }) => {
 
   // VO on mount - sequenced (no auto dictation — user must tap speaker)
   useEffect(() => {
+    if (!active) return;
     cancelledRef.current = false;
     const run = async () => {
       await playVO("Let's build the word together!");
@@ -199,7 +203,7 @@ const BlendingFactory = ({ group, onComplete }) => {
     };
     run();
     return () => { cancelledRef.current = true; stopVO(); clearIdleReminder(); };
-  }, []);
+  }, [active]);
 
   // Per-word idle reminder (no auto dictation — user must tap speaker)
   useEffect(() => {
