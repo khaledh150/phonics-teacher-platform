@@ -22,26 +22,29 @@ import { playCorrectSfx, playWrongSfx } from '../../../utils/sfx';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-// Azure keys loaded at runtime — never baked into the build bundle.
-// In production, set these via window.__AZURE_CONFIG__ or fetch from a backend.
-// In dev, read from .env via import.meta.env (only available during dev server, not in built output).
-const getAzureConfig = () => {
-  // Runtime config (override via script tag or API call)
-  if (window.__AZURE_CONFIG__) return window.__AZURE_CONFIG__;
-  // Vite statically replaces VITE_ env vars at build time (both dev and production)
-  return {
-    key: import.meta.env.VITE_AZURE_SPEECH_KEY || '',
-    region: import.meta.env.VITE_AZURE_SPEECH_REGION || 'southeastasia',
-    endpoint: import.meta.env.VITE_AZURE_ENDPOINT || '',
-  };
-};
+// Azure credentials are fetched as a short-lived token from /api/speech-token
+// (Vercel serverless function). The actual subscription key never reaches the browser.
+let _azureToken = null;
+let _azureRegion = null;
+let _tokenExpiry = 0;
 
-const AZURE = getAzureConfig();
-const AZURE_KEY = AZURE.key;
-const AZURE_REGION = AZURE.region;
-const AZURE_ENDPOINT = AZURE.endpoint;
-if (!AZURE_KEY) console.warn('[PhonicsSpellGame] No Azure key — speech recognition will be simulated.');
-else console.log('[PhonicsSpellGame] Azure key loaded, region:', AZURE_REGION);
+async function getAzureToken() {
+  if (_azureToken && Date.now() < _tokenExpiry) return { token: _azureToken, region: _azureRegion };
+  try {
+    const res = await fetch('/api/speech-token');
+    if (!res.ok) return null;
+    const data = await res.json();
+    _azureToken = data.token;
+    _azureRegion = data.region;
+    _tokenExpiry = Date.now() + 8 * 60 * 1000; // tokens last ~10 min, refresh at 8
+    return { token: _azureToken, region: _azureRegion };
+  } catch {
+    return null;
+  }
+}
+
+const AZURE_AVAILABLE = { current: null };
+getAzureToken().then(r => { AZURE_AVAILABLE.current = !!r; });
 
 const WORDS_PER_SESSION = 3;
 const PASS_THRESHOLD = 15; // Phonemes score very low — accept any reasonable recognition
@@ -176,13 +179,14 @@ async function loadSpeechSDK() {
 
 // ─── MAI-Voice-1 TTS via Azure Speech SDK ────────────────────────────────────
 
-// Speak word using Azure MAI-Voice-1 TTS (subscription-based, correct region)
+// Speak word using Azure TTS via short-lived auth token
 async function speakWord(text) {
   const sdk = await loadSpeechSDK();
-  if (sdk && AZURE_KEY) {
+  const azure = await getAzureToken();
+  if (sdk && azure) {
     try {
       return await new Promise((resolve) => {
-        const config = sdk.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
+        const config = sdk.SpeechConfig.fromAuthorizationToken(azure.token, azure.region);
         config.speechSynthesisVoiceName = 'en-US-AnaNeural';
         const synth = new sdk.SpeechSynthesizer(config);
         const timer = setTimeout(() => { try { synth.close(); } catch(_){} resolve(); }, 5000);
@@ -239,7 +243,8 @@ const matchesExpected = (recognized, originalPhoneme) => {
 async function assessPronunciation(expectedText, timeoutMs = 3000, originalPhoneme = null) {
   // Small delay to let previous recognizer fully close (prevents SDK null reject crash)
   await delay(100);
-  if (!AZURE_KEY) {
+  const azure = await getAzureToken();
+  if (!azure) {
     await delay(1200);
     return { score: 75 + Math.random() * 20, passed: true, phonemeResults: [], recognized: '' };
   }
@@ -251,7 +256,7 @@ async function assessPronunciation(expectedText, timeoutMs = 3000, originalPhone
   }
 
   return new Promise((resolve) => {
-    const speechConfig = sdk.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
+    const speechConfig = sdk.SpeechConfig.fromAuthorizationToken(azure.token, azure.region);
     speechConfig.speechRecognitionLanguage = 'en-US';
 
     let audioConfig;
@@ -497,7 +502,7 @@ const PhonicsSpellGameInner = ({ group, onBack, onPlayAgain }) => {
     setMicAllowed(allowed);
     // Always proceed to segment phase — dev mode works without mic
     setPhase(PHASE.SEGMENT);
-    if (!allowed && AZURE_KEY) {
+    if (!allowed && AZURE_AVAILABLE.current) {
       showFeedbackMsg('Microphone access needed for scoring.', 'warn');
     }
   }, [showFeedbackMsg]);

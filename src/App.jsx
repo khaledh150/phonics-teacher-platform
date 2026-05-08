@@ -26,7 +26,7 @@ const HungryFrogs = lazy(() => import('./components/playground/games/HungryFrogs
 const PhonicsSpellGame = lazy(() => import('./components/playground/games/PhonicsSpellGame'));
 
 // Increment this manually when you want to force a cache reset on deployed versions
-const APP_VERSION = "2.5.65";
+const APP_VERSION = "2.5.66";
 
 // Keys to preserve across version upgrades (progress data survives cache busts)
 const PRESERVED_KEYS = ['last_installed_version', 'wp_progress'];
