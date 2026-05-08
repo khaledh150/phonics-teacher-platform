@@ -46,7 +46,10 @@
       "Bash(npx vitest:*)",
       "Bash(node -e ':*)",
       "Bash(npx vite:*)",
-      "Bash([ -f \"$f.mp3\" ])"
+      "Bash([ -f \"$f.mp3\" ])",
+      "Bash(flutter --version)",
+      "Bash(flutter pub:*)",
+      "Bash(flutter analyze:*)"
     ]
   }
 }
