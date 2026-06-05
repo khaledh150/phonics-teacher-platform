@@ -23,10 +23,10 @@ const MagicSandTracing = lazy(() => import('./components/playground/games/MagicS
 const CarnivalWheel = lazy(() => import('./components/playground/games/CarnivalWheel'));
 const ScratchDiscover = lazy(() => import('./components/playground/games/ScratchDiscover'));
 const HungryFrogs = lazy(() => import('./components/playground/games/HungryFrogs'));
-const PhonicsSpellGame = lazy(() => import('./components/playground/games/PhonicsSpellGame'));
+// const PhonicsSpellGame = lazy(() => import('./components/playground/games/PhonicsSpellGame'));
 
 // Increment this manually when you want to force a cache reset on deployed versions
-const APP_VERSION = "2.5.66";
+const APP_VERSION = "2.5.68";
 
 // Keys to preserve across version upgrades (progress data survives cache busts)
 const PRESERVED_KEYS = ['last_installed_version', 'wp_progress'];
@@ -229,9 +229,6 @@ function App() {
 
         {screen === 'playground' && selectedGroup && activeGame === 'hungry-frogs' && (
           <HungryFrogs group={selectedGroup} onBack={() => setActiveGame(null)} />
-        )}
-        {screen === 'playground' && selectedGroup && activeGame === 'phonics-spell' && (
-          <PhonicsSpellGame group={selectedGroup} onBack={() => setActiveGame(null)} />
         )}
         </Suspense>
       </div>

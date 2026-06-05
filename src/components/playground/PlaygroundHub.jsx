@@ -127,15 +127,6 @@ const GAMES = [
     unlocked: true,
     description: 'Feed words to the frog!',
   },
-  {
-    id: 'phonics-spell',
-    title: 'Say & Spell',
-    icon: '🎙️',
-    color: '#8B5CF6',
-    borderColor: '#7C3AED',
-    unlocked: true,
-    description: 'Say each sound, then blend!',
-  },
 ];
 
 const containerVariants = {

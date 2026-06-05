@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home, Lock, Maximize, BookOpen, Gamepad2, Settings, VolumeX, Volume2, Sparkles } from 'lucide-react';
 import { PHONICS_GROUPS } from '../../data/phonicsData';
-import wonderPhonicsLogo from '../../assets/wonder-phonics-logo.webp';
+import wonderPhonicsLogo from '../../assets/wonderkids-logo.webp';
 import group1Img from '../../assets/lvl1/group-1.png';
 import group2Img from '../../assets/lvl1/group-2.png';
 import group3Img from '../../assets/lvl1/group-3.png';

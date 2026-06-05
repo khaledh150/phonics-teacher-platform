@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import wonderPhonicsLogo from '../../assets/wonder-phonics-logo.webp';
+import wonderPhonicsLogo from '../../assets/wonderkids-logo.webp';
 
 const SplashScreen = ({ onStart }) => {
   return (
