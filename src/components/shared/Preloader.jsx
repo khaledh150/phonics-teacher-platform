@@ -27,8 +27,8 @@ const Preloader = ({ isVisible, onExitComplete, messages: customMessages }) => {
         <motion.div
           className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-[#1a1147] via-[#2d1b69] to-[#1a1147]"
           initial={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 1.1 }}
-          transition={{ duration: 0.5, ease: 'easeInOut' }}
+          exit={{ opacity: 0, scale: 1.05 }}
+          transition={{ duration: 0.15, ease: 'easeOut' }}
         >
           {/* Animated icon */}
           <motion.div

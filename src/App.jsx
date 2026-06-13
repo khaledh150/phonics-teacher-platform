@@ -25,8 +25,24 @@ const ScratchDiscover = lazy(() => import('./components/playground/games/Scratch
 const HungryFrogs = lazy(() => import('./components/playground/games/HungryFrogs'));
 // const PhonicsSpellGame = lazy(() => import('./components/playground/games/PhonicsSpellGame'));
 
+// Eagerly fetch all game chunks so selecting a game is instant
+const preloadAllGames = () => {
+  import('./components/playground/games/MagicFlashlight');
+  import('./components/playground/games/BubbleSpell');
+  import('./components/playground/games/MonsterFeeder');
+  import('./components/playground/games/WhackASound');
+  import('./components/playground/games/CatchTheDrop');
+  import('./components/playground/games/BouncyMemory');
+  import('./components/playground/games/ShadowMatch');
+  import('./components/playground/games/LilyPadHop');
+  import('./components/playground/games/MagicSandTracing');
+  import('./components/playground/games/CarnivalWheel');
+  import('./components/playground/games/ScratchDiscover');
+  import('./components/playground/games/HungryFrogs');
+};
+
 // Increment this manually when you want to force a cache reset on deployed versions
-const APP_VERSION = "2.5.68";
+const APP_VERSION = "2.5.69";
 
 // Keys to preserve across version upgrades (progress data survives cache busts)
 const PRESERVED_KEYS = ['last_installed_version', 'wp_progress'];
@@ -108,6 +124,7 @@ function App() {
   const handleOpenPlayground = useCallback((group) => {
     window.speechSynthesis.cancel();
     preloadGroup(group.id);
+    preloadAllGames();
     setSelectedGroup(group);
     setActiveGame(null);
     setScreen('playground');

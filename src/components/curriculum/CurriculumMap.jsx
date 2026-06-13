@@ -217,18 +217,15 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
     await playVO('Welcome to Wonder Phonics!');
     welcomePlayingRef.current = false;
     setHasInteracted(true);
-    // Brief loader for smooth transition
-    setTimeout(() => setShowTransitionLoader(false), 300);
+    setTimeout(() => setShowTransitionLoader(false), 100);
   };
 
   const handleLevelClick = async (level) => {
     if (level.locked) return;
     setShowTransitionLoader(true);
     stopVO();
-    await delay(200);
     setSelectedLevel(level.id);
-    // Hide after groups render
-    setTimeout(() => setShowTransitionLoader(false), 400);
+    setTimeout(() => setShowTransitionLoader(false), 100);
   };
 
   const handleSelectGroup = (group) => {
@@ -305,10 +302,10 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
           <motion.div
             className="fixed inset-0 z-[150] flex flex-col items-center justify-center bg-gradient-to-br from-[#1a1147] via-[#2d1b69] to-[#1a1147]"
             initial={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            transition={{ duration: 0.5, ease: 'easeInOut' }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15, ease: 'easeOut' }}
           >
-            <motion.div animate={{ y: [0, -20, 0] }} transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}>
+            <motion.div animate={{ y: [0, -12, 0] }} transition={{ duration: 0.8, repeat: Infinity, ease: 'easeInOut' }}>
               <BookOpen className="w-20 h-20 md:w-28 md:h-28 text-white" strokeWidth={1.5} />
             </motion.div>
             <p className="mt-6 text-lg md:text-2xl font-bold text-white animate-pulse">Loading...</p>

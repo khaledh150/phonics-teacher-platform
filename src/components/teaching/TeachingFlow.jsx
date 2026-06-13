@@ -102,20 +102,15 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
     setStepReady(false);
 
     let cancelled = false;
-    const run = async () => {
-      if (stepIndex === 0) {
-        await playVO("Let's learn!");
-        if (cancelled) return;
-        await delay(200);
-        if (cancelled) return;
-      }
+    const run = () => {
+      if (stepIndex === 0) playVO("Let's learn!");
       minTimeElapsedRef.current = true;
       tryHidePreloader();
     };
-    // Start VO after brief display, min 400ms
-    const timer = setTimeout(() => { if (!cancelled) run(); }, 400);
-    // Safety fallback: force hide after 6 seconds regardless
-    const fallback = setTimeout(() => { if (!cancelled) setShowPreloader(false); }, 6000);
+    // No artificial wait — hide as soon as step is ready
+    run();
+    // Fallback: force hide if step never signals ready
+    const fallback = setTimeout(() => { if (!cancelled) setShowPreloader(false); }, 1500);
     return () => { cancelled = true; clearTimeout(timer); clearTimeout(fallback); stopVO(); };
   }, [stepIndex, tryHidePreloader]);
 
