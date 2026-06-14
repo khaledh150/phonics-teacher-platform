@@ -789,8 +789,8 @@ const SoundBalloons = ({ group, onComplete, onReady, active }) => {
         )}
       </AnimatePresence>
 
-      {/* Header HUD — z-50 to be above canvas */}
-      <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-4 pt-3 md:pt-4 lg:pt-6">
+      {/* Header HUD — pointer-events-none so balloons behind title are tappable */}
+      <div className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between px-4 pt-3 md:pt-4 lg:pt-6 pointer-events-none">
         {/* Title — top center */}
         <div className="flex-1" />
         <motion.span
@@ -801,7 +801,7 @@ const SoundBalloons = ({ group, onComplete, onReady, active }) => {
           Pop the Balloons!
         </motion.span>
         <div className="flex-1 flex justify-end">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 pointer-events-auto">
             <div className="bg-white/10 backdrop-blur-sm rounded-full px-3 py-1 lg:px-4 lg:py-1.5 flex items-center gap-2">
               <span className="text-xs lg:text-sm text-white/50 font-medium">
                 {displayTargetIdx + 1}/{sounds.length}
