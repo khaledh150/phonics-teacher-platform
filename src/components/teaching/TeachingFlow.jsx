@@ -425,9 +425,9 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
             )}
           </div>
 
-          {/* Floating step progress dots — hidden during balloon game so they don't block taps */}
+          {/* Floating step progress dots — hidden during gameplay steps so they don't block taps */}
           <div
-            className={`flex items-center justify-center cursor-pointer ${STEPS[stepIndex] === 'balloons' ? 'hidden' : ''}`}
+            className={`flex items-center justify-center cursor-pointer ${STEPS[stepIndex] !== 'sounds' && STEPS[stepIndex] !== 'words' ? 'hidden' : ''}`}
             style={{ padding: 'clamp(4px, 1vh, 8px)' }}
             onClick={() => setShowStepNav(true)}
           >
