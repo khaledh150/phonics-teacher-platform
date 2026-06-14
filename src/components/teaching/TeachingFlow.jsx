@@ -102,13 +102,14 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
     setStepReady(false);
 
     let cancelled = false;
-    const run = () => {
-      if (stepIndex === 0) playVO("Let's learn!");
-      minTimeElapsedRef.current = true;
-      tryHidePreloader();
-    };
-    // No artificial wait — hide as soon as step is ready
-    run();
+    if (stepIndex === 0) playVO("Let's learn!");
+    // Fixed 1s loading screen — long enough to feel intentional, short enough to not annoy
+    const timer = setTimeout(() => {
+      if (!cancelled) {
+        minTimeElapsedRef.current = true;
+        tryHidePreloader();
+      }
+    }, 1000);
     // Fallback: force hide if step never signals ready
     const fallback = setTimeout(() => { if (!cancelled) setShowPreloader(false); }, 1500);
     return () => { cancelled = true; clearTimeout(timer); clearTimeout(fallback); stopVO(); };

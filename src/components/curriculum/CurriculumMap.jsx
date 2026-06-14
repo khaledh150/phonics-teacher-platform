@@ -253,8 +253,8 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
           <motion.div
             key="splash"
             initial={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.1 }}
-            transition={{ duration: 0.8, ease: "easeInOut" }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
             className="fixed inset-0 z-[200] flex flex-col items-center justify-center cursor-pointer overflow-hidden bg-[#1e1252]"
             onClick={handleTapToStart}
           >
@@ -399,10 +399,10 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
           /* ========== LEVEL SELECTION (Second Screen) ========== */
           <motion.div
             key="levels"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.1, y: -50 }}
-            transition={{ duration: 0.6, type: "spring", bounce: 0.4 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, y: -30 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             className="flex flex-col items-center justify-center w-full h-[100dvh] relative z-10 px-2 overflow-hidden"
           >
             {/* Enlarged Logo on Level Selection */}
@@ -487,10 +487,10 @@ const CurriculumMap = ({ onSelectGroup, onOpenPlayground, initialLevel, onLevelR
           /* ========== GROUP SELECTION (Level 1) ========== */
           <motion.div
             key="groups"
-            initial={returnedFromTeachingRef.current ? false : { opacity: 0, x: '100vw' }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: '-100vw' }}
-            transition={{ duration: 0.6, type: "spring", bounce: 0.2 }}
+            initial={returnedFromTeachingRef.current ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             className="flex flex-col items-center w-full min-h-[100dvh] relative z-10 scrollbar-hide"
             style={{
               paddingTop: isPC ? '80px' : 'clamp(60px, 15vh, 100px)',

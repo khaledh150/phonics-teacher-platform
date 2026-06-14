@@ -42,7 +42,7 @@ const preloadAllGames = () => {
 };
 
 // Increment this manually when you want to force a cache reset on deployed versions
-const APP_VERSION = "2.5.69";
+const APP_VERSION = "2.5.70";
 
 // Keys to preserve across version upgrades (progress data survives cache busts)
 const PRESERVED_KEYS = ['last_installed_version', 'wp_progress'];
@@ -93,18 +93,12 @@ function App() {
   const [activeGame, setActiveGame] = useState(null);
   const [appStarted, setAppStarted] = useState(false);
 
-  const handleSplashTap = useCallback(async () => {
+  const handleSplashTap = useCallback(() => {
     setAppStarted(true);
-    // Force fullscreen
-    try {
-      await document.documentElement.requestFullscreen?.();
-    } catch { /* user gesture may fail on some browsers */ }
-    // Lock to landscape (use window.screen to avoid shadowing by React state)
-    try {
-      await window.screen.orientation?.lock?.('landscape');
-    } catch { /* not all browsers support orientation lock */ }
-    // Welcome VO
     playVO('Welcome to Wonder Phonics!');
+    // Non-blocking — don't let fullscreen/orientation delay the transition
+    document.documentElement.requestFullscreen?.().catch(() => {});
+    window.screen.orientation?.lock?.('landscape').catch(() => {});
   }, []);
 
   const handleSelectGroup = useCallback((group) => {
