@@ -74,6 +74,18 @@ function shuffle(arr) {
   return a;
 }
 
+const findShelfAtPoint = (x, y) => {
+  const els = document.elementsFromPoint(x, y);
+  for (const el of els) {
+    if (el.dataset?.shelfZone === 'true') return true;
+  }
+  const fallback = document.querySelector('[data-shelf-zone="true"]');
+  if (!fallback) return false;
+  const rect = fallback.getBoundingClientRect();
+  const pad = 60;
+  return x >= rect.left - pad && x <= rect.right + pad && y >= rect.top - pad && y <= rect.bottom + pad;
+};
+
 const SentenceScramble = ({ group, onComplete, onReady, active }) => {
   // Signal readiness to parent (DOM-based step, ready immediately)
   useEffect(() => { onReady?.(); }, []);
@@ -105,6 +117,7 @@ const SentenceScramble = ({ group, onComplete, onReady, active }) => {
   const advancingRef = useRef(false);
   const cancelledRef = useRef(false);
   const idleReminderRef = useRef(null);
+  const draggedRef = useRef(false);
 
   const currentSentence = sentences[sentenceIdx] || '';
   const currentKeyword = sentenceData[sentenceIdx]?.keyword || '';
@@ -333,6 +346,22 @@ const SentenceScramble = ({ group, onComplete, onReady, active }) => {
     setCheckWrong(false);
   };
 
+  const handleDrop = (word, info) => {
+    const { point } = info;
+    if (isLocked) return;
+    const onShelf = findShelfAtPoint(point.x, point.y);
+    if (onShelf) {
+      draggedRef.current = true;
+      clearIdleReminder();
+      startIdleReminder();
+      playPlaceSound();
+      speakWithVoice(word.text, { rate: 0.85 });
+      setSourceWords(prev => prev.filter(w => w.id !== word.id));
+      setShelfWords(prev => [...prev, word]);
+      setCheckWrong(false);
+    }
+  };
+
   const handleReset = () => {
     if (isLocked) return;
     window.speechSynthesis.cancel();
@@ -443,6 +472,7 @@ const SentenceScramble = ({ group, onComplete, onReady, active }) => {
           {/* Shelf (answer zone) */}
           <div className="w-full max-w-3xl">
             <motion.div
+              data-shelf-zone="true"
               className="rounded-xl p-4 md:p-5 flex flex-wrap items-center justify-center gap-1 md:gap-1.5 transition-all duration-500"
               style={{
                 minHeight: 'clamp(50px, 10vh, 75px)',
@@ -506,10 +536,22 @@ const SentenceScramble = ({ group, onComplete, onReady, active }) => {
           <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3 w-full max-w-3xl px-2">
             <AnimatePresence>
               {sourceWords.map((word, idx) => (
-                <motion.button
+                <motion.div
                   key={word.id}
-                  onClick={() => handleWordTap(word)}
-                  className="rounded-lg md:rounded-xl font-bold text-white shadow-md select-none cursor-pointer text-center"
+                  drag={!isLocked}
+                  dragSnapToOrigin
+                  dragElastic={0.8}
+                  dragMomentum={false}
+                  onDragStart={() => { draggedRef.current = false; }}
+                  onDragEnd={(e, info) => {
+                    const pt = info.point;
+                    if (Math.abs(info.offset.x) > 10 || Math.abs(info.offset.y) > 10) {
+                      draggedRef.current = true;
+                      handleDrop(word, info);
+                    }
+                  }}
+                  onClick={() => { if (!draggedRef.current) handleWordTap(word); draggedRef.current = false; }}
+                  className="rounded-lg md:rounded-xl font-bold text-white shadow-md select-none cursor-grab active:cursor-grabbing text-center"
                   style={{
                     backgroundColor: BLOCK_COLORS[word.originalIdx % BLOCK_COLORS.length],
                     fontSize: 'clamp(1.3rem, 5vh, 2.5rem)',
@@ -521,6 +563,7 @@ const SentenceScramble = ({ group, onComplete, onReady, active }) => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     padding: '0.2rem',
+                    touchAction: 'none',
                   }}
                   initial={{ opacity: 0, scale: 0.5, rotate: Math.random() * 10 - 5 }}
                   animate={{ opacity: 1, scale: 1, rotate: 0 }}
@@ -531,7 +574,7 @@ const SentenceScramble = ({ group, onComplete, onReady, active }) => {
                   layout
                 >
                   {word.text}
-                </motion.button>
+                </motion.div>
               ))}
             </AnimatePresence>
           </div>

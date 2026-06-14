@@ -5,6 +5,7 @@ import { getWordImage } from '../../../utils/assetHelpers';
 import { speakWithVoice } from '../../../utils/speech';
 import { playBlendingSequence, wordToPhonemes, wordToCharPhonemeMap } from '../../../utils/letterSounds';
 import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
+import THAI_TRANSLATIONS from '../../../data/thaiTranslations';
 
 // Shared glass-arrow navigation overlay with swipe + tap-to-reveal
 const NavOverlay = ({ onPrev, onNext }) => {
@@ -518,6 +519,11 @@ const FlashcardViewer = ({ group, onComplete, onReady, active }) => {
                   groupSounds={group.sounds}
                 />
               </h1>
+              {THAI_TRANSLATIONS[currentItem.word] && (
+                <p className="mt-2 text-white/50 font-semibold" style={{ fontSize: 'clamp(1.2rem, 4vw, 2rem)' }}>
+                  {THAI_TRANSLATIONS[currentItem.word]}
+                </p>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -615,6 +621,11 @@ const FlashcardViewer = ({ group, onComplete, onReady, active }) => {
                   groupSounds={group.sounds}
                 />
               </h1>
+              {THAI_TRANSLATIONS[currentItem.word] && (
+                <p className="mt-2 text-white/50 font-semibold" style={{ fontSize: 'clamp(1.5rem, 5vh, 2.5rem)' }}>
+                  {THAI_TRANSLATIONS[currentItem.word]}
+                </p>
+              )}
             </motion.div>
           </AnimatePresence>
         </div>

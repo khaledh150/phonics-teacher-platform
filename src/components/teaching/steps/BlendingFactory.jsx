@@ -145,7 +145,7 @@ const BlendingFactory = ({ group, onComplete, onReady, active }) => {
   const [shakeAll, setShakeAll] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [showHint, setShowHint] = useState(true);
-  const [instructionLock, setInstructionLock] = useState(true);
+  const [instructionLock, setInstructionLock] = useState(false);
   const [activePhonemeIdx, setActivePhonemeIdx] = useState(-1);
   const containerRef = useRef(null);
   const blendingRef = useRef(false);

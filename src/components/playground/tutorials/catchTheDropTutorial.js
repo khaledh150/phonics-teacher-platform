@@ -65,7 +65,7 @@ export async function runCatchTheDropTutorial(cancelled, ctx, { isHelpReplay = f
     const targetLeft = centerX - swayRange;
     const swayTick = (ticker) => {
       if (cancelled()) { app.ticker.remove(swayTick); resolve(); return; }
-      wagon.x += (targetLeft - wagon.x) * 0.06 * ticker.deltaTime;
+      wagon.x += (targetLeft - wagon.x) * 0.12 * ticker.deltaTime;
       // Update hand position to follow balloon
       const bx = rect.left + (wagon.x / screenW) * rect.width;
       setTutorialHand({ x: bx, y: handBalloonY, visible: true, catching: false });
@@ -78,14 +78,14 @@ export async function runCatchTheDropTutorial(cancelled, ctx, { isHelpReplay = f
     app.ticker.add(swayTick);
   });
   if (cancelled()) { wagon.x = centerX; setTutorialHand(null); setShowTutorialOverlay(false); return; }
-  await delay(200);
+  await delay(100);
 
   // Sway right
   await new Promise((resolve) => {
     const targetRight = centerX + swayRange;
     const swayTick = (ticker) => {
       if (cancelled()) { app.ticker.remove(swayTick); resolve(); return; }
-      wagon.x += (targetRight - wagon.x) * 0.06 * ticker.deltaTime;
+      wagon.x += (targetRight - wagon.x) * 0.12 * ticker.deltaTime;
       const bx = rect.left + (wagon.x / screenW) * rect.width;
       setTutorialHand({ x: bx, y: handBalloonY, visible: true, catching: false });
       if (Math.abs(wagon.x - targetRight) < 3) {
@@ -97,13 +97,13 @@ export async function runCatchTheDropTutorial(cancelled, ctx, { isHelpReplay = f
     app.ticker.add(swayTick);
   });
   if (cancelled()) { wagon.x = centerX; setTutorialHand(null); setShowTutorialOverlay(false); return; }
-  await delay(200);
+  await delay(100);
 
   // Return to center
   await new Promise((resolve) => {
     const swayTick = (ticker) => {
       if (cancelled()) { app.ticker.remove(swayTick); resolve(); return; }
-      wagon.x += (centerX - wagon.x) * 0.06 * ticker.deltaTime;
+      wagon.x += (centerX - wagon.x) * 0.12 * ticker.deltaTime;
       const bx = rect.left + (wagon.x / screenW) * rect.width;
       setTutorialHand({ x: bx, y: handBalloonY, visible: true, catching: false });
       if (Math.abs(wagon.x - centerX) < 3) {
@@ -116,7 +116,7 @@ export async function runCatchTheDropTutorial(cancelled, ctx, { isHelpReplay = f
   });
   if (cancelled()) { wagon.x = centerX; setTutorialHand(null); setShowTutorialOverlay(false); return; }
   setTutorialHand(null);
-  await delay(300);
+  await delay(150);
 
   // --- Phase 2: Demo drops falling, hand moves balloon to catch correct ones ---
   // Build demo queue
@@ -139,7 +139,7 @@ export async function runCatchTheDropTutorial(cancelled, ctx, { isHelpReplay = f
       container: itemContainer,
       laneX: spawnX,
       isCorrect: entry.isCorrect,
-      speed: 1.8,
+      speed: 2.8,
       caught: false,
       frozen: false,
     });
@@ -170,11 +170,11 @@ export async function runCatchTheDropTutorial(cancelled, ctx, { isHelpReplay = f
   // Play VO while drops are falling
   await playVO('Catch the items that start with the sound...');
   if (cancelled()) { cleanup(); setShowTutorialOverlay(false); return; }
-  await delay(200);
+  await delay(100);
   if (cancelled()) { cleanup(); setShowTutorialOverlay(false); return; }
   await playLetterSound(targetSound).catch(() => {});
   if (cancelled()) { cleanup(); setShowTutorialOverlay(false); return; }
-  await delay(400);
+  await delay(200);
   if (cancelled()) { cleanup(); setShowTutorialOverlay(false); return; }
 
   // For each correct item, freeze it, show hand moving balloon
@@ -200,7 +200,7 @@ export async function runCatchTheDropTutorial(cancelled, ctx, { isHelpReplay = f
     const handStartX = rect.left + rect.width * 0.5;
     const handStartY = rect.top + rect.height * 0.85;
     setTutorialHand({ x: handStartX, y: handStartY, visible: true, catching: false });
-    await delay(350);
+    await delay(150);
     if (cancelled()) break;
 
     const targetScreenX = rect.left + (d.laneX / screenW) * rect.width;
@@ -211,7 +211,7 @@ export async function runCatchTheDropTutorial(cancelled, ctx, { isHelpReplay = f
     await new Promise((resolve) => {
       const moveTick = (ticker) => {
         if (cancelled()) { app.ticker.remove(moveTick); resolve(); return; }
-        wagon.x += (d.laneX - wagon.x) * 0.08 * ticker.deltaTime;
+        wagon.x += (d.laneX - wagon.x) * 0.15 * ticker.deltaTime;
         if (Math.abs(wagon.x - d.laneX) < 3) {
           wagon.x = d.laneX;
           app.ticker.remove(moveTick);
@@ -242,16 +242,16 @@ export async function runCatchTheDropTutorial(cancelled, ctx, { isHelpReplay = f
     d.container.alpha = 0;
     playCatchSfx();
     triggerSmallBurst();
-    await delay(500);
+    await delay(200);
     setTutorialHand(null);
-    await delay(300);
+    await delay(100);
   }
   setTutorialHand(null);
   if (cancelled()) { cleanup(); setShowTutorialOverlay(false); return; }
 
   await playVO('Move the balloon to catch them!');
   if (cancelled()) { cleanup(); setShowTutorialOverlay(false); return; }
-  await delay(600);
+  await delay(250);
 
   // Fade out demo items
   app.ticker.remove(tutTicker);
