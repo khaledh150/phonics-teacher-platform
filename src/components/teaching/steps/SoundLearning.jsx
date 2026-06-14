@@ -5,7 +5,6 @@ import { getSoundVideo, getSoundMusic, getSoundYouTube } from '../../../utils/as
 import { speakWithVoice } from '../../../utils/speech';
 import { playLetterSound, getLetterSoundUrl, getDisplaySound } from '../../../utils/letterSounds';
 import { playVO, playLetterVO, stopVO, delay } from '../../../utils/audioPlayer';
-import { THAI_SOUND_NAMES } from '../../../data/thaiTranslations';
 
 // Shared glass-arrow navigation overlay with swipe + tap-to-reveal
 const NavOverlay = ({ onPrev, onNext }) => {
@@ -451,17 +450,6 @@ const SoundLearning = ({ group, onComplete, onReady, active }) => {
               >
                 {getDisplaySound(currentSound)}
               </motion.span>
-              {THAI_SOUND_NAMES[currentSound] && (
-                <motion.span
-                  className="block text-center mt-2 font-semibold text-white/60"
-                  style={{ fontSize: 'clamp(1.5rem, min(5vw, 5vh), 3rem)' }}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  {THAI_SOUND_NAMES[currentSound]}
-                </motion.span>
-              )}
             </motion.div>
           </AnimatePresence>
         </div>

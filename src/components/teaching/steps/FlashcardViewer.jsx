@@ -520,7 +520,7 @@ const FlashcardViewer = ({ group, onComplete, onReady, active }) => {
                 />
               </h1>
               {THAI_TRANSLATIONS[currentItem.word] && (
-                <p className="mt-2 text-white/50 font-semibold" style={{ fontSize: 'clamp(1.2rem, 4vw, 2rem)' }}>
+                <p className="mt-3 font-bold text-[#FFD000]" style={{ fontSize: 'clamp(1.5rem, 5vw, 2.5rem)', textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>
                   {THAI_TRANSLATIONS[currentItem.word]}
                 </p>
               )}
@@ -622,7 +622,7 @@ const FlashcardViewer = ({ group, onComplete, onReady, active }) => {
                 />
               </h1>
               {THAI_TRANSLATIONS[currentItem.word] && (
-                <p className="mt-2 text-white/50 font-semibold" style={{ fontSize: 'clamp(1.5rem, 5vh, 2.5rem)' }}>
+                <p className="mt-3 font-bold text-[#FFD000]" style={{ fontSize: 'clamp(2rem, 6vh, 3.5rem)', textShadow: '0 2px 8px rgba(0,0,0,0.4)' }}>
                   {THAI_TRANSLATIONS[currentItem.word]}
                 </p>
               )}
