@@ -8,7 +8,6 @@
 export const COMPETITION_QUESTIONS_PER_SET = 60;
 export const COMPETITION_TOTAL_TIME = 240; // 4 minutes = 240 seconds
 export const COMPETITION_MS_PER_QUESTION = 4000; // Exact 4000ms per question cycle
-export const COMPETITION_SPEECH_RATE = 0.85; // Slightly slower for clarity
 
 // Available set letters
 export const SET_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];

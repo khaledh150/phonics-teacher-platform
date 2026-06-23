@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Maximize, Volume2 } from 'lucide-react';
-import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
+import { playVO, stopVO, delay, playWordVO, stopWordVO } from '../../../utils/audioPlayer';
 import { stopAllAudio } from '../../../utils/letterSounds';
-import { speakAsync } from '../../../utils/speech';
 import { triggerSmallBurst, triggerCelebration } from '../../../utils/confetti';
 import { playEncouragement } from '../../../utils/encouragement';
 import { getWordImage } from '../../../utils/assetHelpers';
@@ -79,7 +78,7 @@ const ShadowMatchGame = ({ group, onBack, onPlayAgain }) => {
     let cancelled = false;
     mountedRef.current = true;
     const run = async () => {
-      // Use speakAsync for custom instruction, then idle reminder
+      // Play instruction VO, then idle reminder
       await playVO('Match the picture to its shadow!');
       if (cancelled) return;
       startIdleReminder();
@@ -89,7 +88,7 @@ const ShadowMatchGame = ({ group, onBack, onPlayAgain }) => {
     return () => {
       cancelled = true;
       mountedRef.current = false;
-      window.speechSynthesis.cancel();
+      stopWordVO();
       stopAllAudio();
       stopVO();
       clearTimeout(idleRef.current);
@@ -117,7 +116,7 @@ const ShadowMatchGame = ({ group, onBack, onPlayAgain }) => {
   // --- Speaker button handler ---
   const handleSpeaker = () => {
     if (!round) return;
-    speakAsync(round.correctWord, { rate: 0.85 });
+    playWordVO(round.correctWord);
   };
 
   // --- Drop handler: check if dragged image is near the shadow ---
@@ -159,7 +158,7 @@ const ShadowMatchGame = ({ group, onBack, onPlayAgain }) => {
 
       await playEncouragement();
       if (!mountedRef.current) return;
-      await speakAsync(choice.word, { rate: 0.85 });
+      await playWordVO(choice.word);
       if (!mountedRef.current) return;
       await delay(1500);
       if (!mountedRef.current) return;
@@ -182,7 +181,7 @@ const ShadowMatchGame = ({ group, onBack, onPlayAgain }) => {
   );
 
   const handleBack = () => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopAllAudio();
     stopVO();
     clearTimeout(idleRef.current);

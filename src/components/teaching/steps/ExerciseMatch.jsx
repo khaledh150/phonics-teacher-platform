@@ -2,8 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2 } from 'lucide-react';
 import { getWordImage } from '../../../utils/assetHelpers';
-import { speakWithVoice } from '../../../utils/speech';
-import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
+import { playVO, stopVO, delay, playWordVO, stopWordVO } from '../../../utils/audioPlayer';
 import { triggerCelebration, triggerSmallBurst } from '../../../utils/confetti';
 import { playMatchEncouragement, playCompletionEncouragement } from '../../../utils/encouragement';
 
@@ -422,7 +421,7 @@ const ExerciseMatch = ({ group, onComplete, onReady, active }) => {
     if (matchedPairs.has(word) || shakeWord || isProcessing) return;
     clearIdleReminder();
     startIdleReminder();
-    speakWithVoice(word, { rate: 0.85 });
+    playWordVO(word);
     setSelectedWord(word);
   };
 

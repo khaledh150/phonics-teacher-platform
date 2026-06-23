@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Maximize, Volume2 } from 'lucide-react';
-import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
+import { playVO, stopVO, delay, playWordVO, stopWordVO } from '../../../utils/audioPlayer';
 import { stopAllAudio, playBlendingSequence } from '../../../utils/letterSounds';
-import { speakAsync } from '../../../utils/speech';
 import { triggerSmallBurst, triggerCelebration } from '../../../utils/confetti';
 import { playEncouragement } from '../../../utils/encouragement';
 import confetti from 'canvas-confetti';
@@ -264,7 +263,7 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
     if (!mountedRef.current) return;
     await delay(200);
     if (!mountedRef.current) return;
-    await speakAsync(rounds[currentRound]?.target || '');
+    await playWordVO(rounds[currentRound]?.target || '');
   }, [rounds, currentRound]);
 
   const idleCountRef = useRef(0);
@@ -302,7 +301,7 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
       if (cancelled) return;
       await delay(200);
       if (cancelled) return;
-      await speakAsync(rounds[currentRound]?.target || '');
+      await playWordVO(rounds[currentRound]?.target || '');
       if (cancelled) return;
       setIsProcessing(false);
       isProcessingRef.current = false;
@@ -321,7 +320,7 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      window.speechSynthesis.cancel();
+      stopWordVO();
       stopAllAudio();
       stopVO();
       clearTimeout(idleRef.current);
@@ -368,7 +367,7 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
       await playVO('Yum, yum!');
       if (!mountedRef.current) return;
       // Letter sounds + full word dictation
-      await playBlendingSequence(round.target, (w) => speakAsync(w));
+      await playBlendingSequence(round.target, (w) => playWordVO(w));
       if (!mountedRef.current) return;
       await delay(300);
       if (!mountedRef.current) return;
@@ -408,7 +407,7 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
       await playVO('Oops, try again!');
       if (!mountedRef.current) return;
       // Re-prompt with the target word
-      await speakAsync(round.target);
+      await playWordVO(round.target);
       if (!mountedRef.current) return;
       setCardShaking(null);
       setIsProcessing(false);
@@ -418,7 +417,7 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
   }, [round, currentRound, rounds.length, startIdleReminder, instructionLock]);
 
   const handleBack = () => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopAllAudio();
     stopVO();
     clearTimeout(idleRef.current);
@@ -536,7 +535,7 @@ const MonsterFeederGame = ({ group, onBack, onPlayAgain }) => {
             setIsProcessing(true);
             isProcessingRef.current = true;
             clearTimeout(idleRef.current);
-            await speakAsync(round?.target || '');
+            await playWordVO(round?.target || '');
             if (mountedRef.current) {
               setIsProcessing(false);
               isProcessingRef.current = false;

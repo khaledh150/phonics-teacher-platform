@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Maximize } from 'lucide-react';
-import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
+import { playVO, stopVO, delay, playWordVO, stopWordVO } from '../../../utils/audioPlayer';
 import { playLetterSound, stopAllAudio } from '../../../utils/letterSounds';
-import { speakAsync } from '../../../utils/speech';
 import { triggerSmallBurst, triggerCelebration } from '../../../utils/confetti';
 import { playEncouragement } from '../../../utils/encouragement';
 import { getWordImage } from '../../../utils/assetHelpers';
@@ -115,7 +114,7 @@ const MagicFlashlightGame = ({ group, onBack, onPlayAgain }) => {
     return () => {
       cancelled = true;
       mountedRef.current = false;
-      window.speechSynthesis.cancel();
+      stopWordVO();
       stopAllAudio();
       stopVO();
       clearTimeout(idleRef.current);
@@ -177,7 +176,7 @@ const MagicFlashlightGame = ({ group, onBack, onPlayAgain }) => {
       await playLetterSound(letter).catch(() => {});
       await delay(400);
       if (!mountedRef.current) return;
-      await speakAsync(currentWord.word, { rate: 0.85 });
+      await playWordVO(currentWord.word);
       if (!mountedRef.current) return;
       await delay(300);
       if (!mountedRef.current) return;
@@ -206,7 +205,7 @@ const MagicFlashlightGame = ({ group, onBack, onPlayAgain }) => {
   }, [instructionLock, isProcessing, isRevealed, currentWord, correctSound, wordIndex, roundWords.length, startIdleReminder]);
 
   const handleBack = () => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopAllAudio();
     stopVO();
     clearTimeout(idleRef.current);

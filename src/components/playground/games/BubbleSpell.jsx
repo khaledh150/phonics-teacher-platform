@@ -4,8 +4,7 @@ import { ArrowLeft, Maximize, Volume2 } from 'lucide-react';
 import Lottie from 'lottie-react';
 import { Application, Graphics, Text, TextStyle, Container, Sprite as PixiSprite, Texture, Assets } from 'pixi.js';
 import { playLetterSound, stopAllAudio } from '../../../utils/letterSounds';
-import { speakAsync } from '../../../utils/speech';
-import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
+import { playVO, stopVO, delay, playWordVO, stopWordVO } from '../../../utils/audioPlayer';
 import { triggerCelebration, triggerSmallBurst, triggerBurstAt } from '../../../utils/confetti';
 import { playEncouragement } from '../../../utils/encouragement';
 import { SkyFullBackground } from '../../themes/SkyBackground';
@@ -200,7 +199,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         if (!mountedRef.current) return;
         await delay(100);
         if (!mountedRef.current) return;
-        await speakAsync(w.word, { rate: 0.85 });
+        await playWordVO(w.word);
       }
     }, 6000);
   }, [roundWords]);
@@ -208,7 +207,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
   // Replay target word via speaker button
   const handleReplayWord = useCallback(() => {
     const w = roundWords[wordIndexRef.current];
-    if (w) speakAsync(w.word, { rate: 0.85 });
+    if (w) playWordVO(w.word);
     clearTimeout(idleRef.current);
     startIdleReminder();
   }, [roundWords, startIdleReminder]);
@@ -219,7 +218,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
     destroyedRef.current = false;
     return () => {
       mountedRef.current = false;
-      window.speechSynthesis.cancel();
+      stopWordVO();
       stopAllAudio();
       stopVO();
       clearTimeout(idleRef.current);
@@ -268,7 +267,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       if (hasPlayedOnceRef.current) {
         await playVO('Pop the bubbles to spell the word!');
         if (cancelled) return;
-        if (currentWord) await speakAsync(currentWord.word, { rate: 0.85 });
+        if (currentWord) await playWordVO(currentWord.word);
         if (cancelled) return;
 
         setShowCountdown(true);
@@ -284,7 +283,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         // Replay instruction VO + target word after countdown
         await playVO('Pop the bubbles to spell the word!');
         if (cancelled) return;
-        if (currentWord) await speakAsync(currentWord.word, { rate: 0.85 });
+        if (currentWord) await playWordVO(currentWord.word);
         if (cancelled) return;
         startIdleReminder();
         return;
@@ -311,7 +310,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
       // Announce the actual first word
       await playVO('Pop the bubbles to spell the word!');
       if (cancelled) return;
-      if (currentWord) await speakAsync(currentWord.word, { rate: 0.85 });
+      if (currentWord) await playWordVO(currentWord.word);
       if (cancelled) return;
       startIdleReminder();
     };
@@ -659,7 +658,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         if (!mountedRef.current) return;
         await delay(100);
         if (!mountedRef.current) return;
-        await speakAsync(currentWord.word, { rate: 0.85 });
+        await playWordVO(currentWord.word);
         if (!mountedRef.current) return;
         startIdleReminder();
       };
@@ -700,7 +699,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         const w = roundWords[wordIndexRef.current];
         triggerCelebration();
         setWordCompleteFlash(w ? w.word : '');
-        if (w) await speakAsync(w.word, { rate: 0.85 });
+        if (w) await playWordVO(w.word);
         if (!mountedRef.current) return;
         await playEncouragement();
         if (!mountedRef.current) return;
@@ -744,7 +743,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
         await playVO('Pop the bubbles to spell the word!');
         if (!mountedRef.current) return;
         const w = roundWords[wordIndexRef.current];
-        if (w) await speakAsync(w.word, { rate: 0.85 });
+        if (w) await playWordVO(w.word);
         if (!mountedRef.current) return;
         setIsProcessing(false);
         isProcessingRef.current = false;
@@ -763,7 +762,7 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
     // Pause gameplay — lock input during tutorial replay
     setInstructionLock(true);
     clearTimeout(idleRef.current);
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopVO();
 
     await runTutorial(() => cancelled, { isHelpReplay: true });
@@ -775,13 +774,13 @@ const BubbleSpellGame = ({ group, onBack, onPlayAgain }) => {
     if (w) {
       await playVO('Pop the bubbles to spell the word!');
       if (!mountedRef.current || cancelled) return;
-      await speakAsync(w.word, { rate: 0.85 });
+      await playWordVO(w.word);
     }
     startIdleReminder();
   }, [showTutorialOverlay, showCountdown, runTutorial, roundWords, startIdleReminder]);
 
   const handleBack = () => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopAllAudio();
     stopVO();
     clearTimeout(idleRef.current);

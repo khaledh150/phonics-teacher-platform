@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Play, Trophy, Gamepad2, BookOpen, Maximize, ChevronRight, X, Settings, Printer } from 'lucide-react';
 import { SET_LETTERS } from '../../data/sets';
 import { openPrintableSheet } from './PrintableView';
+import { stopWordVO } from '../../utils/audioPlayer';
 import wonderPhonicsLogo from '../../assets/wonderkids-logo.webp';
-import { getBestVoice } from '../../utils/speech';
 
 // Fullscreen toggle
 const toggleFullscreen = () => {
@@ -30,14 +30,12 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
   const [questionCount, setQuestionCount] = useState(initialSettings?.questionCount || 10);
   const [speed, setSpeed] = useState(initialSettings?.speed || 0.75);
   const [isPC, setIsPC] = useState(false);
-  const voiceRef = useRef(null);
-
   // Cancel any ongoing speech when returning to settings page
   useEffect(() => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     // Also cancel on interval to ensure it stops - more aggressive, 2 seconds
     const cancelInterval = setInterval(() => {
-      window.speechSynthesis.cancel();
+      stopWordVO();
     }, 100);
     // Clear after 2 seconds
     const timeout = setTimeout(() => clearInterval(cancelInterval), 2000);
@@ -57,20 +55,12 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
     return () => window.removeEventListener('resize', checkIsPC);
   }, []);
 
-  // Load high-quality voices
-  useEffect(() => {
-    const loadVoices = () => {
-      voiceRef.current = getBestVoice();
-    };
-    loadVoices();
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-  }, []);
 
   // Removed tile dictation to prevent speech from continuing after leaving modes
 
   // Start game handlers - cancel any speech before starting
   const handleStartLearn = () => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     requestFullscreen();
     onStartGame({
       mode: 'learn',
@@ -82,7 +72,7 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
   };
 
   const handleStartPractice = () => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     requestFullscreen();
     onStartGame({
       mode: 'practice',
@@ -95,7 +85,7 @@ const SettingsView = ({ onStartGame, initialSettings }) => {
 
   const handleStartCompetition = () => {
     if (!selectedSet) return;
-    window.speechSynthesis.cancel();
+    stopWordVO();
     requestFullscreen();
     onStartGame({
       mode: 'competition',

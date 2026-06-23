@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Maximize, Volume2 } from 'lucide-react';
-import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
+import { playVO, stopVO, delay, stopWordVO } from '../../../utils/audioPlayer';
 import { stopAllAudio, playLetterSound, getDisplaySound } from '../../../utils/letterSounds';
 import { triggerSmallBurst, triggerCelebration } from '../../../utils/confetti';
 import { playEncouragement } from '../../../utils/encouragement';
@@ -113,7 +113,7 @@ const CarnivalWheelGame = ({ group, onBack, onPlayAgain }) => {
     return () => {
       cancelled = true;
       mountedRef.current = false;
-      window.speechSynthesis.cancel();
+      stopWordVO();
       stopAllAudio();
       stopVO();
       clearTimeout(idleRef.current);
@@ -219,7 +219,7 @@ const CarnivalWheelGame = ({ group, onBack, onPlayAgain }) => {
 
   // --- Back handler ---
   const handleBack = () => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopAllAudio();
     stopVO();
     clearTimeout(idleRef.current);

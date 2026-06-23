@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Maximize } from 'lucide-react';
-import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
+import { playVO, stopVO, delay, stopWordVO } from '../../../utils/audioPlayer';
 import { playLetterSound, stopAllAudio, getDisplaySound } from '../../../utils/letterSounds';
 import { triggerSmallBurst, triggerCelebration } from '../../../utils/confetti';
 import { playEncouragement } from '../../../utils/encouragement';
@@ -270,7 +270,7 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
     return () => {
       cancelled = true;
       mountedRef.current = false;
-      window.speechSynthesis.cancel();
+      stopWordVO();
       stopAllAudio();
       stopVO();
       clearTimeout(idleRef.current);
@@ -414,7 +414,7 @@ const WhackASoundGame = ({ group, onBack, onPlayAgain }) => {
   }, [gameComplete]);
 
   const handleBack = () => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopAllAudio();
     stopVO();
     clearTimeout(idleRef.current);

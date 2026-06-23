@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Maximize, Volume2 } from 'lucide-react';
-import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
+import { playVO, stopVO, delay, playWordVO, stopWordVO } from '../../../utils/audioPlayer';
 import { stopAllAudio, playLetterSound } from '../../../utils/letterSounds';
-import { speakAsync } from '../../../utils/speech';
 import { triggerSmallBurst, triggerCelebration } from '../../../utils/confetti';
 import { playEncouragement } from '../../../utils/encouragement';
 import { getWordImage } from '../../../utils/assetHelpers';
@@ -288,7 +287,7 @@ const ScratchDiscoverGame = ({ group, onBack, onPlayAgain }) => {
     return () => {
       cancelled = true;
       mountedRef.current = false;
-      window.speechSynthesis.cancel();
+      stopWordVO();
       stopAllAudio();
       stopVO();
       clearTimeout(idleRef.current);
@@ -346,7 +345,7 @@ const ScratchDiscoverGame = ({ group, onBack, onPlayAgain }) => {
         setShowWord(true);
         triggerSmallBurst();
 
-        await speakAsync(wordText, { rate: 0.85 });
+        await playWordVO(wordText);
         if (!mountedRef.current) return;
 
         await playEncouragement();
@@ -395,7 +394,7 @@ const ScratchDiscoverGame = ({ group, onBack, onPlayAgain }) => {
 
   // --- Back handler ---
   const handleBack = () => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopAllAudio();
     stopVO();
     clearTimeout(idleRef.current);

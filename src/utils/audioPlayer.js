@@ -104,3 +104,81 @@ export const stopVO = () => {
     r();
   }
 };
+
+// --- Word / Sentence VO (separate channel from instruction VO) ---
+
+let currentWordVO = null;
+let currentWordResolve = null;
+
+/**
+ * Play a word pronunciation from /sounds/vo-words/{word}.mp3.
+ * @param {string} word - The word to speak
+ * @returns {Promise<void>}
+ */
+export const playWordVO = (word) => {
+  return new Promise((resolve) => {
+    if (voMuted) { resolve(); return; }
+    stopWordVO();
+    currentWordResolve = resolve;
+    const audio = new Audio(`/sounds/vo-words/${word.toLowerCase()}.mp3`);
+    audio.volume = 1.0;
+    currentWordVO = audio;
+    audio.addEventListener('ended', () => {
+      if (currentWordVO === audio) { currentWordVO = null; currentWordResolve = null; }
+      resolve();
+    }, { once: true });
+    audio.addEventListener('error', () => {
+      if (currentWordVO === audio) { currentWordVO = null; currentWordResolve = null; }
+      resolve();
+    }, { once: true });
+    audio.play().catch(() => {
+      if (currentWordVO === audio) { currentWordVO = null; currentWordResolve = null; }
+      resolve();
+    });
+  });
+};
+
+/**
+ * Play a sentence from /sounds/vo-sentences/{sentence}.mp3.
+ * @param {string} sentence - The sentence text (used as filename, trailing punctuation stripped)
+ * @returns {Promise<void>}
+ */
+export const playSentenceVO = (sentence) => {
+  return new Promise((resolve) => {
+    if (voMuted) { resolve(); return; }
+    stopWordVO();
+    currentWordResolve = resolve;
+    const cleanName = sentence.replace(/[.!?]+$/, '');
+    const audio = new Audio(`/sounds/vo-sentences/${encodeURIComponent(cleanName)}.mp3`);
+    audio.volume = 1.0;
+    currentWordVO = audio;
+    audio.addEventListener('ended', () => {
+      if (currentWordVO === audio) { currentWordVO = null; currentWordResolve = null; }
+      resolve();
+    }, { once: true });
+    audio.addEventListener('error', () => {
+      if (currentWordVO === audio) { currentWordVO = null; currentWordResolve = null; }
+      resolve();
+    }, { once: true });
+    audio.play().catch(() => {
+      if (currentWordVO === audio) { currentWordVO = null; currentWordResolve = null; }
+      resolve();
+    });
+  });
+};
+
+/**
+ * Stop the currently playing word/sentence VO.
+ */
+export const stopWordVO = () => {
+  if (currentWordVO) {
+    currentWordVO.pause();
+    currentWordVO.currentTime = 0;
+    currentWordVO = null;
+  }
+  if (currentWordResolve) {
+    const r = currentWordResolve;
+    currentWordResolve = null;
+    r();
+  }
+};

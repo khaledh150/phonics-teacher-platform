@@ -10,7 +10,7 @@ import BlendingFactory from './steps/BlendingFactory';
 import SentenceScramble from './steps/SentenceScramble';
 import Preloader from '../shared/Preloader';
 import { stopAllAudio } from '../../utils/letterSounds';
-import { playVO, stopVO, delay } from '../../utils/audioPlayer';
+import { playVO, stopVO, delay, stopWordVO } from '../../utils/audioPlayer';
 import { triggerCelebration } from '../../utils/confetti';
 import { resetEncouragementCycles } from '../../utils/encouragement';
 import { trackGroupStep, trackGroupCompleted } from '../../utils/progress';
@@ -134,7 +134,7 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
   const handleNextStep = useCallback(() => {
     if (advancingRef.current) return;
     advancingRef.current = true;
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopAllAudio();
     stopVO();
     if (stepIndex < STEPS.length - 1) {
@@ -162,7 +162,7 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
   }, [stepIndex]);
 
   const handlePrevStep = useCallback(() => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopAllAudio();
     stopVO();
     if (stepIndex > 0) {
@@ -174,7 +174,7 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
   }, [stepIndex]);
 
   const handleSkipStep = useCallback(() => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopAllAudio();
     stopVO();
     if (currentStep === 'sentences') {
@@ -196,7 +196,7 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
       setShowStepNav(false);
       return;
     }
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopAllAudio();
     stopVO();
     setShowStepNav(false);
@@ -253,7 +253,7 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
 
   const confirmExit = () => {
     setShowExitConfirm(false);
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopAllAudio();
     stopVO();
     onExit();
@@ -629,7 +629,7 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
               >
                 <motion.button
                   onClick={() => {
-                    window.speechSynthesis.cancel(); stopAllAudio(); stopVO();
+                    stopWordVO(); stopAllAudio(); stopVO();
                     setShowGroupFinish(false);
                     if (onOpenPlayground) onOpenPlayground();
                     else onExit();
@@ -651,7 +651,7 @@ const TeachingFlow = ({ group, onExit, onOpenPlayground }) => {
                 </motion.button>
                 <motion.button
                   onClick={() => {
-                    window.speechSynthesis.cancel(); stopAllAudio(); stopVO(); onExit();
+                    stopWordVO(); stopAllAudio(); stopVO(); onExit();
                   }}
                   className="bg-transparent text-[#6B3FA0] font-bold opacity-70 hover:opacity-100 transition-opacity"
                   style={{ fontSize: 'clamp(0.8rem, 2vh, 1rem)' }}

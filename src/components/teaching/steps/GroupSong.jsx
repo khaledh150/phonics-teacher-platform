@@ -2,9 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Play, Pause, SkipForward, Volume2 } from 'lucide-react';
 import { getSoundMusic, getSoundVideo } from '../../../utils/assetHelpers';
-import { speakWithVoice } from '../../../utils/speech';
 import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
-import { getDisplaySound } from '../../../utils/letterSounds';
+import { getDisplaySound, playLetterSound } from '../../../utils/letterSounds';
 
 const GroupSong = ({ group, onComplete, onReady, active }) => {
   const [currentSoundIdx, setCurrentSoundIdx] = useState(0);
@@ -40,12 +39,11 @@ const GroupSong = ({ group, onComplete, onReady, active }) => {
       } else if (musicSrc && audioRef.current) {
         audioRef.current.play().catch(() => {});
       } else {
-        speakWithVoice(currentSound, {
-          rate: 0.7,
-          onEnd: () => {
+        playLetterSound(currentSound)
+          .catch(() => { })
+          .finally(() => {
             setTimeout(handleMediaEnd, 500);
-          },
-        });
+          });
       }
     };
 
@@ -82,8 +80,8 @@ const GroupSong = ({ group, onComplete, onReady, active }) => {
       setPlayMode('idle');
     }
 
-    // Use TTS for the individual sound
-    speakWithVoice(sound, { rate: 0.7 });
+    // Use phoneme MP3 for the individual sound
+    playLetterSound(sound).catch(() => { });
   };
 
   // VO on mount + auto-start sing-along

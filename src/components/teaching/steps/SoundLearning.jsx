@@ -2,9 +2,8 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Volume2, Film, Music } from 'lucide-react';
 import { getSoundVideo, getSoundMusic, getSoundYouTube } from '../../../utils/assetHelpers';
-import { speakWithVoice } from '../../../utils/speech';
 import { playLetterSound, getLetterSoundUrl, getDisplaySound } from '../../../utils/letterSounds';
-import { playVO, playLetterVO, stopVO, delay } from '../../../utils/audioPlayer';
+import { playVO, playLetterVO, stopVO, delay, stopWordVO } from '../../../utils/audioPlayer';
 
 // Shared glass-arrow navigation overlay with swipe + tap-to-reveal
 const NavOverlay = ({ onPrev, onNext }) => {
@@ -144,30 +143,12 @@ const SoundLearning = ({ group, onComplete, onReady, active }) => {
   const goNextRef = useRef(null);
 
   // Play a single letter sound and return a promise
-  const playOnce = useCallback((sound) => {
-    return new Promise((resolve) => {
-      const url = getLetterSoundUrl(sound);
-      if (url) {
-        setIsSpeaking(true);
-        playLetterSound(sound)
-          .then(() => { setIsSpeaking(false); resolve(); })
-          .catch(() => {
-            speakWithVoice(sound, {
-              rate: 0.7,
-              onStart: () => setIsSpeaking(true),
-              onEnd: () => { setIsSpeaking(false); resolve(); },
-              onError: () => { setIsSpeaking(false); resolve(); },
-            });
-          });
-      } else {
-        speakWithVoice(sound, {
-          rate: 0.7,
-          onStart: () => setIsSpeaking(true),
-          onEnd: () => { setIsSpeaking(false); resolve(); },
-          onError: () => { setIsSpeaking(false); resolve(); },
-        });
-      }
-    });
+  const playOnce = useCallback(async (sound) => {
+    setIsSpeaking(true);
+    try {
+      await playLetterSound(sound);
+    } catch { /* silent */ }
+    setIsSpeaking(false);
   }, []);
 
   // Single play — used when user taps the speaker button
@@ -246,7 +227,7 @@ const SoundLearning = ({ group, onComplete, onReady, active }) => {
       stopVO();
       clearReminder();
       clearTimeout(autoAdvanceRef.current);
-      window.speechSynthesis.cancel();
+      stopWordVO();
     };
   }, [active, currentSound, speakSound, clearReminder]);
 
@@ -255,7 +236,7 @@ const SoundLearning = ({ group, onComplete, onReady, active }) => {
     clearReminder();
     clearTimeout(autoAdvanceRef.current);
     stopVO();
-    window.speechSynthesis.cancel();
+    stopWordVO();
     if (isLastSound) {
       onComplete();
     } else {
@@ -269,7 +250,7 @@ const SoundLearning = ({ group, onComplete, onReady, active }) => {
     clearReminder();
     clearTimeout(autoAdvanceRef.current);
     stopVO();
-    window.speechSynthesis.cancel();
+    stopWordVO();
     if (soundIndex > 0) {
       setSoundIndex((prev) => prev - 1);
     }
@@ -289,7 +270,7 @@ const SoundLearning = ({ group, onComplete, onReady, active }) => {
     clearTimeout(autoAdvanceRef.current);
     clearReminder();
     stopVO();
-    window.speechSynthesis.cancel();
+    stopWordVO();
   }, [clearReminder]);
 
   // When video pauses/ends, resume idle reminder

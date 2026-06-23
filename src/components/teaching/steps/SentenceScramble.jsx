@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RotateCcw } from 'lucide-react';
-import { speakWithVoice, speakAsync } from '../../../utils/speech';
 import { findSentenceImage } from '../../../utils/assetHelpers';
-import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
+import { playVO, stopVO, delay, playWordVO, playSentenceVO, stopWordVO } from '../../../utils/audioPlayer';
 import { triggerCelebration, triggerSmallBurst } from '../../../utils/confetti';
 import { playCompletionEncouragement } from '../../../utils/encouragement';
 
@@ -209,18 +208,14 @@ const SentenceScramble = ({ group, onComplete, onReady, active }) => {
         await delay(800);
         if (cancelledRef.current) return;
 
-        // Phase 1: Word-by-word dictation — TTS reads each word while it pops
+        // Phase 1: Word-by-word dictation — VO reads each word while it pops
         setReadingPhase('dictation');
         for (let i = 0; i < correctWords.length; i++) {
           if (cancelledRef.current) return;
           setHighlightIdx(i);
-          await new Promise((resolve) => {
-            speakWithVoice(correctWords[i], {
-              rate: 0.7,
-              onEnd: resolve,
-              onError: resolve,
-            });
-          });
+          try {
+            await playWordVO(correctWords[i]);
+          } catch { /* silent */ }
           // Extra delay between words so last word doesn't get cut off
           await delay(350);
         }
@@ -231,13 +226,9 @@ const SentenceScramble = ({ group, onComplete, onReady, active }) => {
         if (cancelledRef.current) return;
 
         // Phase 2: Full sentence dictation — reads the whole sentence at once
-        await new Promise((resolve) => {
-          speakWithVoice(currentSentence, {
-            rate: 0.8,
-            onEnd: resolve,
-            onError: resolve,
-          });
-        });
+        try {
+          await playSentenceVO(currentSentence);
+        } catch { /* silent */ }
         if (cancelledRef.current) return;
         await delay(600);
         if (cancelledRef.current) return;
@@ -295,7 +286,7 @@ const SentenceScramble = ({ group, onComplete, onReady, active }) => {
     if (advancingRef.current) return;
     advancingRef.current = true;
     setTimeout(() => {
-      window.speechSynthesis.cancel();
+      stopWordVO();
       if (sentenceIdx < sentences.length - 1) {
         setSentenceIdx(prev => prev + 1);
       } else {
@@ -327,7 +318,7 @@ const SentenceScramble = ({ group, onComplete, onReady, active }) => {
   }, [allDone]);
 
   const handleWordTap = (word) => {
-    speakWithVoice(word.text, { rate: 0.85 });
+    playWordVO(word.text);
     if (!isLocked) {
       clearIdleReminder();
       startIdleReminder();
@@ -340,7 +331,7 @@ const SentenceScramble = ({ group, onComplete, onReady, active }) => {
 
   const handleRemoveFromShelf = (word) => {
     if (isLocked) return;
-    speakWithVoice(word.text, { rate: 0.85 });
+    playWordVO(word.text);
     setShelfWords(prev => prev.filter(w => w.id !== word.id));
     setSourceWords(prev => [...prev, word]);
     setCheckWrong(false);
@@ -355,7 +346,7 @@ const SentenceScramble = ({ group, onComplete, onReady, active }) => {
       clearIdleReminder();
       startIdleReminder();
       playPlaceSound();
-      speakWithVoice(word.text, { rate: 0.85 });
+      playWordVO(word.text);
       setSourceWords(prev => prev.filter(w => w.id !== word.id));
       setShelfWords(prev => [...prev, word]);
       setCheckWrong(false);
@@ -364,7 +355,7 @@ const SentenceScramble = ({ group, onComplete, onReady, active }) => {
 
   const handleReset = () => {
     if (isLocked) return;
-    window.speechSynthesis.cancel();
+    stopWordVO();
     const words = correctWords.map((word, idx) => ({
       id: `${sentenceIdx}-r${Math.random()}-${idx}`,
       text: word,
@@ -499,7 +490,7 @@ const SentenceScramble = ({ group, onComplete, onReady, active }) => {
                   return (
                     <motion.button
                       key={word.id}
-                      onClick={() => isLocked ? speakWithVoice(word.text, { rate: 0.85 }) : handleRemoveFromShelf(word)}
+                      onClick={() => isLocked ? playWordVO(word.text) : handleRemoveFromShelf(word)}
                       className="font-bold select-none px-1"
                       style={{
                         fontSize: 'clamp(1.4rem, 5.5vh, 3rem)',

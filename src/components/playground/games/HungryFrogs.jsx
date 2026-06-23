@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Maximize, Volume2 } from 'lucide-react';
-import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
+import { playVO, stopVO, delay, playWordVO, stopWordVO } from '../../../utils/audioPlayer';
 import { stopAllAudio, playBlendingSequence, playLetterSound, getDisplaySound } from '../../../utils/letterSounds';
-import { speakAsync } from '../../../utils/speech';
 import { triggerSmallBurst, triggerCelebration } from '../../../utils/confetti';
 import { playEncouragement } from '../../../utils/encouragement';
 import { getWordImage } from '../../../utils/assetHelpers';
@@ -1100,7 +1099,7 @@ const FeedTheFrogStage = ({ group, onComplete }) => {
       await playVO('Yum, yum!');
       if (!mountedRef.current) return;
       setCelebrating(true);
-      await playBlendingSequence(round.target, (w) => speakAsync(w));
+      await playBlendingSequence(round.target, (w) => playWordVO(w));
       if (!mountedRef.current) return;
       await delay(300);
       if (!mountedRef.current) return;
@@ -1310,14 +1309,14 @@ const HungryFrogsGame = ({ group, onBack, onPlayAgain }) => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
-      window.speechSynthesis.cancel();
+      stopWordVO();
       stopAllAudio();
       stopVO();
     };
   }, []);
 
   const handleBack = () => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopAllAudio();
     stopVO();
     onBack();

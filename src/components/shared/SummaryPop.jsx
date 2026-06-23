@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CheckCircle, XCircle, RotateCcw, Home, Trophy, Maximize, Volume2 } from 'lucide-react';
-import { COMPETITION_SPEECH_RATE } from '../../data/sets';
-import { getBestVoice, speakWithVoice } from '../../utils/speech';
+import { playWordVO } from '../../utils/audioPlayer';
 
 // Confetti Component
 const Confetti = () => {
@@ -86,9 +85,9 @@ const toggleFullscreen = () => {
   }
 };
 
-// Speak a word using high-quality voice via shared utility
+// Play a word using pre-recorded VO
 const speakWord = (word) => {
-  speakWithVoice(word, { rate: COMPETITION_SPEECH_RATE });
+  playWordVO(word);
 };
 
 const SummaryPop = ({ results, onRestart, onHome }) => {
@@ -100,13 +99,6 @@ const SummaryPop = ({ results, onRestart, onHome }) => {
   const listRef = useRef(null);
   const animationStartedRef = useRef(false);
 
-  // Load voices on mount
-  useEffect(() => {
-    window.speechSynthesis.getVoices();
-    window.speechSynthesis.onvoiceschanged = () => {
-      window.speechSynthesis.getVoices();
-    };
-  }, []);
 
   // Initialize resultsData from props on mount
   useEffect(() => {

@@ -1,7 +1,6 @@
 import { Container, Graphics, Text, TextStyle, Sprite as PixiSprite } from 'pixi.js';
 import { playLetterSound } from '../../../utils/letterSounds';
-import { playVO, delay } from '../../../utils/audioPlayer';
-import { speakAsync } from '../../../utils/speech';
+import { playVO, delay, playWordVO, stopWordVO } from '../../../utils/audioPlayer';
 import { triggerCelebration, triggerBurstAt } from '../../../utils/confetti';
 
 /**
@@ -142,7 +141,7 @@ export async function runBubbleSpellTutorial(cancelled, ctx, { isHelpReplay = fa
   if (cancelled()) { cleanup(); return; }
   await delay(200);
   if (cancelled()) { cleanup(); return; }
-  await speakAsync(tutWord.word, { rate: 0.75 });
+  await playWordVO(tutWord.word);
   if (cancelled()) { cleanup(); return; }
   await delay(400);
   if (cancelled()) { cleanup(); return; }
@@ -204,7 +203,7 @@ export async function runBubbleSpellTutorial(cancelled, ctx, { isHelpReplay = fa
   // Celebration for completed word
   if (spelledSoFar.length === tutLetters.length) {
     triggerCelebration();
-    await speakAsync(tutWord.word, { rate: 0.85 });
+    await playWordVO(tutWord.word);
     if (cancelled()) { cleanup(); return; }
     await delay(1000);
   }

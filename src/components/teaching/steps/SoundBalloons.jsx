@@ -4,7 +4,6 @@ import { Volume2 } from 'lucide-react';
 import Lottie from 'lottie-react';
 import { Application, Graphics, Text, TextStyle, Container, Sprite as PixiSprite, Texture, Assets } from 'pixi.js';
 import { playLetterSound, getLetterSoundUrl, getDisplaySound } from '../../../utils/letterSounds';
-import { speakWithVoice } from '../../../utils/speech';
 import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
 import { triggerCelebration, triggerSmallBurst, triggerBurstAt } from '../../../utils/confetti';
 import { createSkyBackground, SkyOverlay } from '../../themes/SkyBackground';
@@ -162,12 +161,7 @@ const SoundBalloons = ({ group, onComplete, onReady, active }) => {
   }, []);
 
   const announceSound = useCallback((sound) => {
-    const url = getLetterSoundUrl(sound);
-    if (url) {
-      setTimeout(() => playLetterSound(sound).catch(() => { }), 300);
-    } else {
-      setTimeout(() => speakWithVoice(sound, { rate: 0.7 }), 300);
-    }
+    setTimeout(() => playLetterSound(sound).catch(() => { }), 300);
   }, []);
 
   const announceWithVO = useCallback(async (sound) => {

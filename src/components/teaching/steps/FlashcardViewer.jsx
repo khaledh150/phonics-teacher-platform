@@ -2,9 +2,8 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Volume2 } from 'lucide-react';
 import { getWordImage } from '../../../utils/assetHelpers';
-import { speakWithVoice } from '../../../utils/speech';
 import { playBlendingSequence, wordToPhonemes, wordToCharPhonemeMap } from '../../../utils/letterSounds';
-import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
+import { playVO, stopVO, delay, playWordVO, stopWordVO } from '../../../utils/audioPlayer';
 import THAI_TRANSLATIONS from '../../../data/thaiTranslations';
 
 // Shared glass-arrow navigation overlay with swipe + tap-to-reveal
@@ -242,24 +241,13 @@ const FlashcardViewer = ({ group, onComplete, onReady, active }) => {
       try {
         await playBlendingSequence(
           displayText,
-          (word) => {
-            speakWithVoice(word, {
-              rate: 0.85,
-              onEnd: () => {
-                clearTimeout(safetyTimer);
-                setIsSpeaking(false);
-                setIsBlending(false);
-                setTimeout(() => setActivePhoneme(null), 600);
-                safeResolve();
-              },
-              onError: () => {
-                clearTimeout(safetyTimer);
-                setIsSpeaking(false);
-                setIsBlending(false);
-                setActivePhoneme(null);
-                safeResolve();
-              },
-            });
+          async (word) => {
+            await playWordVO(word);
+            clearTimeout(safetyTimer);
+            setIsSpeaking(false);
+            setIsBlending(false);
+            setTimeout(() => setActivePhoneme(null), 600);
+            safeResolve();
           },
           (phonemeIdx) => {
             setActivePhoneme(phonemeIdx);
@@ -281,7 +269,7 @@ const FlashcardViewer = ({ group, onComplete, onReady, active }) => {
     if (blendingRef.current) return;
     clearTimeout(reminderRef.current);
     stopVO();
-    window.speechSynthesis.cancel();
+    stopWordVO();
     blendingRef.current = true;
     cancelledRef.current = false;
 
@@ -359,13 +347,13 @@ const FlashcardViewer = ({ group, onComplete, onReady, active }) => {
       clearTimeout(autoAdvanceTimerRef.current);
       stopVO();
       clearReminder();
-      window.speechSynthesis.cancel();
+      stopWordVO();
     };
   }, [active, currentIndex, handleBlendAndSpeak, clearReminder]);
 
   useEffect(() => {
     return () => {
-      window.speechSynthesis.cancel();
+      stopWordVO();
       clearTimeout(autoAdvanceTimerRef.current);
       if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
     };
@@ -376,7 +364,7 @@ const FlashcardViewer = ({ group, onComplete, onReady, active }) => {
     clearReminder();
     clearTimeout(autoAdvanceTimerRef.current);
     stopVO();
-    window.speechSynthesis.cancel();
+    stopWordVO();
     playWhoosh();
     if (currentIndex === words.length - 1) {
       onComplete();
@@ -391,7 +379,7 @@ const FlashcardViewer = ({ group, onComplete, onReady, active }) => {
     clearReminder();
     clearTimeout(autoAdvanceTimerRef.current);
     stopVO();
-    window.speechSynthesis.cancel();
+    stopWordVO();
     playWhoosh();
     if (currentIndex > 0) {
       setCurrentIndex([currentIndex - 1, -1]);

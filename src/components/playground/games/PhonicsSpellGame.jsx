@@ -14,7 +14,7 @@ import GameControlBar from '../../shared/GameControlBar';
 import GameResultCard from '../../shared/GameResultCard';
 import GummyButton from '../../shared/GummyButton';
 import GlassHUD from '../../shared/GlassHUD';
-import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
+import { playVO, stopVO, delay, playWordVO, stopWordVO } from '../../../utils/audioPlayer';
 import { playLetterSound, stopAllAudio, getDisplaySound } from '../../../utils/letterSounds';
 import { triggerCelebration, triggerSmallBurst } from '../../../utils/confetti';
 import { playEncouragement } from '../../../utils/encouragement';
@@ -197,16 +197,8 @@ async function speakWord(text) {
       });
     } catch (e) { console.warn('[PhonicsSpellGame] Azure TTS failed:', e); }
   }
-  // Fallback to browser TTS
-  return new Promise((resolve) => {
-    window.speechSynthesis.cancel();
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.rate = 0.75;
-    const timer = setTimeout(resolve, 4000);
-    utter.onend = () => { clearTimeout(timer); resolve(); };
-    utter.onerror = () => { clearTimeout(timer); resolve(); };
-    window.speechSynthesis.speak(utter);
-  });
+  // Fallback to pre-recorded VO
+  return playWordVO(text);
 }
 
 // ─── Azure Speech Recognition + Match ───────────────────────────────────────
@@ -451,7 +443,7 @@ const PhonicsSpellGameInner = ({ group, onBack, onPlayAgain }) => {
     loadSpeechSDK();
     return () => {
       mountedRef.current = false;
-      window.speechSynthesis.cancel();
+      stopWordVO();
       stopAllAudio();
       stopVO();
     };
@@ -629,7 +621,7 @@ const PhonicsSpellGameInner = ({ group, onBack, onPlayAgain }) => {
   }, [listening, currentWord, currentWordScores, sessionResults, wordIndex, sessionWords.length, showFeedbackMsg]);
 
   const handleBack = () => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopAllAudio();
     stopVO();
     onBack();

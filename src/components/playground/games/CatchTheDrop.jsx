@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Maximize } from 'lucide-react';
 import { Application, Graphics, Text, TextStyle, Container, Sprite as PixiSprite, Texture, Assets } from 'pixi.js';
 import { playLetterSound, stopAllAudio } from '../../../utils/letterSounds';
-import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
+import { playVO, stopVO, delay, stopWordVO } from '../../../utils/audioPlayer';
 import { triggerCelebration, triggerSmallBurst } from '../../../utils/confetti';
 import { playEncouragement } from '../../../utils/encouragement';
 import confetti from 'canvas-confetti';
@@ -673,7 +673,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
       destroyed = true;
       destroyedRef.current = true;
       mountedRef.current = false;
-      window.speechSynthesis.cancel();
+      stopWordVO();
       stopAllAudio();
       stopVO();
       clearTimeout(idleRef.current);
@@ -706,7 +706,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
     instructionLockRef.current = true;
     clearTimeout(idleRef.current);
     clearInterval(spawnIntervalRef.current);
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopVO();
 
     // Clear existing items from stage
@@ -812,7 +812,7 @@ const CatchTheDropGame = ({ group, onBack, onPlayAgain }) => {
   }, [pixiReady]);
 
   const handleBack = () => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopAllAudio();
     stopVO();
     clearTimeout(idleRef.current);

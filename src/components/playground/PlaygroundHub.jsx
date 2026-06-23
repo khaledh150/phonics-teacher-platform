@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Lock, Maximize } from 'lucide-react';
-import { playVO, stopVO, delay } from '../../utils/audioPlayer';
+import { playVO, stopVO, delay, stopWordVO } from '../../utils/audioPlayer';
 import { stopAllAudio } from '../../utils/letterSounds';
 import frogSheet from '../../assets/characters/set-cute-drawing-frogs.svg';
 import hotairBalloonImg from '../../assets/backgrounds/sky/hotair-balloon.webp';
@@ -165,7 +165,7 @@ const PlaygroundHub = ({ group, onBack, onSelectGame }) => {
     return () => {
       cancelled = true;
       mountedRef.current = false;
-      window.speechSynthesis.cancel();
+      stopWordVO();
       stopAllAudio();
       stopVO();
     };
@@ -180,7 +180,7 @@ const PlaygroundHub = ({ group, onBack, onSelectGame }) => {
   };
 
   const handleBack = () => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopAllAudio();
     stopVO();
     onBack();

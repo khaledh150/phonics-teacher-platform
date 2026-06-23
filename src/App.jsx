@@ -6,7 +6,7 @@ import SplashScreen from './components/shared/SplashScreen';
 import CurriculumMap from './components/curriculum/CurriculumMap';
 import TeachingFlow from './components/teaching/TeachingFlow';
 import LandscapePrompt from './components/shared/LandscapePrompt';
-import { playVO } from './utils/audioPlayer';
+import { playVO, stopWordVO } from './utils/audioPlayer';
 import { preloadGroup } from './utils/assetHelpers';
 
 // Lazy-loaded game components — only fetched when user enters a game
@@ -42,7 +42,7 @@ const preloadAllGames = () => {
 };
 
 // Increment this manually when you want to force a cache reset on deployed versions
-const APP_VERSION = "2.5.74";
+const APP_VERSION = "2.5.75";
 
 // Keys to preserve across version upgrades (progress data survives cache busts)
 const PRESERVED_KEYS = ['last_installed_version', 'wp_progress'];
@@ -102,21 +102,21 @@ function App() {
   }, []);
 
   const handleSelectGroup = useCallback((group) => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     preloadGroup(group.id);
     setSelectedGroup(group);
     setScreen('teaching');
   }, []);
 
   const handleExitTeaching = useCallback(() => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     setSelectedGroup(null);
     setReturnToGroups(true);
     setScreen('curriculum');
   }, []);
 
   const handleOpenPlayground = useCallback((group) => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     preloadGroup(group.id);
     preloadAllGames();
     setSelectedGroup(group);
@@ -125,7 +125,7 @@ function App() {
   }, []);
 
   const handleExitPlayground = useCallback(() => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     setSelectedGroup(null);
     setActiveGame(null);
     setReturnToGroups(true);

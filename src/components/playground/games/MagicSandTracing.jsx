@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Maximize, Volume2 } from 'lucide-react';
-import { playVO, stopVO, delay, playLetterVO } from '../../../utils/audioPlayer';
+import { playVO, stopVO, delay, playLetterVO, stopWordVO } from '../../../utils/audioPlayer';
 import { stopAllAudio, playLetterSound, getDisplaySound } from '../../../utils/letterSounds';
 import { triggerSmallBurst, triggerCelebration } from '../../../utils/confetti';
 import { playEncouragement } from '../../../utils/encouragement';
@@ -347,7 +347,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
     return () => {
       cancelled = true;
       mountedRef.current = false;
-      window.speechSynthesis.cancel();
+      stopWordVO();
       stopAllAudio(); stopVO();
       clearTimeout(idleRef.current);
       clearTimeout(crabIdleTimerRef.current);
@@ -536,7 +536,7 @@ const MagicSandTracingGame = ({ group, onBack, onPlayAgain }) => {
   }, [startIdleReminder]);
 
   const handleBack = () => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopAllAudio(); stopVO();
     clearTimeout(idleRef.current);
     onBack();

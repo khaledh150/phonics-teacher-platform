@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Maximize } from 'lucide-react';
-import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
+import { playVO, stopVO, delay, playWordVO, stopWordVO } from '../../../utils/audioPlayer';
 import { stopAllAudio } from '../../../utils/letterSounds';
-import { speakAsync } from '../../../utils/speech';
 import { triggerSmallBurst, triggerCelebration } from '../../../utils/confetti';
 import { playEncouragement } from '../../../utils/encouragement';
 import { getWordImage } from '../../../utils/assetHelpers';
@@ -116,7 +115,7 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
     return () => {
       cancelled = true;
       mountedRef.current = false;
-      window.speechSynthesis.cancel();
+      stopWordVO();
       stopAllAudio();
       stopVO();
       clearTimeout(idleRef.current);
@@ -191,7 +190,7 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
           if (!mountedRef.current) return;
 
           // Speak the word
-          await speakAsync(first.word, { rate: 0.85 });
+          await playWordVO(first.word);
           if (!mountedRef.current) return;
 
           isCheckingRef.current = false;
@@ -235,7 +234,7 @@ const BouncyMemoryGame = ({ group, onBack, onPlayAgain }) => {
 
   // --- Back handler ---
   const handleBack = () => {
-    window.speechSynthesis.cancel();
+    stopWordVO();
     stopAllAudio();
     stopVO();
     clearTimeout(idleRef.current);

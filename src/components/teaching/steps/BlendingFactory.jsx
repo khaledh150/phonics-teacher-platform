@@ -2,9 +2,8 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { Volume2 } from 'lucide-react';
 import { playLetterSound, getLetterSoundUrl, wordToPhonemes, wordToCharPhonemeMap } from '../../../utils/letterSounds';
-import { speakWithVoice } from '../../../utils/speech';
 import { getWordImage } from '../../../utils/assetHelpers';
-import { playVO, stopVO, delay } from '../../../utils/audioPlayer';
+import { playVO, stopVO, delay, playWordVO, stopWordVO } from '../../../utils/audioPlayer';
 import { triggerCelebration, triggerSmallBurst } from '../../../utils/confetti';
 import { playCompletionEncouragement } from '../../../utils/encouragement';
 
@@ -184,7 +183,7 @@ const BlendingFactory = ({ group, onComplete, onReady, active }) => {
 
   // Speak the full word (for the speaker button)
   const speakWord = useCallback(() => {
-    speakWithVoice(currentWord.word, { rate: 0.8 });
+    playWordVO(currentWord.word);
   }, [currentWord.word]);
 
   // VO on mount - sequenced (no auto dictation — user must tap speaker)
@@ -291,26 +290,17 @@ const BlendingFactory = ({ group, onComplete, onReady, active }) => {
     await new Promise(r => setTimeout(r, 150));
     if (!blendingRef.current) return;
 
-    speakWithVoice(currentWord.word, {
-      rate: 0.8,
-      onEnd: async () => {
-        if (!blendingRef.current) return;
-        setWordDone(true);
-        await delay(300);
-        if (!blendingRef.current) return;
-        await playCompletionEncouragement();
-        await delay(1500);
-        if (!blendingRef.current) return;
-        autoAdvance();
-      },
-      onError: async () => {
-        if (!blendingRef.current) return;
-        setWordDone(true);
-        await delay(1500);
-        if (!blendingRef.current) return;
-        autoAdvance();
-      },
-    });
+    try {
+      await playWordVO(currentWord.word);
+    } catch { /* silent */ }
+    if (!blendingRef.current) return;
+    setWordDone(true);
+    await delay(300);
+    if (!blendingRef.current) return;
+    await playCompletionEncouragement();
+    await delay(1500);
+    if (!blendingRef.current) return;
+    autoAdvance();
   };
 
   const autoAdvance = () => {
