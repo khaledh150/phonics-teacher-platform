@@ -11,7 +11,9 @@ import sys
 import argparse
 from elevenlabs.client import ElevenLabs
 
-API_KEY = "sk_01d11484ad68f03055bafd16de4472275106455135e9751b"
+API_KEY = os.environ.get("ELEVENLABS_API_KEY")
+if not API_KEY:
+    sys.exit("ELEVENLABS_API_KEY environment variable required")
 VOICE_ID = "XJ2fW4ybq7HouelYYGcL"  # Cherry Twinkle
 MODEL_ID = "eleven_v3"
 OUTPUT_FORMAT = "mp3_44100_32"
